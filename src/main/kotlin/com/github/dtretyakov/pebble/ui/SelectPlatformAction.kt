@@ -13,7 +13,7 @@ import com.intellij.openapi.actionSystem.Toggleable
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.ex.CustomComponentAction
 import com.intellij.openapi.actionSystem.impl.ActionButtonWithText
-import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -21,7 +21,6 @@ import com.intellij.util.ui.JBDimension
 import com.intellij.util.ui.JBInsets
 import com.intellij.util.ui.JBUI
 import java.awt.Insets
-import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.SwingConstants
 
@@ -45,7 +44,7 @@ class SelectPlatformAction : ToggleAction(), CustomComponentAction, DumbAware {
     override fun update(e: AnActionEvent) {
         super.update(e)
         val project = e.project
-        val root = project?.let { ReadAction.compute<Path?, RuntimeException> { PebbleProject.getInstance(it).primaryRoot() } }
+        val root = project?.let { runReadActionBlocking { PebbleProject.getInstance(it).primaryRoot() } }
         e.presentation.isEnabledAndVisible = root != null
         if (project == null || root == null) return
 
@@ -72,7 +71,7 @@ class SelectPlatformAction : ToggleAction(), CustomComponentAction, DumbAware {
 
     private fun actions(project: Project): ActionGroup? {
         val model = PebbleProject.getInstance(project)
-        val root = ReadAction.compute<Path?, RuntimeException> { model.primaryRoot() } ?: return null
+        val root = runReadActionBlocking { model.primaryRoot() } ?: return null
         return DefaultActionGroup(model.platforms(root).map { Select(project, it) })
     }
 

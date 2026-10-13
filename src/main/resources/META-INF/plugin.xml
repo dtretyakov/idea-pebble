@@ -51,6 +51,14 @@
                 anchor="after"
                 relative-to-action="RunToolbarTopLevelExecutorActionGroup"/>
         </action>
+        <action
+            id="Pebble.Build"
+            class="com.github.dtretyakov.pebble.ui.BuildAction"
+            text="Build Pebble App"
+            description="Builds the app for every platform it targets, with pebble build"
+            icon="AllIcons.Actions.Compile">
+            <add-to-group group-id="BuildMenu" anchor="first"/>
+        </action>
         <group id="Pebble.Tools" text="Pebble" popup="true" icon="/icons/pebble.svg">
             <action
                 id="Pebble.CheckEnvironment"

@@ -124,6 +124,7 @@ class SelfCheckStarter : ModernApplicationStarter() {
         val MENU_MEMBERSHIP = mapOf(
             "ToolsMenu" to listOf("Pebble.Tools"),
             "RunToolbarMainActionGroup" to listOf("Pebble.SelectPlatform"),
+            "BuildMenu" to listOf("Pebble.Build"),
             "Pebble.Tools" to listOf("Pebble.CheckEnvironment"),
         )
     }

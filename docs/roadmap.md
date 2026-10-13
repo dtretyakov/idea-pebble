@@ -23,33 +23,39 @@ Done when a developer can create or open a project, write code with SDK completi
 it in the emulator inside the IDE, install it on a watch and read its logs without typing a CLI
 command.
 
-1. **Project and SDK.** Install, activate and remove SDKs from Settings. New Project wizard over
-   `pebble new-project` — `newProjectWizard.generator` in IDEA, `directoryProjectGenerator` in
-   CLion and WebStorm. A JSON Schema for `package.json`'s `pebble` section
-   (`JsonSchemaProviderFactory`): completion and validation of project configuration with no model
-   of our own. A warning when `targetPlatforms` asks for Alloy on a platform without it.
-2. **Active platform.** A selector in the run widget, stored in project settings, read by
-   everything below.
-3. **C code insight.** `pebble compile-commands --platform <active>` after configure and on a
-   platform switch. CLion: its own engine. IDEA and WebStorm: clangd via LSP4IJ, with
-   `--query-driver` pointing at the SDK's `arm-none-eabi-gcc` so system headers resolve. SDK
-   headers under External Libraries (`AdditionalLibraryRootsProvider`).
-4. **Alloy code insight.** `toolchain/moddable/typings` as library roots, for the IDE's own
-   JavaScript and TypeScript support.
-5. **Build.** `pebble build` into the Build tool window (`BuildViewManager`), gcc and waf
-   diagnostics as file messages with navigation.
-6. **Run.** A Pebble run configuration (`configurationType`, `runConfigurationProducer`): target
-   Emulator, Phone (IP), CloudPebble or ADB; logs and debug build as options; build before
-   launch. The run process is `pebble install … --logs`, so the console *is* the log, Stop stops
-   it and Rerun rebuilds and reinstalls.
-7. **The emulator in the IDE.** A tool window showing the emulator's screen from QEMU's VNC
-   server, live; Back, Up, Select, Down as buttons and keys; touch on emery and gabbro; screenshot
-   to PNG from the frame already on screen; stop and wipe.
-8. **Physical watches.** Reachability of the phone's Developer Connection before installing,
-   pebble-tool's own error when installing fails, screenshots through `pebble screenshot --phone`.
-9. **Logs.** Levels recovered from pebble-tool's colours, a level filter, `file.c:123>` as a link
-   to the source (`ConsoleFilterProvider`), and saving a log to a file.
-10. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
+Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by a live test:
+
+- [x] **New project.** `pebble new-project` behind IDEA's wizard (`newProjectWizard.generator`) and
+  CLion's and WebStorm's (`directoryProjectGenerator`): C or Alloy, watchapp or watchface,
+  PebbleKit JS, a worker.
+- [x] **SDKs.** Install the latest and activate the newest from Settings and from the editor banner.
+- [x] **Active platform.** A selector in the run widget, stored in the workspace, read by the build,
+  the compile database, runs and the emulator.
+- [x] **C code insight.** `pebble compile-commands --platform <active>` on a switch and after a
+  build. CLion reads it natively; IDEA and WebStorm get clangd through LSP4IJ — an optional
+  dependency — with a `--query-driver` glob over the SDKs' gcc so newlib's headers resolve. The
+  active platform's headers under External Libraries.
+- [x] **Alloy typings** under External Libraries for the IDE's JavaScript and TypeScript support.
+- [x] **Build.** `pebble build` into the Build tool window, gcc and linker diagnostics grouped by
+  platform with navigation, waf's steps as progress.
+- [x] **Run.** A Pebble run configuration — Emulator, Phone, CloudPebble or adb — with the build as
+  a before-launch task and `pebble install … --logs` on a pseudo-terminal, so the console shows
+  levels in pebble-tool's colours and log locations link to the source. Made when a project opens.
+- [x] **The emulator in the IDE.** A tool window with the live screen over VNC, the four buttons as
+  buttons and arrow keys, clicks as touches on emery and gabbro, screenshots, and stopping it.
+
+Still to do:
+
+1. **package.json.** A JSON Schema for the `pebble` section (`JsonSchemaProviderFactory`), so
+   project configuration completes and validates with no model of our own. Needs a look at how it
+   combines with the npm schema that JavaScript-enabled IDEs already apply to `package.json`.
+2. **Physical watches.** Reachability of the phone's Developer Connection before installing,
+   screenshots through `pebble screenshot --phone`.
+3. **Logs.** A level filter (the levels are only colours, so the filter reads them back), and
+   saving a log to a file.
+4. **SDKs.** Choosing among installed SDKs and removing one, beyond installing and activating.
+5. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
+6. **Touch.** Confirm that VNC pointer events reach emery's and gabbro's touch screens.
 
 ## Phase 2 — Advanced development experience (P1)
 

@@ -7,17 +7,20 @@ The plugin drives the official [Pebble SDK](https://developer.repebble.com/sdk/)
 rather than replacing them: the build is `pebble build`, the emulator is the SDK's, and code
 insight comes from the IDE's own engines fed with the SDK's headers and typings.
 
-**Status: early.** This version finds pebble-tool and the SDK, checks that everything a build
-needs is installed, and installs or activates an SDK when it is missing. Code insight, building,
-the emulator inside the IDE, installing on a watch and logs are next — see the
-[roadmap](docs/roadmap.md).
+**Status: early, and working.** New projects, building, running in the emulator — whose screen
+and buttons are in the IDE — or on a watch, logs, and C code insight for the platform you choose.
+What is still to come is in the [roadmap](docs/roadmap.md).
 
 ## Getting started
 
 1. Install pebble-tool: `uv tool install pebble-tool`.
-2. Open a folder whose `package.json` has a `pebble` section — `pebble new-project` makes one.
+2. **New Project | Pebble**, or open a folder whose `package.json` has a `pebble` section.
 3. If anything is missing the editor says so and offers to fix it. **Tools | Pebble | Check
    Environment** shows the whole checklist.
+4. Pick a platform beside the Run button and press Run. The emulator appears in the **Pebble
+   Emulator** tool window; the app's logs in the Run console.
+
+For C in IntelliJ IDEA or WebStorm, install the LSP4IJ plugin and clangd; CLion needs neither.
 
 On Windows the Pebble SDK runs only inside WSL, which this version does not drive yet.
 

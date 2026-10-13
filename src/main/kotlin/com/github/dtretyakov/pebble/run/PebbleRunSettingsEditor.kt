@@ -4,7 +4,8 @@ import com.github.dtretyakov.pebble.project.PebbleProject
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
-import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
+import com.intellij.ui.SimpleListCellRenderer
+import javax.swing.JList
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
@@ -25,7 +26,12 @@ class PebbleRunSettingsEditor(private val project: Project) : SettingsEditor<Peb
         val model = PebbleProject.getInstance(project)
         val platforms = model.primaryRoot()?.let { model.platforms(it) }.orEmpty()
         (listOf(ACTIVE) + platforms).forEach(platform::addItem)
-        platform.renderer = textListCellRenderer<String>("") { if (it == ACTIVE) "The one chosen beside Run" else it }
+        // A subclass rather than the DSL's renderer builders, which are internal API in 2026.1.
+        platform.renderer = object : SimpleListCellRenderer<String>() {
+            override fun customize(list: JList<out String>, value: String?, index: Int, selected: Boolean, focused: Boolean) {
+                text = if (value == ACTIVE) "The one chosen beside Run" else value
+            }
+        }
     }
 
     override fun resetEditorFrom(configuration: PebbleRunConfiguration) {

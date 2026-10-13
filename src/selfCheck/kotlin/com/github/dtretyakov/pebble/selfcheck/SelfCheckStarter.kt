@@ -12,6 +12,10 @@ import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider
 import com.github.dtretyakov.pebble.run.PebbleRunConfigurationType
 import com.github.dtretyakov.pebble.ui.MissingSdkNotification
+import com.github.dtretyakov.pebble.ui.wizard.PebbleDirectoryProjectGenerator
+import com.intellij.ide.wizard.GeneratorNewProjectWizard
+import com.intellij.openapi.extensions.ExtensionPointName
+import com.intellij.platform.DirectoryProjectGenerator
 import com.intellij.execution.BeforeRunTaskProvider
 import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.ide.plugins.DynamicPlugins
@@ -73,6 +77,14 @@ class SelfCheckStarter : ModernApplicationStarter() {
             problems += "the Pebble Emulator tool window is not registered"
         } else {
             println("[self-check] tool window: ${EmulatorToolWindowFactory.ID}")
+        }
+
+        if (GeneratorNewProjectWizard.EP_NAME.extensionList.none { it.id == "Pebble" }) {
+            problems += "the New Project wizard is not registered"
+        }
+        val generators = ExtensionPointName<DirectoryProjectGenerator<*>>("com.intellij.directoryProjectGenerator")
+        if (generators.extensionList.none { it is PebbleDirectoryProjectGenerator }) {
+            problems += "the directory project generator for CLion and WebStorm is not registered"
         }
 
         if (AdditionalLibraryRootsProvider.EP_NAME.extensionList.none { it is PebbleLibraryProvider }) {

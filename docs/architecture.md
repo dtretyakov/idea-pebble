@@ -17,7 +17,7 @@ pebble-tool, or in the IDE — and the plugin's job is to find those things and 
 | Running, installing, logs | `pebble install --emulator P \| --phone IP \| --cloudpebble \| --adb --logs` | the run configuration's process and console |
 | The emulator's screen | QEMU's VNC server (`pebble install --vnc`) | a small RFB client: frames in, buttons and touches out |
 | Emulator controls | `pebble emu-*`, `screenshot`, `kill`, `wipe` | command line |
-| Debugging C | `arm-none-eabi-gdb` from the SDK's toolchain | DAP through LSP4IJ, if this gdb speaks it (see the roadmap) |
+| Debugging C | `arm-none-eabi-gdb` from the SDK's toolchain | not yet: the SDK's gdb has no Python, so no DAP (see the roadmap) |
 | Debugging Alloy | `xsbug` from the SDK's toolchain | started by `pebble install` at first; later a debug process of our own over its protocol |
 
 Nothing from the SDK is redistributed: the plugin finds what the user installed with pebble-tool
@@ -57,19 +57,15 @@ longer needed.
 ## Layout
 
 ```
-sdk/        finding pebble-tool, its data directory, installed SDKs and platforms — no IDE API
-project/    what a Pebble project is, settings, the environment checklist, running pebble-tool
-ui/         the settings page, the missing SDK banner, actions
-```
-
-Arriving with the roadmap, in this shape:
-
-```
-lsp/        clangd through LSP4IJ, outside CLion
+sdk/        finding pebble-tool, its data directory, SDKs, platforms, clangd — no IDE API
+project/    what a Pebble project is, settings, the active platform, the environment checklist,
+            the compile database, new projects, running pebble-tool
+build/      pebble build into the Build tool window, and reading its output
+run/        the run configuration, the before-launch build, the log console and its links
+emulator/   pebble-tool's record of running emulators, the RFB client, the tool window
+lsp/        clangd through LSP4IJ, outside CLion — loaded only where LSP4IJ is installed
 library/    SDK headers and Alloy typings under External Libraries
-build/      pebble build into the Build tool window
-run/        the run configuration, its console and log filters
-emulator/   emulator processes, the RFB client and the tool window
+ui/         settings, the platform selector, the missing SDK banner, the new project wizard
 ```
 
 `sdk/` has no IntelliJ API in it on purpose: it is a set of functions of a directory tree, which is

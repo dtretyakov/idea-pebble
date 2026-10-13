@@ -37,6 +37,9 @@
         <editorNotificationProvider
             implementation="com.github.dtretyakov.pebble.ui.MissingSdkNotification"/>
 
+        <newProjectWizard.generator implementation="com.github.dtretyakov.pebble.ui.wizard.PebbleNewProjectWizard"/>
+        <directoryProjectGenerator implementation="com.github.dtretyakov.pebble.ui.wizard.PebbleDirectoryProjectGenerator"/>
+
         <configurationType implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurationType"/>
         <runConfigurationProducer implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurationProducer"/>
         <stepsBeforeRunProvider implementation="com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider"/>

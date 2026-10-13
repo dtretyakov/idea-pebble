@@ -34,6 +34,11 @@
             instance="com.github.dtretyakov.pebble.ui.PebbleConfigurable"/>
         <editorNotificationProvider
             implementation="com.github.dtretyakov.pebble.ui.MissingSdkNotification"/>
+
+        <configurationType implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurationType"/>
+        <runConfigurationProducer implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurationProducer"/>
+        <stepsBeforeRunProvider implementation="com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider"/>
+        <postStartupActivity implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurations"/>
     </extensions>
 
     <actions>

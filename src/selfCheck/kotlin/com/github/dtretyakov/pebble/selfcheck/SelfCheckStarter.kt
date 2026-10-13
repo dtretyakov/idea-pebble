@@ -2,7 +2,11 @@ package com.github.dtretyakov.pebble.selfcheck
 
 import com.github.dtretyakov.pebble.project.PebbleEnvironment
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider
+import com.github.dtretyakov.pebble.run.PebbleRunConfigurationType
 import com.github.dtretyakov.pebble.ui.MissingSdkNotification
+import com.intellij.execution.BeforeRunTaskProvider
+import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.ide.plugins.DynamicPlugins
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.actionSystem.ActionManager
@@ -44,6 +48,18 @@ class SelfCheckStarter : ModernApplicationStarter() {
             problems += "the settings page is not registered, so Check Environment opens nothing"
         } else {
             println("[self-check] settings page: ${configurable.displayName} under ${configurable.parentId}")
+        }
+
+        val runType = ConfigurationType.CONFIGURATION_TYPE_EP.extensionList.firstOrNull { it is PebbleRunConfigurationType }
+        if (runType == null) {
+            problems += "the Pebble run configuration type is not registered"
+        } else {
+            println("[self-check] run configuration: ${runType.displayName}")
+        }
+        if (BeforeRunTaskProvider.EP_NAME.getExtensions(ProjectManager.getInstance().defaultProject)
+                .none { it is PebbleBuildBeforeRunTaskProvider }
+        ) {
+            problems += "the Build Pebble app before-launch task is not registered"
         }
 
         if (EditorNotificationProvider.EP_NAME.getExtensions(ProjectManager.getInstance().defaultProject)

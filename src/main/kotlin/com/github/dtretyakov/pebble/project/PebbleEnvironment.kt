@@ -80,7 +80,7 @@ object PebbleEnvironment {
                 when {
                     current != null -> Item(
                         Concern.SDK, "SDK", Status.READY,
-                        listOfNotNull(current.version, current.channel?.takeIf { it != "release" }).joinToString(" "),
+                        listOfNotNull(current.version, current.channel?.takeIf { it.isNotBlank() && it != "release" }).joinToString(" "),
                     )
                     sdks.installed.isNotEmpty() -> Item(
                         Concern.SDK, "SDK", Status.MISSING,

@@ -17,6 +17,9 @@ The emulator on Linux needs glibc 2.38 or later. Windows is supported only insid
 `pebble` asks no questions on the way: the analytics prompt of the original SDK is disabled, so
 every command the plugin runs can run without a terminal.
 
+On Python 3.12 and later every `pebble` command starts by printing a screenful of `SyntaxWarning`s
+from libpebble2's docstrings to stderr. The plugin runs pebble-tool with `PYTHONWARNINGS=ignore`.
+
 ## Where things are
 
 The data directory is `get_persist_dir()` in pebble-tool:
@@ -73,6 +76,14 @@ Sources: `src/c/` for C, `src/pkjs/` for PebbleKit JS on the phone, `src/embedde
 The bundle is `build/<directory name>.pbw` and each platform's ELF is
 `build/<platform>/pebble-app.elf`. Alloy sources are compiled per platform by `mcrun` first.
 
+Diagnostics are gcc's own, with paths relative to `build/`, and `-Werror` is on:
+
+```
+../src/c/main.c:6:3: error: implicit declaration of function 'foo' [-Wimplicit-function-declaration]
+```
+
+waf stops at the first platform that fails, so one build reports one platform's errors.
+
 `pebble compile-commands --platform P` writes `compile_commands.json` from the waf cache, with the
 absolute path of the SDK's `arm-none-eabi-gcc`. `pebble sdk include-path P` prints the directory
 holding that platform's `pebble.h`.
@@ -85,7 +96,17 @@ ids and the ports of QEMU's Pebble serial, gdb stub, monitor and VNC server, and
 WebSocket. That file is how a second client finds a running emulator.
 
 By default QEMU opens an SDL window. `--vnc` starts it with `-vnc :1` — port 5901 for every
-emulator, so only one can have it at a time — and without the window.
+emulator, so only one can have it at a time — and without the window. It also starts websockify
+on port 6080 for a browser client.
+
+QEMU's VNC server needs no authentication and offers 32-bit true colour. The framebuffer can be
+wider than the watch's screen — 208×228 for emery's 200×228 — with the rest black. Key events are
+the watch's buttons, as in the SDL window: Left is Back, Up is Up, Right is Select, Down is Down.
+
+pypkjs listens on `("", port)`, which gevent opens as IPv6. On a host without IPv6 — some
+containers — it fails with `Address family not supported` and every `pebble install --emulator`
+ends in `Connection refused`, while QEMU itself runs. An upstream fix to bind `0.0.0.0` is the
+remedy.
 
 ## Watches
 
@@ -100,8 +121,12 @@ emulator, so only one can have it at a time — and without the window.
 [14:02:11] pkjs> Hello from the phone
 ```
 
-The level is not in the text: pebble-tool shows it only as a colour (`--color` keeps the colours
-when the output is not a terminal).
+The level is not in the text: pebble-tool shows it only as a colour, and only when its output is
+a terminal. `pebble logs` has `--color` to force it; `pebble install --logs` has not, so the plugin
+runs it on a pseudo-terminal and lets the console render the colours.
+
+Crash reports name the PC and LR symbolised from the app's ELF. PebbleKit JS lines carry a
+source-mapped `./src/pkjs/index.js:3:0` position.
 
 ## Debugging
 
@@ -109,3 +134,6 @@ when the output is not a terminal).
 `<platform>_sdk_debug.elf`, connects to QEMU's gdb stub and adds `build/<platform>/pebble-app.elf`
 at the app's load address. Alloy debugging is `pebble build --debug`, then `pebble install`, which
 starts xsbug and bridges it on `localhost:5002`. Neither has a debug adapter.
+
+The SDK's gdb (xPack GNU Arm Embedded 15.2) is built without Python, so `gdb -i=dap` — gdb's own
+debug adapter — is not available.

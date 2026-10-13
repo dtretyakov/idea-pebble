@@ -78,13 +78,13 @@ emulator and a separate debugger.
 
 Each of these is a short experiment against a real SDK before the feature that depends on it.
 
-- **VNC.** pebble-tool's `--vnc` uses display `:1` (port 5901) for every emulator, so only one can
-  have it. Confirm that VNC key events reach the Pebble buttons and pointer events act as touch.
-  The fallback is the QEMU monitor's `screendump` with `pebble emu-button`; the real fix is a
-  display number option in pebble-tool.
-- **gdb and DAP.** `gdb -i=dap` needs GDB 14 or later built with Python. If the SDK's
-  `arm-none-eabi-gdb` lacks it, C debugging uses CLion's Remote GDB in CLion and the terminal
-  elsewhere.
+- **VNC — confirmed.** Frames arrive as raw 32-bit pixels and key events reach the buttons.
+  Still open: whether pointer events act as touch on emery and gabbro. pebble-tool's `--vnc` uses
+  display `:1` for every emulator, so only one can have it; the fix is a display number option
+  upstream.
+- **gdb and DAP — ruled out.** The SDK's gdb has no Python, so no `-i=dap`. C debugging uses
+  CLion's Remote GDB in CLion and `pebble gdb` elsewhere, until a GDB/MI debug process is worth
+  its code.
 - **CLion and a regenerated compile database.** Confirm that CLion reloads `compile_commands.json`
   when it changes. If it does not, a small optional module on CLion's API, in that one place.
 - **C highlighting outside CLion.** Confirm the bundled TextMate grammar for C is enough to carry

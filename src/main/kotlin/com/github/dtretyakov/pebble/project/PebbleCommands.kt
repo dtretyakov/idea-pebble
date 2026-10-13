@@ -64,10 +64,14 @@ object PebbleCommands {
     /**
      * A command line for pebble-tool with the user's shell environment, so the `node`, `npm` and
      * Python it runs are the ones the user's terminal would find.
+     *
+     * `PYTHONWARNINGS=ignore` because on Python 3.12 and later libpebble2's docstrings produce a
+     * screenful of `SyntaxWarning`s before every command, which would bury its real output.
      */
     fun command(tool: Path, arguments: List<String>, workDirectory: Path? = null): GeneralCommandLine =
         GeneralCommandLine(listOf(tool.toString()) + arguments)
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
+            .withEnvironment("PYTHONWARNINGS", "ignore")
             .withCharset(Charsets.UTF_8)
             .also { if (workDirectory != null) it.withWorkingDirectory(workDirectory) }
 }

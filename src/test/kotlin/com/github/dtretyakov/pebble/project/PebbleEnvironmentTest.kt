@@ -64,6 +64,23 @@ class PebbleEnvironmentTest {
     }
 
     @Test
+    fun `C code insight is only worth knowing, and absent where the IDE has its own`() {
+        val sdk = sdk("4.33.1")
+        sdk.compilerBin.createDirectories()
+        val sdks = PebbleSdks(listOf(sdk), sdk)
+
+        val clion = PebbleEnvironment.check(HostOs.LINUX, tool, "", sdks, node, PebbleEnvironment.CInsight.NATIVE)
+        assertNull(clion.firstOrNull { it.concern == Concern.C_INSIGHT })
+
+        val idea = PebbleEnvironment.check(HostOs.LINUX, tool, "", sdks, node, PebbleEnvironment.CInsight.NO_LSP4IJ)
+        assertNull(PebbleEnvironment.firstProblem(idea))
+        assertEquals(Fix.INSTALL_LSP4IJ, idea.single { it.concern == Concern.C_INSIGHT }.fix)
+
+        val noClangd = PebbleEnvironment.check(HostOs.LINUX, tool, "", sdks, node, PebbleEnvironment.CInsight.NO_CLANGD)
+        assertEquals(Fix.INSTALL_CLANGD, noClangd.single { it.concern == Concern.C_INSIGHT }.fix)
+    }
+
+    @Test
     fun `Windows is one item, not a list of its consequences`() {
         val items = PebbleEnvironment.check(HostOs.WINDOWS, null, "", PebbleSdks.NONE, null)
         assertEquals(listOf(Concern.HOST), items.map { it.concern })

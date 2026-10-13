@@ -35,6 +35,7 @@ kotlin {
 dependencies {
     intellijPlatform {
         intellijIdea(libs.versions.ideaVersion)
+        plugin("com.redhat.devtools.lsp4ij:${libs.versions.lsp4ij.get()}")
         pluginVerifier()
         // Gives the tests a real Project, so the parts that only exist inside an IDE can be
         // exercised rather than only compiled.

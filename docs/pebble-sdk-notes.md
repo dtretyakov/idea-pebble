@@ -85,7 +85,11 @@ Diagnostics are gcc's own, with paths relative to `build/`, and `-Werror` is on:
 waf stops at the first platform that fails, so one build reports one platform's errors.
 
 `pebble compile-commands --platform P` writes `compile_commands.json` from the waf cache, with the
-absolute path of the SDK's `arm-none-eabi-gcc`. `pebble sdk include-path P` prints the directory
+absolute path of the SDK's `arm-none-eabi-gcc` — spelled through the `SDKs/current` link. It
+needs the waf cache for that platform (`build/c4che/P_cache.py`), so it fails before the first
+build. clangd reads the file cleanly when started with `--query-driver` matching that compiler,
+which lets it ask gcc for newlib's headers; the glob has to match the `current` spelling, since
+clangd compares it with the path as text. `pebble sdk include-path P` prints the directory
 holding that platform's `pebble.h`.
 
 ## The emulator

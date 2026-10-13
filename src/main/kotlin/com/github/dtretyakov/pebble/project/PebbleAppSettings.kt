@@ -25,6 +25,9 @@ class PebbleAppSettings : PersistentStateComponent<PebbleAppSettings> {
     /** Path to the `pebble` executable. Empty means "find it". */
     var pebbleToolPath: String = ""
 
+    /** Path to `clangd`, for C outside CLion. Empty means "find it". */
+    var clangdPath: String = ""
+
     override fun getState(): PebbleAppSettings = this
 
     override fun loadState(state: PebbleAppSettings) = XmlSerializerUtil.copyBean(state, this)

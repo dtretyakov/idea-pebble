@@ -24,6 +24,8 @@
       compiled against none of them; build.gradle.kts verifies all three.
     -->
     <depends>com.intellij.modules.platform</depends>
+    <!-- clangd for C outside CLion. Optional: CLion has its own C engine, and nothing else needs it. -->
+    <depends optional="true" config-file="pebble-lsp4ij.xml">com.redhat.devtools.lsp4ij</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Pebble" displayType="BALLOON"/>
@@ -39,7 +41,21 @@
         <runConfigurationProducer implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurationProducer"/>
         <stepsBeforeRunProvider implementation="com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurations"/>
+        <postStartupActivity implementation="com.github.dtretyakov.pebble.project.CompileDatabase$Startup"/>
+        <additionalLibraryRootsProvider implementation="com.github.dtretyakov.pebble.library.PebbleLibraryProvider"/>
     </extensions>
+
+    <projectListeners>
+        <listener
+            class="com.github.dtretyakov.pebble.project.CompileDatabase$Listener"
+            topic="com.github.dtretyakov.pebble.project.PebbleSettings$Listener"/>
+        <listener
+            class="com.github.dtretyakov.pebble.project.CompileDatabase$Listener"
+            topic="com.github.dtretyakov.pebble.build.PebbleBuild$Listener"/>
+        <listener
+            class="com.github.dtretyakov.pebble.library.PebbleLibraryProvider$PlatformListener"
+            topic="com.github.dtretyakov.pebble.project.PebbleSettings$Listener"/>
+    </projectListeners>
 
     <actions>
         <!--

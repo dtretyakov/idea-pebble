@@ -1,9 +1,11 @@
 package com.github.dtretyakov.pebble.project
 
+import com.github.dtretyakov.pebble.sdk.Clangd
 import com.github.dtretyakov.pebble.sdk.HostOs
 import com.github.dtretyakov.pebble.sdk.PebbleSdks
 import com.github.dtretyakov.pebble.sdk.PebbleTool
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
+import com.intellij.util.EnvironmentUtil
 import java.nio.file.Path
 
 /**
@@ -18,10 +20,10 @@ object PebbleEnvironment {
     enum class Status { READY, MISSING }
 
     /** What the plugin can do about a missing item. Null means there is nothing it can do. */
-    enum class Fix { INSTALL_TOOL, INSTALL_SDK, ACTIVATE_SDK }
+    enum class Fix { INSTALL_TOOL, INSTALL_SDK, ACTIVATE_SDK, INSTALL_LSP4IJ, INSTALL_CLANGD }
 
     /** Which prerequisite an item is about, so callers do not match on display text. */
-    enum class Concern { HOST, TOOL, SDK, TOOLCHAIN, NODE }
+    enum class Concern { HOST, TOOL, SDK, TOOLCHAIN, NODE, C_INSIGHT }
 
     data class Item(
         val concern: Concern,
@@ -42,11 +44,33 @@ object PebbleEnvironment {
             configuredTool = PebbleAppSettings.getInstance().pebbleToolPath,
             sdks = service.sdks(),
             node = PathEnvironmentVariableUtil.findExecutableInPathOnAnyOS("node")?.toPath(),
+            cInsight = when {
+                IdeCapabilities.hasNativeC() -> CInsight.NATIVE
+                !IdeCapabilities.hasLsp4ij() -> CInsight.NO_LSP4IJ
+                else -> Clangd.locate(PebbleAppSettings.getInstance().clangdPath, EnvironmentUtil.getValue("PATH"))
+                    ?.let { CInsight.Clangd(it) } ?: CInsight.NO_CLANGD
+            },
         )
     }
 
+    /** How C gets its code insight in this IDE. */
+    sealed interface CInsight {
+        /** CLion: its own engine, reading compile_commands.json. */
+        data object NATIVE : CInsight
+        data object NO_LSP4IJ : CInsight
+        data object NO_CLANGD : CInsight
+        data class Clangd(val path: Path) : CInsight
+    }
+
     /** The rules, as a function of what was found. */
-    fun check(os: HostOs, tool: Path?, configuredTool: String, sdks: PebbleSdks, node: Path?): List<Item> {
+    fun check(
+        os: HostOs,
+        tool: Path?,
+        configuredTool: String,
+        sdks: PebbleSdks,
+        node: Path?,
+        cInsight: CInsight = CInsight.NATIVE,
+    ): List<Item> {
         if (os == HostOs.WINDOWS) {
             // Everything below would be a list of consequences of this one fact.
             return listOf(
@@ -118,6 +142,28 @@ object PebbleEnvironment {
                     )
                 },
             )
+
+            // Worth knowing rather than in the way: builds and runs do not need it.
+            when (cInsight) {
+                CInsight.NATIVE -> Unit
+                CInsight.NO_LSP4IJ -> add(
+                    Item(
+                        Concern.C_INSIGHT, "C code insight", Status.MISSING,
+                        "This IDE has no C engine. Install the LSP4IJ plugin, and clangd, for completion and navigation in C.",
+                        Fix.INSTALL_LSP4IJ, blocking = false,
+                    ),
+                )
+                CInsight.NO_CLANGD -> add(
+                    Item(
+                        Concern.C_INSIGHT, "C code insight", Status.MISSING,
+                        "clangd is not installed; C has no completion or navigation in this IDE.",
+                        Fix.INSTALL_CLANGD, blocking = false,
+                    ),
+                )
+                is CInsight.Clangd -> add(
+                    Item(Concern.C_INSIGHT, "C code insight", Status.READY, "clangd at ${cInsight.path}", blocking = false),
+                )
+            }
         }
     }
 

@@ -1,6 +1,11 @@
 package com.github.dtretyakov.pebble.selfcheck
 
+import com.github.dtretyakov.pebble.library.PebbleLibraryProvider
+import com.github.dtretyakov.pebble.lsp.ClangdServerFactory
+import com.github.dtretyakov.pebble.project.IdeCapabilities
 import com.github.dtretyakov.pebble.project.PebbleEnvironment
+import com.intellij.openapi.roots.AdditionalLibraryRootsProvider
+import com.redhat.devtools.lsp4ij.LanguageServersRegistry
 import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider
 import com.github.dtretyakov.pebble.run.PebbleRunConfigurationType
@@ -60,6 +65,19 @@ class SelfCheckStarter : ModernApplicationStarter() {
                 .none { it is PebbleBuildBeforeRunTaskProvider }
         ) {
             problems += "the Build Pebble app before-launch task is not registered"
+        }
+
+        if (AdditionalLibraryRootsProvider.EP_NAME.extensionList.none { it is PebbleLibraryProvider }) {
+            problems += "the SDK library provider is not registered"
+        }
+
+        // LSP4IJ is optional, and in the sandbox it is installed: so its server has to be there.
+        if (IdeCapabilities.hasLsp4ij()) {
+            val clangd = LanguageServersRegistry.getInstance().getServerDefinition(ClangdServerFactory.SERVER_ID)
+            if (clangd == null) problems += "LSP4IJ is installed but the clangd server is not registered with it"
+            else println("[self-check] language server: ${clangd.displayName}")
+        } else {
+            println("[self-check] LSP4IJ is not installed; no clangd")
         }
 
         if (EditorNotificationProvider.EP_NAME.getExtensions(ProjectManager.getInstance().defaultProject)

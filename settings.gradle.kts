@@ -27,6 +27,8 @@ dependencyResolutionManagement {
         }
         intellijPlatform {
             defaultRepositories()
+            // LSP4IJ is published to the Marketplace, not to Maven Central.
+            marketplace()
         }
     }
 }

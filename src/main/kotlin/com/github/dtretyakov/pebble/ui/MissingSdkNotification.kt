@@ -43,7 +43,8 @@ class MissingSdkNotification : EditorNotificationProvider {
                         createActionLabel("Install the latest SDK") { PebbleCommands.installLatestSdk(project) }
                     PebbleEnvironment.Fix.ACTIVATE_SDK ->
                         createActionLabel("Activate the newest SDK") { PebbleCommands.activateNewestSdk(project) }
-                    null -> Unit
+                    // Never blocking, so never the first problem; listed for completeness.
+                    PebbleEnvironment.Fix.INSTALL_LSP4IJ, PebbleEnvironment.Fix.INSTALL_CLANGD, null -> Unit
                 }
                 createActionLabel("Settings") {
                     ShowSettingsUtil.getInstance().showSettingsDialog(project, PebbleConfigurable::class.java)

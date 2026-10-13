@@ -5,6 +5,8 @@ intellijPlatform = "2.18.1"
 # IDEA ships as one distribution since 2025.3. The plugin uses only platform API, so the same
 # archive runs in IDEA, CLion and WebStorm; build.gradle.kts verifies all three.
 ideaVersion = "2026.2.2"
+# LSP4IJ runs clangd for C outside CLion. An optional dependency: CLion has a C engine of its own.
+lsp4ij = "0.21.0"
 junit = "6.1.3"
 
 [plugins]

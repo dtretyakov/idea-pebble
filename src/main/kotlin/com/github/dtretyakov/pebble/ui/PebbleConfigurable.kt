@@ -1,10 +1,13 @@
 package com.github.dtretyakov.pebble.ui
 
+import com.github.dtretyakov.pebble.project.IdeCapabilities
 import com.github.dtretyakov.pebble.project.PebbleAppSettings
 import com.github.dtretyakov.pebble.project.PebbleCommands
 import com.github.dtretyakov.pebble.project.PebbleEnvironment
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.sdk.Clangd
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundSearchableConfigurable
@@ -43,6 +46,21 @@ class PebbleConfigurable(private val project: Project) :
                 }
             }
 
+            if (!IdeCapabilities.hasNativeC()) {
+                group("C Code Insight") {
+                    row("clangd:") {
+                        textFieldWithBrowseButton(
+                            FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor().withTitle("Choose clangd"),
+                            project,
+                        )
+                            .bindText(settings::clangdPath)
+                            .align(AlignX.FILL)
+                            .comment("This IDE has no C engine of its own; clangd, run through LSP4IJ, provides it. " +
+                                "Leave empty to find it on the PATH.")
+                    }
+                }
+            }
+
             group("Environment") {
                 items.forEach { item ->
                     row(item.name) {
@@ -61,6 +79,9 @@ class PebbleConfigurable(private val project: Project) :
                                 link("Install the latest SDK") { PebbleCommands.installLatestSdk(project) }
                             PebbleEnvironment.Fix.ACTIVATE_SDK ->
                                 link("Activate the newest") { PebbleCommands.activateNewestSdk(project) }
+                            PebbleEnvironment.Fix.INSTALL_LSP4IJ ->
+                                link("Open Plugins") { ShowSettingsUtil.getInstance().showSettingsDialog(project, "Plugins") }
+                            PebbleEnvironment.Fix.INSTALL_CLANGD -> browserLink("How to install", Clangd.INSTALL_URL)
                             null -> Unit
                         }
                     }

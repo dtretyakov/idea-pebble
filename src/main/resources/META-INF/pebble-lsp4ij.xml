@@ -1,0 +1,24 @@
+<!--
+  C code insight through clangd, loaded only where LSP4IJ is installed. An optional dependency:
+  CLion needs none of it, and an IDE without LSP4IJ still builds, runs and shows logs.
+-->
+<idea-plugin>
+    <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
+        <server
+            id="pebble-clangd"
+            name="clangd (Pebble)"
+            factoryClass="com.github.dtretyakov.pebble.lsp.ClangdServerFactory">
+            <description><![CDATA[
+                clangd for the C in a Pebble project, started with the project's
+                <code>compile_commands.json</code> — written by <code>pebble compile-commands</code>
+                for the platform chosen beside Run — and the SDK's own gcc as its query driver.
+                Not started in CLion, which reads the same file with its own engine.
+            ]]></description>
+        </server>
+        <fileNamePatternMapping
+            patterns="*.c;*.h"
+            serverId="pebble-clangd"
+            languageId="c"
+            documentMatcher="com.github.dtretyakov.pebble.lsp.ClangdServerFactory$Matcher"/>
+    </extensions>
+</idea-plugin>

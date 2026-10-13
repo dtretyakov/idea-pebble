@@ -34,6 +34,17 @@ class PebbleSdk(val root: Path, val version: String, val channel: String?) {
 
     val hasCompiler: Boolean get() = compilerBin.isDirectory()
 
+    /**
+     * Every SDK's gcc, as a glob for clangd's `--query-driver`, which lets clangd ask the compiler
+     * for its system headers.
+     *
+     * clangd matches the glob against the compiler path in `compile_commands.json` as text, and
+     * pebble-tool writes that path through the `SDKs/current` link rather than this SDK's own
+     * directory. A glob over the SDKs directory matches both spellings.
+     */
+    val compilerGlob: String
+        get() = root.resolveSibling("*").resolve("toolchain/arm-none-eabi/bin/arm-none-eabi-*").toString()
+
     /** `mcrun` and `xsbug`, which only SDKs with Alloy support carry. */
     val hasAlloyTools: Boolean get() = Files.exists(toolchain.resolve("moddable-tools/mcrun"))
 

@@ -123,6 +123,7 @@ class SelfCheckStarter : ModernApplicationStarter() {
         /** Which of the plugin's actions each menu group has to carry. */
         val MENU_MEMBERSHIP = mapOf(
             "ToolsMenu" to listOf("Pebble.Tools"),
+            "RunToolbarMainActionGroup" to listOf("Pebble.SelectPlatform"),
             "Pebble.Tools" to listOf("Pebble.CheckEnvironment"),
         )
     }

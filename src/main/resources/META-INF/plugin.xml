@@ -37,6 +37,20 @@
     </extensions>
 
     <actions>
+        <!--
+          The active platform, beside the run configuration in the run widget: the choice that the
+          build, the compile database and the emulator all follow.
+        -->
+        <action
+            id="Pebble.SelectPlatform"
+            class="com.github.dtretyakov.pebble.ui.SelectPlatformAction"
+            text="Pebble Platform"
+            description="Chooses the platform Build, Run and code insight use">
+            <add-to-group
+                group-id="RunToolbarMainActionGroup"
+                anchor="after"
+                relative-to-action="RunToolbarTopLevelExecutorActionGroup"/>
+        </action>
         <group id="Pebble.Tools" text="Pebble" popup="true" icon="/icons/pebble.svg">
             <action
                 id="Pebble.CheckEnvironment"

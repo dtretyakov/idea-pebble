@@ -44,6 +44,27 @@ class PebbleProject(private val project: Project) {
 
     fun isPebbleProject(): Boolean = roots().isNotEmpty()
 
+    /** The single project when there is one, so commands that need "the project" have an answer. */
+    fun primaryRoot(): Path? = roots().firstOrNull()
+
+    /** The platforms the project at [root] can be built for, in its own order. */
+    fun platforms(root: Path): List<String> = ActivePlatform.candidates(
+        infoAt(root)?.targetPlatforms.orEmpty(),
+        PebbleSdkService.getInstance().currentSdk()?.platforms().orEmpty(),
+    )
+
+    /** The platform Build, Run and code insight use for the project at [root]. */
+    fun activePlatform(root: Path): String? =
+        ActivePlatform.resolve(PebbleSettings.getInstance(project).activePlatform, platforms(root))
+
+    /** Makes [platform] the active one, and tells everything that reads it. */
+    fun setActivePlatform(platform: String) {
+        val settings = PebbleSettings.getInstance(project)
+        if (settings.activePlatform == platform) return
+        settings.activePlatform = platform
+        project.messageBus.syncPublisher(PebbleSettings.TOPIC).activePlatformChanged(project)
+    }
+
     /**
      * The project at [root], re-read only when its `package.json` has changed.
      *

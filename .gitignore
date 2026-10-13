@@ -1,0 +1,23 @@
+# Anchored to the repository root: the plugin has a source package called
+# `build`, and an unanchored pattern silently swallowed it.
+/.gradle/
+/.kotlin/
+/.intellijPlatform/
+/build/
+/out/
+*.iml
+/.idea/
+
+# The signing certificate and its key, if they are ever generated in the working directory.
+# Nothing here is meant to be committed; this is the backstop for a mistyped path.
+*.pem
+*.crt
+*.p12
+
+# Left behind by the tools rather than written by anyone.
+.DS_Store
+*.log
+*.hprof
+local.properties
+/.vscode/
+/.fleet/

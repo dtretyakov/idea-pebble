@@ -1,0 +1,18 @@
+[versions]
+kotlin = "2.4.20"
+# Applied in settings.gradle.kts, which is where the version has to be literal.
+intellijPlatform = "2.18.1"
+# IDEA ships as one distribution since 2025.3. The plugin uses only platform API, so the same
+# archive runs in IDEA, CLion and WebStorm; build.gradle.kts verifies all three.
+ideaVersion = "2026.2.2"
+junit = "6.1.3"
+
+[plugins]
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+
+[libraries]
+junitJupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+# The IntelliJ test framework is JUnit 4; the vintage engine runs those alongside the Jupiter ones.
+junitVintage = { module = "org.junit.vintage:junit-vintage-engine", version.ref = "junit" }
+junit4 = { module = "junit:junit", version = "4.13.2" }
+junitPlatformLauncher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }

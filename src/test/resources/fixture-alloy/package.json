@@ -1,0 +1,28 @@
+{
+  "name": "fixture-alloy",
+  "author": "MakeAwesomeHappen",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Fixture Alloy",
+    "uuid": "1c0b3e6a-5f2d-4e7b-8c4a-9d6e2f1a3b54",
+    "projectType": "moddable",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "emery",
+      "gabbro"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "messageKeys": [
+      "dummy"
+    ],
+    "resources": {
+      "media": []
+    }
+  }
+}

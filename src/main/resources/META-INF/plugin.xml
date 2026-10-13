@@ -1,0 +1,49 @@
+<idea-plugin>
+    <vendor email="dtretyakov@gmail.com" url="https://github.com/dtretyakov/idea-pebble">Dmitry Tretyakov</vendor>
+
+    <description><![CDATA[
+        Build, run and deploy apps and watchfaces for Pebble smartwatches — in C or in Alloy
+        (JavaScript and TypeScript) — in IntelliJ IDEA, CLion and WebStorm.
+        <p>
+        The plugin drives the official Pebble SDK and pebble-tool; it does not replace them. This
+        early version finds the SDK, checks that everything a build needs is installed, and installs
+        or activates an SDK for you. Code insight, building, the emulator inside the IDE, installing
+        on a watch and logs are on the way.
+        </p>
+        <h3>Getting started</h3>
+        <ol>
+            <li>Install pebble-tool: <code>uv tool install pebble-tool</code>.</li>
+            <li>Open a folder whose <code>package.json</code> has a <code>pebble</code> section.</li>
+            <li>If the SDK is missing, the editor says so and offers to install it.
+                <b>Tools | Pebble | Check Environment</b> shows everything at once.</li>
+        </ol>
+    ]]></description>
+
+    <!--
+      The platform and nothing else. The same archive runs in IDEA, CLion and WebStorm because it is
+      compiled against none of them; build.gradle.kts verifies all three.
+    -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="Pebble" displayType="BALLOON"/>
+        <projectConfigurable
+            parentId="language"
+            id="settings.pebble"
+            displayName="Pebble"
+            instance="com.github.dtretyakov.pebble.ui.PebbleConfigurable"/>
+        <editorNotificationProvider
+            implementation="com.github.dtretyakov.pebble.ui.MissingSdkNotification"/>
+    </extensions>
+
+    <actions>
+        <group id="Pebble.Tools" text="Pebble" popup="true" icon="/icons/pebble.svg">
+            <action
+                id="Pebble.CheckEnvironment"
+                class="com.github.dtretyakov.pebble.ui.CheckEnvironmentAction"
+                text="Check Environment"
+                description="Shows whether pebble-tool, an SDK and its toolchain are installed"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </group>
+    </actions>
+</idea-plugin>

@@ -1,0 +1,22 @@
+<!--
+  The self-check, as a plugin of its own: `./gradlew runSelfCheck` installs it beside Pebble in a
+  sandbox of its own, and nothing else does. It is never part of the distribution, because an
+  application starter is internal API, and the Marketplace refuses a plugin that uses any.
+  See SelfCheckStarter.
+-->
+<idea-plugin>
+    <id>com.github.dtretyakov.pebble.selfcheck</id>
+    <name>Pebble Self-Check</name>
+    <version>1.0</version>
+    <vendor>Dmitry Tretyakov</vendor>
+    <description>Development only: checks that the Pebble plugin is whole inside a real IDE.</description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.github.dtretyakov.pebble</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <appStarter
+            id="pebbleSelfCheck"
+            implementation="com.github.dtretyakov.pebble.selfcheck.SelfCheckStarter"/>
+    </extensions>
+</idea-plugin>

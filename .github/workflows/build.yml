@@ -1,0 +1,210 @@
+# The checks a change has to pass. Live tests are not among them: they drive a real Pebble SDK and
+# emulator, neither of which a runner has, and they opt in with -PliveTests so a build without one
+# is green rather than red for reporting the machine.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Monday morning, so a broken EAP is found by someone with a week to act on it.
+    - cron: "0 6 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # All three, because the plugin drives programs and paths, and paths are where Windows differs.
+  # The SDK itself runs on Windows only inside WSL, which is a reason to test there, not to skip it.
+  #
+  # Temurin specifically: Ant has a special case for the Microsoft JVM of the 1990s — a
+  # `java.vendor` containing "microsoft" sends it looking for `$JAVA_HOME/Packages` — which the
+  # Microsoft build of OpenJDK matches, failing `instrumentCode`. See docs/developing.md.
+  build:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    # `./gradlew` is the spelling in the docs and in every other job here; on Windows the default
+    # shell would look for a PowerShell script of that name and find the POSIX one.
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Build
+        run: ./gradlew build buildPlugin
+
+      # The other half of the tests, and the half that catches a different kind of failure: an
+      # extension named in plugin.xml that never registers is silent at run time — an action added to
+      # a group this IDE has not got is one line in idea.log and a menu item that is not there. It passes on a machine with no Pebble SDK, which is what a
+      # runner is.
+      - name: Self-check
+        run: ./gradlew runSelfCheck
+
+      - name: Keep the test report when something fails
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report-${{ matrix.os }}
+          path: build/reports/tests/test
+
+      # One runner's zip, not three identical ones: the distribution is the same everywhere, and
+      # an artifact name may appear once per workflow.
+      - if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v7
+        with:
+          name: plugin
+          path: build/distributions/*.zip
+
+  # The check the branch rule on `main` asks for by name.
+  #
+  # A matrix job publishes one check per leg, each carrying its own OS — `Build and test
+  # (ubuntu-latest)` and so on — so the moment this job gained a matrix, the `Build and test` the
+  # rule requires stopped existing and no pull request could satisfy it. This is that name, and it
+  # is green only when every leg was, so the rule keeps meaning what it meant when one runner was
+  # the whole of it.
+  checked:
+    name: Build and test
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every platform built and tested
+        run: |
+          echo "build: ${{ needs.build.result }}"
+          [ "${{ needs.build.result }}" = "success" ]
+
+  verify:
+    name: Verify against the IDEs it claims
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # A job of its own so that a compatibility failure does not read as a failing test. It
+      # checks the platform the plugin is compiled against; the sweep over every IDE JetBrains
+      # recommends is -PverifyRecommended, and does not fit on a runner's disk.
+      - name: Verify plugin
+        run: ./gradlew verifyPlugin
+
+      # The other end of the range. `sinceBuild` is a promise made to every user on an older IDE,
+      # and the code is compiled against the newest one — so this is the only thing that can tell
+      # us the promise is still true. Cheap enough to run on every push: one IDE, already the
+      # subject of the check above's cache.
+      - name: Verify against the oldest supported IDE
+        run: ./gradlew verifyPlugin -PverifySince
+
+      - name: Keep the verification report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: verification-report
+          path: build/reports/pluginVerifier
+
+  # CLion and WebStorm are named targets, and the plugin is compiled against neither: it asks only
+  # for the platform, and these are what make that more than a hope. A runner each, because a
+  # whole IDE apiece does not fit beside another on one runner's disk.
+  targets:
+    name: Verify against ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: CLion
+            flag: -PverifyClion
+            report: clion
+          - name: WebStorm
+            flag: -PverifyWebStorm
+            report: webstorm
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Free the disk the IDE needs
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          df -h /
+
+      - name: Verify plugin
+        run: ./gradlew verifyPlugin ${{ matrix.flag }}
+
+      - name: Keep the verification report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: verification-report-${{ matrix.report }}
+          path: build/reports/pluginVerifier
+
+  # Running against what JetBrains is about to release is how an IDE upgrade that breaks the
+  # plugin arrives as a red build instead of as a user's bug report.
+  #
+  # Weekly and on demand rather than on every push: the sweep downloads whole IDEs and takes far
+  # longer than the rest. Allowed to fail, because these builds move on schedules that are not
+  # ours and a break can be theirs — the point is that somebody looks. A matrix of one, so a
+  # second sweep is a line rather than a job.
+  future:
+    name: ${{ matrix.name }}
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Every IDE JetBrains recommends verifying against — which already includes the next
+          # IDEA in EAP, months before it reaches anyone. That is the one that finds a removed
+          # API while there is still time to say so on YouTrack.
+          - name: Verify against every recommended IDE
+            flag: -PverifyRecommended
+            report: recommended
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Free the disk the IDEs need
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          df -h /
+
+      - name: Verify plugin
+        run: ./gradlew verifyPlugin ${{ matrix.flag }}
+
+      - name: Keep the verification report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: verification-report-${{ matrix.report }}
+          path: build/reports/pluginVerifier

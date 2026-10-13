@@ -32,8 +32,12 @@ object PebbleCommands {
             "Pebble SDK ${newest.version} is active.")
     }
 
-    private fun run(project: Project?, title: String, arguments: List<String>, success: String) {
-        val tool = PebbleSdkService.getInstance().tool() ?: return
+    /**
+     * Runs `pebble [arguments]` in the background. False when there is no pebble-tool to run.
+     * [quiet] keeps a success to itself: only a failure is worth a notification.
+     */
+    fun run(project: Project?, title: String, arguments: List<String>, success: String, quiet: Boolean = false): Boolean {
+        val tool = PebbleSdkService.getInstance().tool() ?: return false
         object : Task.Backgroundable(project, title, true) {
             override fun run(indicator: ProgressIndicator) {
                 val output = CapturingProcessHandler(command(tool, arguments))
@@ -41,6 +45,7 @@ object PebbleCommands {
                 if (output.isCancelled) return
 
                 val failed = output.exitCode != 0 || output.isTimeout
+                if (!failed && quiet) return
                 val text = if (failed) {
                     val lastWords = (output.stderrLines + output.stdoutLines).takeLast(5).joinToString("<br>")
                     "`pebble ${arguments.joinToString(" ")}` failed.<br>$lastWords"
@@ -59,6 +64,7 @@ object PebbleCommands {
                 }
             }
         }.queue()
+        return true
     }
 
     /**

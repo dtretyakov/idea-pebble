@@ -1,6 +1,8 @@
 package com.github.dtretyakov.pebble.selfcheck
 
+import com.github.dtretyakov.pebble.emulator.EmulatorToolWindowFactory
 import com.github.dtretyakov.pebble.library.PebbleLibraryProvider
+import com.intellij.openapi.wm.ToolWindowEP
 import com.github.dtretyakov.pebble.lsp.ClangdServerFactory
 import com.github.dtretyakov.pebble.project.IdeCapabilities
 import com.github.dtretyakov.pebble.project.PebbleEnvironment
@@ -65,6 +67,12 @@ class SelfCheckStarter : ModernApplicationStarter() {
                 .none { it is PebbleBuildBeforeRunTaskProvider }
         ) {
             problems += "the Build Pebble app before-launch task is not registered"
+        }
+
+        if (ToolWindowEP.EP_NAME.extensionList.none { it.id == EmulatorToolWindowFactory.ID }) {
+            problems += "the Pebble Emulator tool window is not registered"
+        } else {
+            println("[self-check] tool window: ${EmulatorToolWindowFactory.ID}")
         }
 
         if (AdditionalLibraryRootsProvider.EP_NAME.extensionList.none { it is PebbleLibraryProvider }) {

@@ -1,5 +1,6 @@
 package com.github.dtretyakov.pebble.run
 
+import com.github.dtretyakov.pebble.emulator.EmulatorToolWindowFactory
 import com.github.dtretyakov.pebble.project.PebbleCommands
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleSdkService
@@ -39,7 +40,10 @@ class PebbleRunState(environment: ExecutionEnvironment, private val configuratio
         )
 
         consoleBuilder.addFilter(PebbleLogFilter(project, root))
-        return processHandler(tool, arguments, root).also { ProcessTerminatedListener.attach(it) }
+        val handler = processHandler(tool, arguments, root).also { ProcessTerminatedListener.attach(it) }
+        // The emulator's screen is in the IDE, not in a window of its own: bring it up.
+        if (options.target == PebbleRunTarget.EMULATOR) EmulatorToolWindowFactory.reveal(project)
+        return handler
     }
 
     companion object {

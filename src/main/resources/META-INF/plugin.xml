@@ -42,6 +42,13 @@
         <stepsBeforeRunProvider implementation="com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurations"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.project.CompileDatabase$Startup"/>
+        <toolWindow
+            id="Pebble Emulator"
+            anchor="right"
+            icon="/icons/pebble.svg"
+            canCloseContents="false"
+            doNotActivateOnStart="true"
+            factoryClass="com.github.dtretyakov.pebble.emulator.EmulatorToolWindowFactory"/>
         <additionalLibraryRootsProvider implementation="com.github.dtretyakov.pebble.library.PebbleLibraryProvider"/>
     </extensions>
 

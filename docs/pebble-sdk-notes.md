@@ -103,8 +103,21 @@ By default QEMU opens an SDL window. `--vnc` starts it with `-vnc :1` — port 5
 emulator, so only one can have it at a time — and without the window. It also starts websockify
 on port 6080 for a browser client.
 
-QEMU's VNC server needs no authentication and offers 32-bit true colour. The framebuffer can be
-wider than the watch's screen — 208×228 for emery's 200×228 — with the rest black. Key events are
+Starting an emulator with `--vnc` stops any other emulator that has the display, so switching
+platforms needs nothing from a client: the new one simply takes port 5901.
+
+QEMU's VNC server needs no authentication and offers 32-bit true colour. The framebuffer is wider
+than the watch's screen — rounded up to a multiple of 16 pixels — with the screen at the top left
+and black beside it; basalt alone pads both ways and puts its screen two pixels in:
+
+| Platform | Framebuffer | Screen at |
+|---|---|---|
+| aplite, diorite, flint | 144×168 | 0, 0 |
+| basalt | 160×172 | 2, 2 |
+| chalk | 192×180 | 0, 0 |
+| emery | 208×228 | 0, 0 |
+| gabbro | 272×260 | 0, 0 |
+ Key events are
 the watch's buttons, as in the SDL window: Left is Back, Up is Up, Right is Select, Down is Down.
 
 pypkjs listens on `("", port)`, which gevent opens as IPv6. On a host without IPv6 — some

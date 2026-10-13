@@ -14,7 +14,9 @@ import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationError
 import com.intellij.execution.configurations.RuntimeConfigurationWarning
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.diagnostic.logging.LogConfigurationPanel
 import com.intellij.openapi.options.SettingsEditor
+import com.intellij.openapi.options.SettingsEditorGroup
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 
@@ -32,7 +34,15 @@ class PebbleRunConfiguration(project: Project, factory: ConfigurationFactory, na
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState =
         PebbleRunState(environment, this)
 
-    override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> = PebbleRunSettingsEditor(project)
+    /**
+     * The run's own settings, and the platform's Logs tab — where "Save console output to file"
+     * lives, which is how a log is kept for later.
+     */
+    override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> =
+        SettingsEditorGroup<PebbleRunConfiguration>().apply {
+            addEditor("Configuration", PebbleRunSettingsEditor(project))
+            addEditor("Logs", LogConfigurationPanel())
+        }
 
     /** The platform this run is for: its own pin, or the one beside the Run button. */
     fun platform(): String? {

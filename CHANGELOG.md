@@ -18,6 +18,9 @@
   the app's logs in the console — in pebble-tool's colours, with `main.c:42` as a link to the
   source. One is made when a Pebble project opens.
 - The platform to build, run and analyse for is chosen beside the Run button.
+- When a run cannot reach the phone, the console says where to look — Developer Connection, the
+  network, `pebble login` — after pebble-tool's own error.
+- Tools | Pebble | Take Screenshot saves the watch's screen; a run's Logs tab can save its output.
 
 ### The emulator
 

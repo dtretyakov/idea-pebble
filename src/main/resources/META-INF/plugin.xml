@@ -96,6 +96,11 @@
                 class="com.github.dtretyakov.pebble.ui.CheckEnvironmentAction"
                 text="Check Environment"
                 description="Shows whether pebble-tool, an SDK and its toolchain are installed"/>
+            <action
+                id="Pebble.TakeScreenshot"
+                class="com.github.dtretyakov.pebble.ui.TakeScreenshotAction"
+                text="Take Screenshot"
+                description="Saves a screenshot from the watch or emulator the selected run configuration installs on"/>
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </group>
     </actions>

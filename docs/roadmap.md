@@ -41,6 +41,9 @@ Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by 
 - [x] **Run.** A Pebble run configuration — Emulator, Phone, CloudPebble or adb — with the build as
   a before-launch task and `pebble install … --logs` on a pseudo-terminal, so the console shows
   levels in pebble-tool's colours and log locations link to the source. Made when a project opens.
+- [x] **Watches.** Tools | Pebble | Take Screenshot from the watch the selected run configuration
+  installs on; a hint after pebble-tool's error when a run cannot reach the phone; the Logs tab's
+  "Save console output to file" on every Pebble run.
 - [x] **The emulator in the IDE.** A tool window with the live screen over VNC, the four buttons as
   buttons and arrow keys, clicks as touches on emery and gabbro, screenshots, and stopping it.
 
@@ -49,13 +52,10 @@ Still to do:
 1. **package.json.** A JSON Schema for the `pebble` section (`JsonSchemaProviderFactory`), so
    project configuration completes and validates with no model of our own. Needs a look at how it
    combines with the npm schema that JavaScript-enabled IDEs already apply to `package.json`.
-2. **Physical watches.** Reachability of the phone's Developer Connection before installing,
-   screenshots through `pebble screenshot --phone`.
-3. **Logs.** A level filter (the levels are only colours, so the filter reads them back), and
-   saving a log to a file.
-4. **SDKs.** Choosing among installed SDKs and removing one, beyond installing and activating.
-5. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
-6. **Touch.** Confirm that VNC pointer events reach emery's and gabbro's touch screens.
+2. **Logs.** A level filter (the levels are only colours, so the filter reads them back).
+3. **SDKs.** Choosing among installed SDKs and removing one, beyond installing and activating.
+4. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
+5. **Touch.** Confirm that VNC pointer events reach emery's and gabbro's touch screens.
 
 ## Phase 2 — Advanced development experience (P1)
 

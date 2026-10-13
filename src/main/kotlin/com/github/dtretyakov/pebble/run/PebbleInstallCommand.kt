@@ -7,8 +7,11 @@ package com.github.dtretyakov.pebble.run
 object PebbleInstallCommand {
 
     fun arguments(target: PebbleRunTarget, platform: String?, phoneAddress: String, adbSerial: String, logs: Boolean): List<String> =
+        listOf("install") + connection(target, platform, phoneAddress, adbSerial) + listOfNotNull("--logs".takeIf { logs })
+
+    /** How pebble-tool reaches the watch: the same options for `install`, `screenshot` and `logs`. */
+    fun connection(target: PebbleRunTarget, platform: String?, phoneAddress: String, adbSerial: String): List<String> =
         buildList {
-            add("install")
             when (target) {
                 PebbleRunTarget.EMULATOR -> {
                     add("--emulator")
@@ -26,6 +29,5 @@ object PebbleInstallCommand {
                     if (adbSerial.isNotBlank()) add(adbSerial.trim())
                 }
             }
-            if (logs) add("--logs")
         }
 }

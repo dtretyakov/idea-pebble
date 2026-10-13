@@ -36,11 +36,18 @@ object PebbleCommands {
      * Runs `pebble [arguments]` in the background. False when there is no pebble-tool to run.
      * [quiet] keeps a success to itself: only a failure is worth a notification.
      */
-    fun run(project: Project?, title: String, arguments: List<String>, success: String, quiet: Boolean = false): Boolean {
+    fun run(
+        project: Project?,
+        title: String,
+        arguments: List<String>,
+        success: String,
+        quiet: Boolean = false,
+        workDirectory: Path? = null,
+    ): Boolean {
         val tool = PebbleSdkService.getInstance().tool() ?: return false
         object : Task.Backgroundable(project, title, true) {
             override fun run(indicator: ProgressIndicator) {
-                val output = CapturingProcessHandler(command(tool, arguments))
+                val output = CapturingProcessHandler(command(tool, arguments, workDirectory))
                     .runProcessWithProgressIndicator(indicator)
                 if (output.isCancelled) return
 

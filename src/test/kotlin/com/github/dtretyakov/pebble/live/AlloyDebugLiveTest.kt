@@ -7,7 +7,10 @@ import com.github.dtretyakov.pebble.debug.XsbugConnection
 import com.github.dtretyakov.pebble.debug.XsbugLogin
 import com.github.dtretyakov.pebble.debug.XsbugMessage
 import com.github.dtretyakov.pebble.debug.XsbugServer
+import com.github.dtretyakov.pebble.debug.XscCompiler
 import com.github.dtretyakov.pebble.run.PebbleInstallCommand
+import com.github.dtretyakov.pebble.sdk.PebbleDataDir
+import com.github.dtretyakov.pebble.sdk.PebbleSdks
 import com.github.dtretyakov.pebble.run.PebbleLogProcessHandler
 import com.github.dtretyakov.pebble.run.PebbleRunState
 import com.github.dtretyakov.pebble.run.PebbleRunTarget
@@ -87,6 +90,15 @@ class AlloyDebugLiveTest : IdeTestCase() {
                 assertTrue(msg.toString(), msg.value!!.matches(Regex("'\\d\\d:\\d\\d:\\d\\d'")))
                 assertTrue(logs.toString(), "Hello, Watchface." in logs)
 
+                // Expressions, compiled here by the SDK's xsc and evaluated there.
+                val compiler = XscCompiler.forSdk(PebbleSdks.scan(PebbleDataDir.locate()).current!!)!!
+                fun code(expression: String) = (compiler.compile(expression) as XscCompiler.Result.Compiled).hex
+                val length = connection.request(XsbugCommands.eval(frames[0].id, code("msg.length"), 0)).get(10, TimeUnit.SECONDS).result!!
+                assertEquals("8", length.value!!.value)
+                val thrown = connection.request(XsbugCommands.eval(frames[0].id, code("nope.x"), 1)).get(10, TimeUnit.SECONDS).result!!
+                assertTrue(thrown.toString(), thrown.error!!.contains("ReferenceError"))
+                assertTrue(compiler.compile("msg.(") is XscCompiler.Result.Failed)
+
                 val caller = connection.request(XsbugCommands.select(frames[1].id)).get(10, TimeUnit.SECONDS)
                 assertEquals(frames[1].name, caller.local!!.frame.name)
 
@@ -98,8 +110,22 @@ class AlloyDebugLiveTest : IdeTestCase() {
                 val again = breaks.poll(10, TimeUnit.SECONDS) ?: return fail("draw() did not stop again")
                 assertEquals(16, again.breakAt!!.line)
 
+                // A condition that never holds does not stop; a hit count stops on the third pass;
+                // a trace logs and goes on.
                 connection.send(XsbugCommands.clearBreakpoint(line16))
+                connection.send(XsbugCommands.setBreakpoint(line16.copy(condition = code("msg.length > 100"))))
                 connection.send(XsbugCommands.go())
+                assertNull("stopped although the condition never holds", breaks.poll(3, TimeUnit.SECONDS))
+                connection.send(XsbugCommands.clearBreakpoint(line16))
+                connection.send(XsbugCommands.setBreakpoint(line16.copy(hitCount = ">=3")))
+                assertNotNull("the hit count never stopped", breaks.poll(10, TimeUnit.SECONDS))
+                connection.send(XsbugCommands.clearBreakpoint(line16))
+                connection.send(XsbugCommands.setBreakpoint(line16.copy(trace = code("'trace ' + msg"))))
+                connection.send(XsbugCommands.go())
+                assertNull("a trace stopped", breaks.poll(3, TimeUnit.SECONDS))
+                assertTrue(logs.toString(), Regex("trace \\d\\d:\\d\\d:\\d\\d").containsMatchIn(logs))
+
+                connection.send(XsbugCommands.clearBreakpoint(line16))
                 assertNull("stopped after the breakpoint was cleared", breaks.poll(3, TimeUnit.SECONDS))
 
                 // Pausing a running app stops it at its next statement.

@@ -6,12 +6,14 @@ import com.intellij.ui.ColoredTextContainer
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.xdebugger.XDebuggerUtil
 import com.intellij.xdebugger.XSourcePosition
+import com.intellij.xdebugger.evaluation.XDebuggerEvaluator
 import com.intellij.xdebugger.frame.XCompositeNode
 import com.intellij.xdebugger.frame.XExecutionStack
 import com.intellij.xdebugger.frame.XNamedValue
 import com.intellij.xdebugger.frame.XNavigatable
 import com.intellij.xdebugger.frame.XStackFrame
 import com.intellij.xdebugger.frame.XSuspendContext
+import com.intellij.xdebugger.frame.XValueChildrenList
 import com.intellij.xdebugger.frame.XValueGroup
 import com.intellij.xdebugger.frame.XValueNode
 import com.intellij.xdebugger.frame.XValuePlace
@@ -64,6 +66,40 @@ internal class AlloyStackFrame(
     }
 
     override fun computeChildren(node: XCompositeNode) = process.computeFrameChildren(suspension, frame, node)
+
+    override fun getEvaluator(): XDebuggerEvaluator = AlloyEvaluator(process, suspension, frame)
+}
+
+/** Evaluates in a frame, for Evaluate Expression, watches and hovering. */
+internal class AlloyEvaluator(
+    private val process: AlloyDebugProcess,
+    private val suspension: AlloyDebugProcess.Suspension,
+    private val frame: XsbugFrame,
+) : XDebuggerEvaluator() {
+
+    override fun evaluate(expression: String, callback: XEvaluationCallback, expressionPosition: XSourcePosition?) =
+        process.evaluate(suspension, frame, expression, callback)
+}
+
+/**
+ * What an evaluation gave: the engine sends an object's properties along, one level deep, and
+ * that level is what is shown — the value is not one of the frame's, so it cannot be expanded
+ * further by toggling it there.
+ */
+internal class AlloyResultValue(name: String, private val property: XsbugProperty) : XNamedValue(name) {
+
+    override fun computePresentation(node: XValueNode, place: XValuePlace) =
+        present(node, property, hasChildren = property.children.isNotEmpty())
+
+    override fun computeChildren(node: XCompositeNode) {
+        node.addChildren(XValueChildrenList().apply { property.children.forEach { add(AlloyResultValue(it.name, it)) } }, true)
+    }
+
+    override fun canNavigateToSource(): Boolean = property.sourcePath != null
+
+    override fun computeSourcePosition(navigatable: XNavigatable) {
+        navigatable.setSourcePosition(position(property.sourcePath, property.line))
+    }
 }
 
 /** A variable or property, opened by asking the engine to expand its object. */
@@ -78,18 +114,10 @@ internal class AlloyValue(
 
     private val path: List<XsbugTree.Step>? = property.objectId?.let { parentPath + XsbugTree.Step(property.name, it) }
 
-    override fun computePresentation(node: XValueNode, place: XValuePlace) {
-        val shown = XsbugValues.of(property)
-        val icon = when (shown.kind) {
-            XsbugValues.Kind.FUNCTION -> AllIcons.Nodes.Function
-            XsbugValues.Kind.OBJECT -> AllIcons.Debugger.Value
-            else -> AllIcons.Nodes.Variable
-        }
-        node.setPresentation(icon, presentation(shown), path != null)
-    }
+    override fun computePresentation(node: XValueNode, place: XValuePlace) = present(node, property, hasChildren = path != null)
 
     override fun computeChildren(node: XCompositeNode) {
-        val path = path ?: return node.addChildren(com.intellij.xdebugger.frame.XValueChildrenList.EMPTY, true)
+        val path = path ?: return node.addChildren(XValueChildrenList.EMPTY, true)
         process.computeChildren(suspension, frame, scope, path, node)
     }
 
@@ -98,14 +126,22 @@ internal class AlloyValue(
     override fun computeSourcePosition(navigatable: XNavigatable) {
         navigatable.setSourcePosition(position(property.sourcePath, property.line))
     }
+}
 
-    private fun presentation(shown: XsbugValues.Shown): XValuePresentation = when (shown.kind) {
+private fun present(node: XValueNode, property: XsbugProperty, hasChildren: Boolean) {
+    val shown = XsbugValues.of(property)
+    val icon = when (shown.kind) {
+        XsbugValues.Kind.FUNCTION -> AllIcons.Nodes.Function
+        XsbugValues.Kind.OBJECT -> AllIcons.Debugger.Value
+        else -> AllIcons.Nodes.Variable
+    }
+    val presentation: XValuePresentation = when (shown.kind) {
         XsbugValues.Kind.STRING -> XStringValuePresentation(shown.text)
         XsbugValues.Kind.NUMBER -> XNumericValuePresentation(shown.text)
         XsbugValues.Kind.KEYWORD -> XKeywordValuePresentation(shown.text)
-        XsbugValues.Kind.UNINITIALIZED -> XRegularValuePresentation(shown.text, null)
         else -> XRegularValuePresentation(shown.text, null)
     }
+    node.setPresentation(icon, presentation, hasChildren)
 }
 
 /** The globals, under the frame's own variables. */

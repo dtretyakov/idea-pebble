@@ -12,6 +12,7 @@ import com.intellij.xdebugger.breakpoints.XBreakpointProperties
 import com.intellij.xdebugger.breakpoints.XBreakpointType
 import com.intellij.xdebugger.breakpoints.XLineBreakpoint
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType
+import com.intellij.xdebugger.evaluation.XDebuggerEditorsProvider
 
 /**
  * A line breakpoint in an Alloy app's JavaScript or TypeScript — for IDEs without the JavaScript
@@ -25,6 +26,10 @@ import com.intellij.xdebugger.breakpoints.XLineBreakpointType
 class AlloyLineBreakpointType : XLineBreakpointType<XBreakpointProperties<*>>(ID, "Alloy Line Breakpoints") {
 
     override fun createBreakpointProperties(file: VirtualFile, line: Int): XBreakpointProperties<*>? = null
+
+    /** Conditions and logged expressions are JavaScript, compiled for the engine by xsc. */
+    override fun getEditorsProvider(breakpoint: XLineBreakpoint<XBreakpointProperties<*>>, project: Project): XDebuggerEditorsProvider =
+        AlloyEditorsProvider
 
     override fun canPutAt(file: VirtualFile, line: Int, project: Project): Boolean =
         offersOwnType(javascriptPresent = AlloyBreakpoints.javascriptLineType() != null, alloySource = AlloyBreakpoints.isAlloySource(project, file)) &&

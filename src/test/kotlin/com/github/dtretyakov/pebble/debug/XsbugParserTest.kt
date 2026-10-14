@@ -107,4 +107,25 @@ class XsbugParserTest {
         assertTrue(parser.feed("\r\n<xsbug><log>half".toByteArray()).isEmpty())
         assertEquals("half done", parser.feed(" done</log></xsbug>".toByteArray()).single().logs.single().text)
     }
+
+    @Test
+    fun `evaluations answer with a value, an object one level deep, or what was thrown`() {
+        val results = XsbugParser().feed(javaClass.getResource("/xsbug/eval.bin")!!.readBytes()).mapNotNull { it.result }
+        assertEquals(listOf(0, 1, 2, 3), results.map { it.index })
+        assertEquals("8", results[0].value!!.value)
+        assertTrue(results[1].value!!.value!!.endsWith("!'"))
+        val render = results[2].value!!
+        assertTrue(render.expanded)
+        assertTrue(render.children.any { it.name == "width" && it.value == "200" })
+        assertNull(results[3].value)
+        assertEquals("# ReferenceError: get nope: undefined variable", results[3].error)
+    }
+
+    @Test
+    fun `the trace of a breakpoint arrives as a log at its line`() {
+        val trace = XsbugParser().feed(javaClass.getResource("/xsbug/eval.bin")!!.readBytes())
+            .flatMap { it.logs }.first { it.text.startsWith("trace ") }
+        assertEquals("/work/watchface/src/embeddedjs/main.js", trace.path)
+        assertEquals(16, trace.line)
+    }
 }

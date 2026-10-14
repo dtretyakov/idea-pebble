@@ -79,6 +79,13 @@ class XsbugMessage(val elements: List<XsbugElement>) {
     val breakAt: XsbugBreak?
         get() = element("break")?.let { XsbugBreak(it["path"]?.ifEmpty { null }, it["line"]?.toIntOrNull(), it.text) }
 
+    /** The answer to an `eval`: a value, or what was thrown. */
+    val result: XsbugResult?
+        get() = element("result")?.let { result ->
+            val value = result.children.firstOrNull { it.name == "property" }?.let(::property)
+            XsbugResult(result["line"]?.toIntOrNull(), value, result.text.trim().takeIf { value == null && it.isNotEmpty() })
+        }
+
     val logs: List<XsbugLog>
         get() = elements.filter { it.name == "log" }
             .map { XsbugLog(it.text, it["path"]?.ifEmpty { null }, it["line"]?.toIntOrNull()) }
@@ -104,6 +111,9 @@ class XsbugMessage(val elements: List<XsbugElement>) {
         )
     }
 }
+
+/** An evaluation's answer: its [value], with an object's properties nested one level, or the [error] it threw. */
+data class XsbugResult(val index: Int?, val value: XsbugProperty?, val error: String?)
 
 /** `<login name="main" value="XS 17.8.0 32-bit LE 16-bit ID"/>`: the machine, and the engine's version. */
 data class XsbugLogin(val name: String, val version: String)

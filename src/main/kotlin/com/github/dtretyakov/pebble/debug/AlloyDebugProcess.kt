@@ -1,12 +1,11 @@
 package com.github.dtretyakov.pebble.debug
 
 import com.github.dtretyakov.pebble.debug.XsbugCommands.Breakpoint
+import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.intellij.execution.ExecutionResult
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.execution.ui.ExecutionConsole
-import com.intellij.openapi.fileTypes.FileType
-import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.vfs.toNioPathOrNull
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.xdebugger.XDebugProcess
@@ -16,6 +15,7 @@ import com.intellij.xdebugger.breakpoints.XBreakpointHandler
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties
 import com.intellij.xdebugger.breakpoints.XLineBreakpoint
 import com.intellij.xdebugger.evaluation.XDebuggerEditorsProvider
+import com.intellij.xdebugger.evaluation.XDebuggerEvaluator
 import com.intellij.xdebugger.frame.XCompositeNode
 import com.intellij.xdebugger.frame.XSuspendContext
 import com.intellij.xdebugger.frame.XValueChildrenList
@@ -38,6 +38,7 @@ class AlloyDebugProcess(
     session: XDebugSession,
     private val server: XsbugServer,
     private val result: ExecutionResult,
+    compilers: () -> ExpressionCompiler? = { PebbleSdkService.getInstance().currentSdk()?.let(XscCompiler::forSdk) },
 ) : XDebugProcess(session), XsbugServer.Listener {
 
     private val lineBreakpoints = ConcurrentHashMap<XLineBreakpoint<*>, Breakpoint>()
@@ -57,7 +58,10 @@ class AlloyDebugProcess(
         server.listener = this
     }
 
-    override fun getEditorsProvider(): XDebuggerEditorsProvider = EditorsProvider
+    override fun getEditorsProvider(): XDebuggerEditorsProvider = AlloyEditorsProvider
+
+    /** The SDK's xsc, for expressions; looked up once, when first needed. */
+    private val compiler: ExpressionCompiler? by lazy(compilers)
 
     override fun getBreakpointHandlers(): Array<XBreakpointHandler<*>> = listOfNotNull(
         AlloyLineBreakpointHandler(AlloyLineBreakpointType::class.java, this),
@@ -80,15 +84,22 @@ class AlloyDebugProcess(
             session.setBreakpointInvalid(breakpoint, "The Alloy debugger cannot be given a path with a double quote or a line break")
             return
         }
-        val target = Breakpoint(enginePath, breakpoint.line + 1)
-        lineBreakpoints[breakpoint] = target
-        val connection = server.connection ?: return
-        if (connection.send(XsbugCommands.setBreakpoint(target))) session.setBreakpointVerified(breakpoint)
+        // Compiling a condition runs xsc: off the thread the platform calls from.
+        requests.execute {
+            val target = when (val made = AlloyBreakpointTargets.of(breakpoint, enginePath, file.name, compiler)) {
+                is AlloyBreakpointTargets.Made.Target -> made.breakpoint
+                is AlloyBreakpointTargets.Made.Invalid -> return@execute session.setBreakpointInvalid(breakpoint, made.message)
+                AlloyBreakpointTargets.Made.Nothing -> return@execute
+            }
+            lineBreakpoints[breakpoint] = target
+            val connection = server.connection ?: return@execute
+            if (connection.send(XsbugCommands.setBreakpoint(target))) session.setBreakpointVerified(breakpoint)
+        }
     }
 
     internal fun removeLineBreakpoint(breakpoint: XLineBreakpoint<XBreakpointProperties<*>>) {
         val target = lineBreakpoints.remove(breakpoint) ?: return
-        if (lineBreakpoints.values.none { it == target }) server.connection?.send(XsbugCommands.clearBreakpoint(target))
+        if (lineBreakpoints.values.none { it.location == target.location }) server.connection?.send(XsbugCommands.clearBreakpoint(target))
     }
 
     internal fun setExceptionBreakpoint(breakpoint: XBreakpoint<*>?) {
@@ -100,8 +111,9 @@ class AlloyDebugProcess(
     // The engine.
 
     override fun connected(connection: XsbugConnection, login: XsbugLogin) {
-        val targets = lineBreakpoints.values.distinct() + listOfNotNull(XsbugCommands.EXCEPTIONS.takeIf { exceptionBreakpoint != null })
-        connection.send(XsbugCommands.setAllBreakpoints(targets))
+        val (withOptions, plain) = lineBreakpoints.values.distinct().partition { it.hasOptions }
+        connection.send(XsbugCommands.setAllBreakpoints(plain + listOfNotNull(XsbugCommands.EXCEPTIONS.takeIf { exceptionBreakpoint != null })))
+        withOptions.forEach { connection.send(XsbugCommands.setBreakpoint(it)) }
         lineBreakpoints.keys.forEach { session.setBreakpointVerified(it) }
         print("The app's JavaScript is connected to the debugger (${login.version}).\n", ProcessOutputTypes.SYSTEM)
     }
@@ -117,7 +129,13 @@ class AlloyDebugProcess(
         val context = AlloySuspendContext(this, suspension)
         val line = stop.path?.let { path -> lineBreakpoints.entries.firstOrNull { it.value.path == path && it.value.line == stop.line }?.key }
         val exception = exceptionBreakpoint.takeIf { stop.isException }
+        val logged = line?.logExpressionObject?.expression?.takeIf { it.isNotBlank() }
         when {
+            line != null && logged != null -> requests.execute {
+                // Stops and logs: the engine's trace would not stop, so the expression is evaluated here.
+                val text = evaluateText(suspension, suspension.frames.first(), logged)
+                if (!session.breakpointReached(line, text, context)) resume(context)
+            }
             line != null -> if (!session.breakpointReached(line, null, context)) resume(context)
             exception != null -> if (!session.breakpointReached(exception, stop.reason, context)) resume(context)
             else -> session.positionReached(context)
@@ -207,6 +225,37 @@ class AlloyDebugProcess(
         }
     }
 
+    /** Evaluates [expression] in [frame]: compiled by xsc here, run by the engine there. */
+    internal fun evaluate(suspension: Suspension, frame: XsbugFrame, expression: String, callback: XDebuggerEvaluator.XEvaluationCallback) {
+        requests.execute {
+            try {
+                if (this.suspension !== suspension) return@execute callback.errorOccurred("The app is running")
+                val code = when (val compiled = compiler?.compile(expression) ?: return@execute callback.errorOccurred("This SDK has no xsc to compile expressions with")) {
+                    is XscCompiler.Result.Compiled -> compiled.hex
+                    is XscCompiler.Result.Failed -> return@execute callback.errorOccurred(compiled.message)
+                }
+                val result = suspension.request(frame, XsbugCommands.eval(frame.id, code, 0)).result
+                    ?: return@execute callback.errorOccurred("The app did not answer")
+                val value = result.value
+                if (value == null) callback.errorOccurred(result.error.orEmpty().removePrefix("#").trim())
+                else callback.evaluated(AlloyResultValue(expression, value))
+            } catch (e: Exception) {
+                callback.errorOccurred(e.message ?: "The app did not answer")
+            }
+        }
+    }
+
+    /** An expression's value as text, for a breakpoint that logs it; called on the request thread. */
+    private fun evaluateText(suspension: Suspension, frame: XsbugFrame, expression: String): String {
+        val code = when (val compiled = compiler?.compile(expression) ?: return "(no xsc to compile $expression)") {
+            is XscCompiler.Result.Compiled -> compiled.hex
+            is XscCompiler.Result.Failed -> return "$expression: ${compiled.message}"
+        }
+        val result = runCatching { suspension.request(frame, XsbugCommands.eval(frame.id, code, 0)).result }.getOrNull()
+            ?: return "$expression: the app did not answer"
+        return result.value?.let { XsbugValues.of(it).text.ifEmpty { it.value.orEmpty() } } ?: result.error.orEmpty()
+    }
+
     private fun children(suspension: Suspension, frame: XsbugFrame, scope: Scope, path: List<XsbugTree.Step>, properties: List<XsbugProperty>) =
         XValueChildrenList().apply {
             for (property in properties) add(AlloyValue(this@AlloyDebugProcess, suspension, frame, scope, path, property))
@@ -250,10 +299,6 @@ class AlloyDebugProcess(
             latest = view
             return view
         }
-    }
-
-    private object EditorsProvider : XDebuggerEditorsProvider() {
-        override fun getFileType(): FileType = FileTypeManager.getInstance().getFileTypeByExtension("js")
     }
 
     companion object {

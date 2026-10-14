@@ -19,6 +19,8 @@ import com.intellij.xdebugger.XDebugProcessStarter
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebuggerManager
 import com.intellij.xdebugger.XDebuggerTestUtil
+import com.intellij.xdebugger.XDebuggerUtil
+import com.intellij.xdebugger.evaluation.EvaluationMode
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType
 import com.intellij.xdebugger.frame.XNamedValue
 import java.net.InetAddress
@@ -54,17 +56,22 @@ class AlloyDebugProcessTest : IdeTestCase() {
         main = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(file)!!
     }
 
-    /** The recorded session, message by message, with its path replaced by this test's file. */
-    private val recorded: List<String> by lazy {
-        String(javaClass.getResource("/xsbug/session.bin")!!.readBytes(), Charsets.UTF_8)
+    /** A recorded session, message by message, with its path replaced by this test's file. */
+    private fun recording(name: String): List<String> =
+        String(javaClass.getResource("/xsbug/$name")!!.readBytes(), Charsets.UTF_8)
             .replace("/work/watchface/src/embeddedjs/main.js", enginePath)
             .split("</xsbug>").filter { "<xsbug>" in it }.map { it.substring(it.indexOf("<xsbug>")) + "</xsbug>" }
-    }
+
+    private val recorded: List<String> by lazy { recording("session.bin") }
 
     fun `test breakpoints go to the app when it logs in, a break shows where it stopped and what is there, and resume goes on`() {
         // Line 16 of the fixture: `const width = render.getTextWidth(msg, font);`
         val breakpoint = XDebuggerTestUtil.toggleBreakpoint(project, main, 15)
         assertNotNull("a gutter click sets a breakpoint here", breakpoint)
+        // Line 13, with a condition: compiled for the engine, and sent on its own after the login.
+        val conditional = XDebuggerTestUtil.toggleBreakpoint(project, main, 12)!!
+        conditional.conditionExpression = XDebuggerUtil.getInstance().createExpression("msg.length > 3", null, null, EvaluationMode.EXPRESSION)
+        val compiled = java.util.Collections.synchronizedList(mutableListOf<String>())
 
         val server = XsbugServer.bind(0, object : XsbugServer.Listener {
             override fun connected(connection: XsbugConnection, login: XsbugLogin) = Unit
@@ -84,7 +91,13 @@ class AlloyDebugProcessTest : IdeTestCase() {
             "Alloy",
             null as RunContentDescriptor?,
             object : XDebugProcessStarter() {
-                override fun start(session: XDebugSession): XDebugProcess = AlloyDebugProcess(session, server, DefaultExecutionResult(console, handler))
+                override fun start(session: XDebugSession): XDebugProcess =
+                    AlloyDebugProcess(session, server, DefaultExecutionResult(console, handler)) {
+                        ExpressionCompiler { expression ->
+                            compiled += expression
+                            XscCompiler.Result.Compiled("AB")
+                        }
+                    }
             },
         )
 
@@ -93,6 +106,10 @@ class AlloyDebugProcessTest : IdeTestCase() {
             bridge.send(recorded.first { "<login" in it })
             val breakpoints = bridge.command { it.startsWith("<set-all-breakpoints>") }
             assertTrue(breakpoints, """<breakpoint path="$enginePath" line="16"/>""" in breakpoints)
+            assertFalse("a condition in the login reply stops the app from starting", "line=\"13\"" in breakpoints)
+            val withCondition = bridge.command { it.startsWith("""<set-breakpoint path="$enginePath" line="13"""") }
+            assertEquals("""<set-breakpoint path="$enginePath" line="13" id="@1"><breakpoint-condition path="AB"/></set-breakpoint>""", withCondition)
+            assertTrue(compiled.toString(), "msg.length > 3" in compiled)
 
             bridge.send("<xsbug><log>Hello, Watchface.</log><log>&#10;</log></xsbug>")
             bridge.send(recorded.first { "<break" in it })
@@ -113,6 +130,12 @@ class AlloyDebugProcessTest : IdeTestCase() {
             bridge.replyTo("<toggle id=\"@20028684\"/>", recorded.filter { "<local" in it && "<break" !in it }[2])
             val function = XDebuggerTestUtil.collectChildren(locals.getValue("(function)"))
             assertTrue(function.isNotEmpty())
+
+            // Evaluating compiles here and runs there; the engine answers with the value.
+            bridge.replyTo("<eval id=\"@2002AC34\" path=\"AB\" line=\"0\"/>", recording("eval.bin").first { "<result line=\"0\"" in it })
+            val evaluated = XDebuggerTestUtil.evaluate(session, "msg.length")
+            assertNull(evaluated.second, evaluated.second)
+            assertEquals("8", XDebuggerTestUtil.computePresentation(evaluated.first).myValue)
 
             session.resume()
             assertEquals("<go/>", bridge.command { it == "<go/>" })

@@ -90,8 +90,9 @@ emulator and a separate debugger.
   where pebble-tool looks for xsbug. Breakpoints — the JavaScript debugger's own where it is
   installed — stepping, pause, the stack, variables and globals, break on exceptions, and the
   app's logs; Stop logs out, and the app runs on.
-- Alloy expressions: evaluation, watches and breakpoint conditions, compiled for the engine by the
-  SDK's `xsc`, as Moddable's own xsbug-log does.
+- [x] Alloy expressions: Evaluate Expression and watches, breakpoint conditions, and breakpoints
+  that log without stopping — compiled for the engine by the SDK's `xsc`, as Moddable's own
+  xsbug-log does.
 - [x] Memory: each platform's RAM, heap and resources from `pebble build`'s own report, under that
   platform in the Build window, a warning when the heap is short or the store would refuse the
   resources; and a word in the console when an app exits with memory it never freed.

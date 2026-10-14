@@ -290,6 +290,22 @@ The protocol is xsbug's, specified by the engine's `xsDebug.c` in the SDK's `too
   up half a second later, and the watch shows the app as it was, with no "not responding".
 - With break on exceptions on, a watchface starts without breaking.
 
+Expressions are evaluated by the engine but compiled on the host, by the SDK's own
+`toolchain/moddable-tools/xsc` — `xsc expr.js -p -d -eval -e -o <dir> -r <name>`, as Moddable's
+xsbug-log does — and sent as the `.xsb` file's bytes in upper-case hex. A syntax error is xsc's
+exit code 22 with lines like `# error: missing )!`.
+
+- `<eval id="@FRAME" path="HEX" line="N"/>` is answered by one message: `<result line="N">` — a
+  `<property name="?" …>`, an object with its properties nested one level, or the text
+  `# ReferenceError: …` — and the frame's views.
+- A breakpoint takes `<breakpoint-condition path="HEX"/>`, `<breakpoint-hit-count path=">=3"/>`
+  (`=`, `<`, `<=`, `>`, `>=`, `%`, written as they are) and `<breakpoint-trace path="HEX"/>`,
+  nested in `<set-breakpoint … id="@1">`. A trace logs `<log path line>value</log>` and does not
+  stop; a condition that throws logs the exception and does not stop either.
+- Nested in the `<set-all-breakpoints>` that answers the login, a condition makes the app fail to
+  start ("failed to allocate XS machine"). Sent as its own `<set-breakpoint>` right after, it
+  works.
+
 `pebble gdb --emulator P --vnc` works on a pseudo-terminal with commands written to its input:
 it attaches to QEMU's gdb stub, adds the app's ELF at its load address, breaks on `app_crashed`,
 and starts the app if another is running — but does not install a newer build, so a client

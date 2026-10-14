@@ -3,22 +3,29 @@ package com.github.dtretyakov.pebble.run
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleProjectInfo
 import com.github.dtretyakov.pebble.sdk.PebblePlatform
+import com.github.dtretyakov.pebble.debug.AlloyDebugProcess
+import com.github.dtretyakov.pebble.debug.XsbugServer
+import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.RunProfile
 import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RunnerSettings
 import com.intellij.execution.executors.DefaultDebugExecutor
+import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.GenericProgramRunner
 import com.intellij.execution.runners.RunContentBuilder
 import com.intellij.execution.ui.RunContentDescriptor
+import com.intellij.xdebugger.XDebugProcess
+import com.intellij.xdebugger.XDebugProcessStarter
+import com.intellij.xdebugger.XDebugSession
+import com.intellij.xdebugger.XDebuggerManager
 
 /**
- * Debug, the way pebble-tool debugs: for an Alloy app, a debug build installed the way Run installs,
- * with pebble-tool starting xsbug — Moddable's JavaScript debugger, in the SDK — and bridging the
- * watch to it; for a C app in the emulator, a debug build and `pebble gdb` in the console.
- *
- * Neither is the IDE's own debugger: that needs debug processes speaking xsbug's protocol and
- * GDB/MI, which is Phase 3. The SDK's gdb has no DAP to borrow.
+ * Debug. For an Alloy app, the IDE's debugger: a debug build installed the way Run installs it,
+ * with the plugin listening where xsbug would, so pebble-tool bridges the app's JavaScript engine
+ * to the IDE instead of launching xsbug ([AlloyDebugProcess]). For a C app in the emulator, a
+ * debug build and `pebble gdb` in the console: the IDE's own debugger would need a GDB/MI debug
+ * process, and the SDK's gdb has no DAP to borrow.
  */
 class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
 
@@ -30,8 +37,44 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
     }
 
     override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
+        val configuration = environment.runProfile as? PebbleRunConfiguration
+        if (configuration != null && debugsWithXsbug(configuration)) return debugAlloy(state, environment)
         val result = state.execute(environment.executor, this) ?: return null
         return RunContentBuilder(result, environment).showRunContent(environment.contentToReuse)
+    }
+
+    /**
+     * The server first, so pebble-tool finds it and does not launch xsbug; then the install; then
+     * the session, whose process logs out before pebble-tool is stopped.
+     */
+    private fun debugAlloy(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor {
+        val server = try {
+            XsbugServer.bind(listener = XsbugServer.UNATTENDED)
+        } catch (_: XsbugServer.PortInUse) {
+            throw ExecutionException(
+                "Port ${XsbugServer.PORT} is in use: xsbug, or another Alloy debug session, is listening there. " +
+                    "Close it and debug again.",
+            )
+        }
+        val result = try {
+            state.execute(environment.executor, this) ?: throw ExecutionException("Nothing to debug.")
+        } catch (e: Throwable) {
+            server.close()
+            throw e
+        }
+        val session = XDebuggerManager.getInstance(environment.project).startSession(
+            environment,
+            object : XDebugProcessStarter() {
+                override fun start(session: XDebugSession): XDebugProcess {
+                    val process = AlloyDebugProcess(session, server, result)
+                    (result.processHandler as? PebbleLogProcessHandler)?.beforeDestroy = {
+                        if (!process.logOut()) result.processHandler.notifyTextAvailable(AlloyDebugHint.TEXT, ProcessOutputTypes.SYSTEM)
+                    }
+                    return process
+                }
+            },
+        )
+        return session.runContentDescriptor
     }
 
     companion object {

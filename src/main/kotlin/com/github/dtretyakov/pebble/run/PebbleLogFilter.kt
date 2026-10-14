@@ -16,7 +16,8 @@ import kotlin.streams.asSequence
  * The watch names a file without its directory — `[14:02:11] main.c:42> Hello` — so the name is
  * looked up among the project's C sources. Firmware lines name files the project does not have
  * (`process_manager.c`), and stay text. PebbleKit JS lines carry a path from the project root,
- * `pkjs> ./src/pkjs/index.js:3:0 Hello`.
+ * `pkjs> ./src/pkjs/index.js:3:0 Hello`. An Alloy exception, as the debugger writes it, carries
+ * the source's absolute path: `/…/src/embeddedjs/main.js:16: # Exception: …`.
  */
 class PebbleLogFilter(private val project: Project, private val root: Path) : Filter {
 
@@ -37,6 +38,12 @@ class PebbleLogFilter(private val project: Project, private val root: Path) : Fi
             val file = sources[group.value]?.singleOrNull() ?: return null
             val lineNumber = match.groupValues[2].toInt()
             return link(file, lineNumber - 1, 0, start + group.range.first, start + match.groups[2]!!.range.last + 1)
+        }
+
+        ALLOY.find(line)?.let { match ->
+            val file = Path.of(match.groupValues[1])
+            if (!Files.isRegularFile(file)) return null
+            return link(file, match.groupValues[2].toInt() - 1, 0, start + match.range.first, start + match.groups[2]!!.range.last + 1)
         }
 
         PKJS.find(line)?.let { match ->
@@ -60,6 +67,9 @@ class PebbleLogFilter(private val project: Project, private val root: Path) : Fi
 
         /** `[14:02:11] main.c:42> message` — the time is the host's, the rest is the watch's. */
         val WATCH = Regex("""^\s*\[\d{2}:\d{2}:\d{2}] ([\w.\-]+\.[ch]):(\d+)>""")
+
+        /** `/…/src/embeddedjs/main.js:16: # Exception: …`, from the Alloy debugger. */
+        val ALLOY = Regex("""^(/[^:]+\.(?:js|mjs|ts)):(\d+): """)
 
         /** `pkjs> ./src/pkjs/index.js:3:0 message`, source-mapped by pebble-tool. */
         val PKJS = Regex("""pkjs> (\.?/?src/[^\s:]+):(\d+):(\d+)""")

@@ -2,6 +2,7 @@ package com.github.dtretyakov.pebble.run
 
 import com.github.dtretyakov.pebble.testing.IdeTestCase
 import com.intellij.execution.filters.OpenFileHyperlinkInfo
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import java.nio.file.Files
 import java.nio.file.Path
@@ -17,6 +18,7 @@ class PebbleLogFilterTest : IdeTestCase() {
         root = Files.createTempDirectory("pebble-log")
         root.resolve("src/c").createDirectories().resolve("main.c").writeText("int main(void) {}\n")
         root.resolve("src/pkjs").createDirectories().resolve("index.js").writeText("console.log(1);\n")
+        root.resolve("src/embeddedjs").createDirectories().resolve("main.js").writeText("let x;\nthrow new Error();\n")
         LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root)!!.refresh(false, true)
     }
 
@@ -36,5 +38,16 @@ class PebbleLogFilterTest : IdeTestCase() {
         val line = "[14:02:11] pkjs> ./src/pkjs/index.js:3:0 Hello\n"
         val item = PebbleLogFilter(project, root).applyFilter(line, line.length)!!.resultItems.single()
         assertEquals("./src/pkjs/index.js:3:0", line.substring(item.highlightStartOffset, item.highlightEndOffset))
+    }
+
+    fun `test an Alloy exception links its source`() {
+        val main = root.resolve("src/embeddedjs/main.js").toString()
+        val line = "$main:2: # Exception: Error!\n"
+        val item = PebbleLogFilter(project, root).applyFilter(line, line.length)!!.resultItems.single()
+        assertEquals("$main:2", line.substring(item.highlightStartOffset, item.highlightEndOffset))
+        // A loaded document's descriptor holds an offset rather than a line.
+        val descriptor = (item.hyperlinkInfo as OpenFileHyperlinkInfo).descriptor!!
+        val target = if (descriptor.line >= 0) descriptor.line else FileDocumentManager.getInstance().getDocument(descriptor.file)!!.getLineNumber(descriptor.offset)
+        assertEquals(1, target)
     }
 }

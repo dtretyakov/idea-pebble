@@ -93,6 +93,17 @@ class XsbugServer private constructor(private val socket: ServerSocket, listener
     companion object {
         const val PORT = 5002
 
+        /** Until the debug process takes over: lets a run that logs in go on, with no breakpoints. */
+        val UNATTENDED: Listener = object : Listener {
+            override fun connected(connection: XsbugConnection, login: XsbugLogin) {
+                connection.send(XsbugCommands.setAllBreakpoints(emptyList()))
+            }
+
+            override fun message(connection: XsbugConnection, message: XsbugMessage) = Unit
+
+            override fun disconnected(connection: XsbugConnection) = Unit
+        }
+
         /**
          * A server on the loopback address. pebble-tool connects to `localhost`, so anything
          * already listening there — on IPv4 or IPv6 — would get the connection instead: that is

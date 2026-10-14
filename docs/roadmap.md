@@ -72,8 +72,8 @@ emulator and a separate debugger.
 - [x] Debugging C in the emulator: Debug builds with `--debug`, installs, and runs `pebble gdb` in
   the console — breakpoints, `bt` and `print` typed there. The IDE's own debugger needs a GDB/MI
   debug process (the SDK's gdb has no Python, so no DAP), and that is Phase 3.
-- [x] Debugging Alloy: Debug builds with `--debug` and installs, and pebble-tool starts xsbug and
-  bridges the watch to it.
+- [x] Debugging Alloy: Debug builds with `--debug` and installs, and pebble-tool bridges the
+  watch's JavaScript engine to a debugger — since 0.5.0 the IDE's own, below.
 - [x] Calls in C to functions a target platform only stubs out, from each platform's `pebble.h`,
   wherever no `PBL_` condition chooses the platform — an inspection in every IDE, whatever the
   C file's language there.
@@ -86,7 +86,12 @@ emulator and a separate debugger.
 
 ## Phase 3 — Integrated tooling and automation (P2)
 
-- Alloy debugging in the IDE's debugger: an `XDebugProcess` over xsbug's protocol on port 5002.
+- [x] Alloy debugging in the IDE's debugger: an `XDebugProcess` over xsbug's protocol on port 5002,
+  where pebble-tool looks for xsbug. Breakpoints — the JavaScript debugger's own where it is
+  installed — stepping, pause, the stack, variables and globals, break on exceptions, and the
+  app's logs; Stop logs out, and the app runs on.
+- Alloy expressions: evaluation, watches and breakpoint conditions, compiled for the engine by the
+  SDK's `xsc`, as Moddable's own xsbug-log does.
 - Memory: sizes from the app's ELF, heap from its logs.
 - Scripted test scenarios: `emu-*` inputs and screenshots, run as tests.
 - Visual regression across platforms.

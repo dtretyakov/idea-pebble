@@ -1,31 +1,17 @@
 package com.github.dtretyakov.pebble.run
 
-import com.intellij.execution.process.ProcessEvent
-import com.intellij.execution.process.ProcessHandler
-import com.intellij.execution.process.ProcessListener
-import com.intellij.execution.process.ProcessOutputTypes
-
 /**
- * What to expect when an Alloy debug session ends, said as it ends.
+ * What to expect when an Alloy debug session could not log out — the app was not answering, or
+ * the bridge did not hang up in time.
  *
- * A debug build waits for xsbug, so once the session is gone the app stops answering and the watch
- * puts up "… is not responding" — a dialog that stays over whatever runs next, the ordinary build
- * included, and takes its button presses and touches. Back dismisses it. Restarting the emulator
- * would not: the watch remembers the app, and starts it again.
+ * A debug build left waiting for its debugger stops answering, and the watch puts up "… is not
+ * responding" — a dialog that stays over whatever runs next, the ordinary build included, and
+ * takes its button presses and touches. Back dismisses it. A session that logs out leaves none of
+ * this, so the hint is said only when logging out failed.
  */
 object AlloyDebugHint {
 
-    const val TEXT = "\nThe debug build keeps waiting for xsbug now that the session has ended, and the watch will " +
-        "say it is not responding. Press Back to dismiss that, and Run — rather than Debug — to put the ordinary " +
+    const val TEXT = "\nThe debug build may keep waiting for the debugger now that the session has ended, and the watch " +
+        "would say it is not responding. Press Back to dismiss that, and Run — rather than Debug — to put the ordinary " +
         "build back.\n"
-
-    fun attach(handler: ProcessHandler) {
-        handler.addProcessListener(
-            object : ProcessListener {
-                override fun processWillTerminate(event: ProcessEvent, willBeDestroyed: Boolean) {
-                    handler.notifyTextAvailable(TEXT, ProcessOutputTypes.SYSTEM)
-                }
-            },
-        )
-    }
 }

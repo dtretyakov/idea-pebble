@@ -4,6 +4,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.AnsiEscapeDecoder
 import com.intellij.execution.process.KillableProcessHandler
 import com.intellij.execution.process.ProcessOutputTypes
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Key
 
 /**
@@ -18,6 +19,25 @@ class PebbleLogProcessHandler(commandLine: GeneralCommandLine, private val minim
 
     private val decoder = AnsiEscapeDecoder()
     private val pending = StringBuilder()
+
+    /**
+     * Runs before the process is stopped, off the UI thread: the Alloy debugger logs out here, so
+     * the app runs on before pebble-tool — and with it the bridge — goes.
+     */
+    @Volatile
+    var beforeDestroy: (() -> Unit)? = null
+
+    override fun destroyProcessImpl() {
+        val hook = beforeDestroy ?: return super.destroyProcessImpl()
+        beforeDestroy = null
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                hook()
+            } finally {
+                super.destroyProcessImpl()
+            }
+        }
+    }
 
     override fun notifyTextAvailable(text: String, outputType: Key<*>) {
         if (outputType != ProcessOutputTypes.STDOUT || minimum == LogLevel.VERBOSE) {

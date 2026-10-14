@@ -25,10 +25,14 @@ import java.util.concurrent.TimeUnit
 import javax.imageio.ImageIO
 
 /**
- * Debug for Alloy as the run does it, against pebble-tool and the emery emulator: the plugin's
+ * Debug for Alloy as the run does it, against pebble-tool and the gabbro emulator: the plugin's
  * server where xsbug would listen, a debug build installed with logs, and the app's JavaScript
  * engine logging in to the IDE. Every fact the debugger relies on is checked here, so the day
  * pebble-tool or the engine changes one, this turns red.
+ *
+ * On gabbro, apart from the other live tests' emery: straight after this one, in the same test
+ * run, emery stopped taking touches — buttons still worked — although the ordinary build was
+ * back on it, and run on its own the touch test passed. Not understood yet; kept apart.
  */
 class AlloyDebugLiveTest : IdeTestCase() {
 
@@ -37,10 +41,10 @@ class AlloyDebugLiveTest : IdeTestCase() {
         val tool = LiveSdk.tool()
         val root = LiveSdk.fixture("fixture-alloy")
         assertEquals(0, LiveSdk.run(root, "build", "--debug").exitCode)
-        // emery up first, with an ordinary app, past pebble-tool's few seconds' wait for a cold one.
+        // gabbro up first, with an ordinary app, past pebble-tool's few seconds' wait for a cold one.
         val warm = LiveSdk.fixture("fixture-c")
         assertEquals(0, LiveSdk.run(warm, "build").exitCode)
-        LiveSdk.install(warm, "--emulator", "emery", "--vnc")
+        LiveSdk.install(warm, "--emulator", "gabbro", "--vnc")
 
         // Line 16 of the fixture's draw(), which a watchface runs every second.
         val main = AlloySources.enginePath(root.resolve("src/embeddedjs/main.js")).toString()
@@ -67,7 +71,7 @@ class AlloyDebugLiveTest : IdeTestCase() {
         var loggedOut = false
         try {
             val handler = PebbleRunState.processHandler(
-                tool, PebbleInstallCommand.arguments(PebbleRunTarget.EMULATOR, "emery", "", "", logs = true), root,
+                tool, PebbleInstallCommand.arguments(PebbleRunTarget.EMULATOR, "gabbro", "", "", logs = true), root,
             ) as PebbleLogProcessHandler
             handler.addProcessListener(
                 object : ProcessListener {
@@ -156,13 +160,13 @@ class AlloyDebugLiveTest : IdeTestCase() {
             // for a debugger the next time it starts, and its "not responding" dialog would take
             // the next tests' buttons and touches.
             assertEquals(0, LiveSdk.run(root, "build").exitCode)
-            LiveSdk.install(root, "--emulator", "emery", "--vnc")
+            LiveSdk.install(root, "--emulator", "gabbro", "--vnc")
         }
     }
 
     private fun screenshot(root: Path, name: String): Path {
         val file = root.resolve("$name.png")
-        val result = LiveSdk.run(root, "screenshot", "--emulator", "emery", "--vnc", "--no-open", file.toString())
+        val result = LiveSdk.run(root, "screenshot", "--emulator", "gabbro", "--vnc", "--no-open", file.toString())
         assertEquals(result.text, 0, result.exitCode)
         assertTrue(Files.exists(file))
         return file

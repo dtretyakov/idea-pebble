@@ -72,8 +72,8 @@ and 2026.2. Every tool calls code the plugin already has; none reimplements pebb
 | `pebble_debug_breakpoint(file, line, condition?, log?, remove?)` | 8 | Verified, invalid with gdb's or the engine's reason, or pending until the debugger attaches | P1 |
 | `pebble_debug_wait(timeout)` | 8 | Where it stopped, the stack, and the frame's variables one level deep | P1 |
 | `pebble_debug_evaluate(expression, frame?)`, `pebble_debug_control(over \| into \| out \| resume \| pause)` | 8 | A value with its fields, or the next stop | P1 |
-| `pebble_emulator_reset(kill \| wipe)` | 3 | Done; for an emulator that stopped booting | P2 |
-| `pebble_sdk(list \| install \| activate)` | 10 | SDKs, or done | P2 |
+| `pebble_emulator_reset(kill \| wipe)` | 3 | `pebble kill`, waiting for the emulators to go (`--force` if they will not), then `pebble wipe` — never `wipe --everything`, which deletes the SDKs too | P2 |
+| `pebble_sdk(list \| install \| activate, version?)` | 10 | The current, installed and installable SDKs; or pebble-tool's last words after installing or activating | P2 |
 
 The `pebble_debug_*` tools work through `XDebuggerManager` and `XDebugSession`, not through gdb or
 xsbug directly, so they serve both debuggers — and any other `XDebugProcess`. They are worth
@@ -170,7 +170,8 @@ is nothing else to install. The agent connects to that server once:
 1. Built in 0.9.0: `projectTaskRunner` for `build_project`, the P0 tools, and the skill with its
    install action and Claude Code marketplace.
 2. Built in 0.9.0: UI tests as tools, `pebble_ui_tests` and `pebble_ui_test_accept`.
-3. Built in 0.9.0: the `pebble_debug_*` tools.
+3. Built in 0.9.0: the `pebble_debug_*` tools, then the P2 tools, `pebble_emulator_reset` and
+   `pebble_sdk`.
 
 Each with the same tests as the rest of the plugin: the tools called in an `IdeTestCase`, and a
 live test that has the MCP server answer a real client.

@@ -12,6 +12,7 @@ import com.github.dtretyakov.pebble.run.PebbleRunConfiguration
 import com.github.dtretyakov.pebble.run.PebbleRunConfigurationType
 import com.github.dtretyakov.pebble.run.PebbleRunTarget
 import com.github.dtretyakov.pebble.sdk.PebblePlatform
+import com.github.dtretyakov.pebble.sdk.PebbleSdkList
 import com.github.dtretyakov.pebble.uitest.PebbleToolEmulator
 import com.github.dtretyakov.pebble.uitest.PebbleUiTestConfiguration
 import com.github.dtretyakov.pebble.uitest.PebbleUiTestConfigurationType
@@ -150,6 +151,19 @@ data class Screenshot(
     val round: Boolean,
     /** The same, enlarged for reading: open this image to see the screen. */
     val view: String? = null,
+)
+
+@Serializable
+data class EmulatorReset(val action: String, val output: List<String>)
+
+@Serializable
+data class SdkState(
+    val current: String?,
+    val installed: List<String>,
+    /** Versions pebble-tool can install, when asked for the list. */
+    val available: List<String> = emptyList(),
+    /** pebble-tool's last words, after an install or an activation. */
+    val output: List<String> = emptyList(),
 )
 
 /**
@@ -372,6 +386,63 @@ class PebbleAgent(private val project: Project) {
         refresh(root.resolve(PlatformScreenshots.DIRECTORY))
         return PlatformScreenshots.latest(root.resolve(PlatformScreenshots.DIRECTORY), readAction { PebbleProject.getInstance(project).infoAt(root)?.targetPlatforms.orEmpty() })
             .map { describe(root, it.platform, it.file) }
+    }
+
+    /**
+     * `pebble kill` — every emulator stopped, and with them any run or debug session on one — or
+     * that and then `pebble wipe`, which forgets what the current SDK's emulators had installed and
+     * set: for an emulator that fails to install apps or to boot. Never `wipe --everything`,
+     * which would delete the SDKs too.
+     */
+    suspend fun resetEmulators(action: String): EmulatorReset {
+        if (action != "kill" && action != "wipe") throw AgentProblem("Actions: kill, wipe.")
+        val root = root()
+        lastRun?.takeIf { !it.isProcessTerminated }?.destroyProcess()
+        val output = mutableListOf<String>()
+        suspend fun run(vararg arguments: String) {
+            val (code, text) = pebble(root, arguments.toList(), 120)
+            output += text.lines().map { ANSI.replace(it, "").trimEnd() }.filter { it.isNotBlank() }
+            if (code != 0) throw AgentProblem("pebble ${arguments.joinToString(" ")} failed: ${output.lastOrNull().orEmpty()}")
+        }
+        run("kill")
+        // SIGTERM takes a moment; what will not go is killed outright. Wiping waits for them all.
+        if (withTimeoutOrNull(10_000) { while (EmulatorState.running().isNotEmpty()) kotlinx.coroutines.delay(200) } == null) {
+            run("kill", "--force")
+            withTimeoutOrNull(10_000) { while (EmulatorState.running().isNotEmpty()) kotlinx.coroutines.delay(200) }
+        }
+        if (EmulatorState.running().isNotEmpty()) throw AgentProblem("The emulators did not stop.")
+        if (action == "wipe") run("wipe")
+        return EmulatorReset(action, output)
+    }
+
+    /** The SDKs; or one installed, or made the current one, with pebble-tool. */
+    suspend fun sdk(action: String, version: String?): SdkState {
+        val root = root()
+        val output = when (action) {
+            "list" -> null
+            "install", "activate" -> {
+                val target = version?.takeIf { it.isNotBlank() } ?: if (action == "install") "latest" else throw AgentProblem("Which version to activate?")
+                val (code, text) = pebble(root, listOf("sdk", action, target), if (action == "install") 1800 else 120)
+                val lines = text.lines().map { ANSI.replace(it, "").trimEnd() }.filter { it.isNotBlank() }
+                if (code != 0) throw AgentProblem("pebble sdk $action $target failed: ${lines.takeLast(3).joinToString(" ")}")
+                lines.takeLast(10)
+            }
+            else -> throw AgentProblem("Actions: list, install, activate.")
+        }
+        val sdks = PebbleSdkService.getInstance().sdks()
+        val available = if (action == "list") {
+            pebble(root, listOf("sdk", "list"), 120).takeIf { it.first == 0 }?.second?.let(PebbleSdkList::available).orEmpty()
+        } else {
+            emptyList()
+        }
+        return SdkState(sdks.current?.version, sdks.installed.map { it.version }, available, output.orEmpty())
+    }
+
+    private suspend fun pebble(root: Path, arguments: List<String>, timeoutSeconds: Int): Pair<Int, String> = withContext(Dispatchers.IO) {
+        val output = com.intellij.execution.process.CapturingProcessHandler(
+            com.github.dtretyakov.pebble.project.PebbleCommands.command(tool(), arguments, root),
+        ).runProcess(timeoutSeconds * 1000)
+        (if (output.isTimeout) -1 else output.exitCode) to (output.stdout + output.stderr)
     }
 
     fun logs(after: Long, limit: Int, minimum: String?, contains: String?): LogPage {

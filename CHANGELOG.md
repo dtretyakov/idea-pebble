@@ -24,6 +24,8 @@
 - Screens an agent can see: every screenshot comes with an enlarged view to read the watch's
   text from, and a failed UI test with the reference, the screen and their difference side by
   side.
+- Emulator reset and SDK management as tools, for an agent whose emulator is stuck or whose
+  project needs another SDK.
 - Build Project, and the MCP server's `build_project`, run `pebble build`.
 - A `pebble` skill for agents: in new projects, through Tools | Add Pebble Skill for Agents, and
   as a Claude Code plugin from the plugin's repository.

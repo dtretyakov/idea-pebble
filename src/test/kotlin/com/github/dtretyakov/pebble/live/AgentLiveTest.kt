@@ -134,6 +134,13 @@ class AgentLiveTest : IdeTestCase() {
             assertEquals(second.toString(), 1, second["passed"]!!.jsonPrimitive.int)
             val accepted = call("pebble_ui_test_accept", "scenario" to "tests/ui/hello.pbtest", "platform" to "emery", "screen" to "hello")
             assertEquals("tests/ui/screenshots/emery/hello.png", accepted["reference"]!!.jsonPrimitive.content)
+
+            val sdk = call("pebble_sdk")
+            assertTrue(sdk.toString(), sdk["current"]!!.jsonPrimitive.content in sdk["installed"]!!.jsonArray.map { it.jsonPrimitive.content })
+
+            // Last, as an agent would when an emulator is stuck: every emulator gone, its data with it.
+            call("pebble_emulator_reset", "action" to "wipe")
+            assertTrue(com.github.dtretyakov.pebble.emulator.EmulatorState.running().isEmpty())
         } finally {
             ExecutionManager.getInstance(project).getRunningProcesses().forEach {
                 it.destroyProcess()

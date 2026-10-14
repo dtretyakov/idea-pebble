@@ -25,6 +25,8 @@ and Run window in step with what you do.
 | `pebble_emulator` | Press buttons, tap, set the time, battery or Bluetooth, tilt or shake, one step per line. Returns a screenshot after. |
 | `pebble_ui_tests` | Run the UI test scenarios (`tests/ui/*.pbtest`) on each platform. Every expected screen passes, fails with a diff image, or is recorded as a new reference. |
 | `pebble_ui_test_accept` | Make a run's screenshot the reference, when a screen changed on purpose. |
+| `pebble_emulator_reset` | Stop the emulators (`kill`), or stop them and forget their installed apps (`wipe`), when one hangs, will not boot or keeps failing to install. |
+| `pebble_sdk` | List the SDKs, install one, or make one current. |
 | `pebble_debug_start` | Run the app under the IDE's debugger: gdb for C, the JavaScript engine for Alloy. |
 | `pebble_debug_breakpoint` | Set, condition or remove a line breakpoint, and learn whether the debugger could set it. |
 | `pebble_debug_wait` | Wait for the app to stop. Returns the file and line, the stack and the variables. |

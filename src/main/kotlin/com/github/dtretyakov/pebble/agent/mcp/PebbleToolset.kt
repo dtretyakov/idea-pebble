@@ -7,6 +7,8 @@ import com.github.dtretyakov.pebble.agent.BuildOutcome
 import com.github.dtretyakov.pebble.agent.DebugState
 import com.github.dtretyakov.pebble.agent.DebugValue
 import com.github.dtretyakov.pebble.agent.EmulatorOutcome
+import com.github.dtretyakov.pebble.agent.EmulatorReset
+import com.github.dtretyakov.pebble.agent.SdkState
 import com.github.dtretyakov.pebble.agent.LogPage
 import com.github.dtretyakov.pebble.agent.PebbleAgent
 import com.github.dtretyakov.pebble.agent.PebbleDebugger
@@ -160,6 +162,30 @@ class PebbleToolset : McpToolset {
         @McpDescription("The platform the screenshot was taken on") platform: String,
         @McpDescription("The screen's name, as in its `expect` line") screen: String,
     ): AcceptedScreenshot = call { AcceptedScreenshot(it.acceptScreenshot(scenario, platform, screen)) }
+
+    @McpTool(name = "pebble_emulator_reset")
+    @McpDescription(
+        """
+        |Stops every emulator (`kill`) — for one that hangs, or that pebble_run cannot install on — or stops them
+        |and forgets what the current SDK's emulators had installed and set (`wipe`), for one that fails to boot or
+        |keeps failing to install. Runs and debug sessions on them end. The next pebble_run starts a fresh emulator.
+        """,
+    )
+    suspend fun pebble_emulator_reset(
+        @McpDescription("kill, or wipe") action: String = "kill",
+    ): EmulatorReset = call { it.resetEmulators(action) }
+
+    @McpTool(name = "pebble_sdk")
+    @McpDescription(
+        """
+        |The Pebble SDKs: `list` the installed ones, the current one and those pebble-tool can install; `install` a
+        |version (`latest` when none is given; minutes); `activate` an installed one, which the app then builds with.
+        """,
+    )
+    suspend fun pebble_sdk(
+        @McpDescription("list, install or activate") action: String = "list",
+        @McpDescription("The SDK version, e.g. 4.33.1") version: String? = null,
+    ): SdkState = call { it.sdk(action, version) }
 
     @McpTool(name = "pebble_debug_start")
     @McpDescription(

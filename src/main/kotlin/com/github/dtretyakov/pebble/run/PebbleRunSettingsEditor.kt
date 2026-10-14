@@ -11,6 +11,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.ComponentPredicate
+import com.intellij.ui.layout.selected
 import javax.swing.JComponent
 
 class PebbleRunSettingsEditor(private val project: Project) : SettingsEditor<PebbleRunConfiguration>() {
@@ -20,6 +21,7 @@ class PebbleRunSettingsEditor(private val project: Project) : SettingsEditor<Peb
     private val phoneAddress = JBTextField()
     private val adbSerial = JBTextField()
     private val logs = JBCheckBox("Show the app's logs after installing")
+    private val minimumLogLevel = ComboBox(LogLevel.entries.toTypedArray())
     private val debugBuild = JBCheckBox("Debug build (-O0 -DPBL_DEBUG; xsbug for Alloy)")
 
     init {
@@ -41,6 +43,7 @@ class PebbleRunSettingsEditor(private val project: Project) : SettingsEditor<Peb
         phoneAddress.text = options.phoneAddress
         adbSerial.text = options.adbSerial
         logs.isSelected = options.logs
+        minimumLogLevel.selectedItem = options.minimumLogLevel
         debugBuild.isSelected = options.debugBuild
     }
 
@@ -51,6 +54,7 @@ class PebbleRunSettingsEditor(private val project: Project) : SettingsEditor<Peb
         options.phoneAddress = phoneAddress.text.trim()
         options.adbSerial = adbSerial.text.trim()
         options.logs = logs.isSelected
+        options.minimumLogLevel = minimumLogLevel.selectedItem as LogLevel
         options.debugBuild = debugBuild.isSelected
     }
 
@@ -65,6 +69,9 @@ class PebbleRunSettingsEditor(private val project: Project) : SettingsEditor<Peb
             cell(adbSerial).align(AlignX.FILL).comment("Only when more than one Android device is attached")
         }.visibleIf(targetIs(PebbleRunTarget.ADB))
         row { cell(logs) }
+        row("Log level:") {
+            cell(minimumLogLevel).comment("The least severe lines shown; PebbleKit JS logs count as Info")
+        }.enabledIf(logs.selected)
         row { cell(debugBuild) }
     }
 

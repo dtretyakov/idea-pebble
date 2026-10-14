@@ -7,7 +7,6 @@ import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.configurations.PtyCommandLine
-import com.intellij.execution.process.KillableColoredProcessHandler
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
@@ -40,7 +39,7 @@ class PebbleRunState(environment: ExecutionEnvironment, private val configuratio
         )
 
         consoleBuilder.addFilter(PebbleLogFilter(project, root))
-        val handler = processHandler(tool, arguments, root).also { ProcessTerminatedListener.attach(it) }
+        val handler = processHandler(tool, arguments, root, options.minimumLogLevel).also { ProcessTerminatedListener.attach(it) }
         ConnectionHint.attach(handler, options.target, options.phoneAddress)
         // The emulator's screen is in the IDE, not in a window of its own: bring it up.
         if (options.target == PebbleRunTarget.EMULATOR) EmulatorToolWindowFactory.reveal(project)
@@ -48,12 +47,16 @@ class PebbleRunState(environment: ExecutionEnvironment, private val configuratio
     }
 
     companion object {
-        /** pebble-tool on a pseudo-terminal, with a handler that turns its colours into console colours. */
-        fun processHandler(tool: Path, arguments: List<String>, root: Path): ProcessHandler =
-            KillableColoredProcessHandler(
+        /**
+         * pebble-tool on a pseudo-terminal, with a handler that turns its colours into console
+         * colours and leaves out the log lines below [minimum].
+         */
+        fun processHandler(tool: Path, arguments: List<String>, root: Path, minimum: LogLevel = LogLevel.VERBOSE): ProcessHandler =
+            PebbleLogProcessHandler(
                 PtyCommandLine(PebbleCommands.command(tool, arguments, root))
                     .withInitialColumns(PtyCommandLine.MAX_COLUMNS)
                     .withConsoleMode(false),
+                minimum,
             )
     }
 }

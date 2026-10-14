@@ -43,7 +43,8 @@ Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by 
   levels in pebble-tool's colours and log locations link to the source. Made when a project opens.
 - [x] **Watches.** Tools | Pebble | Take Screenshot from the watch the selected run configuration
   installs on; a hint after pebble-tool's error when a run cannot reach the phone; the Logs tab's
-  "Save console output to file" on every Pebble run.
+  "Save console output to file" on every Pebble run, and a minimum log level per run — read from
+  pebble-tool's colours, the only place the level is.
 - [x] **package.json.** Platform names and project types complete in the `pebble` section, and an
   inspection reports unknown platforms, Alloy on a platform without it, and project types
   pebble-tool cannot build. Not a JSON Schema: the IDE uses one schema per file, and
@@ -53,10 +54,9 @@ Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by 
 
 Still to do:
 
-1. **Logs.** A level filter (the levels are only colours, so the filter reads them back).
-2. **SDKs.** Choosing among installed SDKs and removing one, beyond installing and activating.
-3. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
-4. **Touch.** Confirm that VNC pointer events reach emery's and gabbro's touch screens.
+1. **SDKs.** Choosing among installed SDKs and removing one, beyond installing and activating.
+2. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
+3. **Touch.** Confirm that VNC pointer events reach emery's and gabbro's touch screens.
 
 ## Phase 2 — Advanced development experience (P1)
 

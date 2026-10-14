@@ -1,5 +1,6 @@
 package com.github.dtretyakov.pebble.live
 
+import com.github.dtretyakov.pebble.run.LogLevel
 import com.github.dtretyakov.pebble.run.PebbleInstallCommand
 import com.github.dtretyakov.pebble.run.PebbleRunState
 import com.github.dtretyakov.pebble.run.PebbleRunTarget
@@ -45,6 +46,51 @@ class RunLiveTest : IdeTestCase() {
         handler.startNotify()
         try {
             assertTrue("no log within the time limit:\n$output", logged.await(4, TimeUnit.MINUTES))
+        } finally {
+            handler.destroyProcess()
+            handler.waitFor(10_000)
+        }
+    }
+
+    fun `test only warnings and errors are shown when that is the minimum`() {
+        if (System.getProperty("pebble.liveTests") != "true") return
+        val tool = PebbleTool.locate("", System.getenv("PATH")) ?: return
+        val root = LiveSdk.fixture("fixture-c")
+        java.nio.file.Files.writeString(
+            root.resolve("src/c/fixture-c.c"),
+            """
+            #include <pebble.h>
+            int main(void) {
+              APP_LOG(APP_LOG_LEVEL_ERROR, "an error");
+              APP_LOG(APP_LOG_LEVEL_WARNING, "a warning");
+              APP_LOG(APP_LOG_LEVEL_INFO, "an info");
+              APP_LOG(APP_LOG_LEVEL_DEBUG, "a debug");
+              app_event_loop();
+            }
+            """.trimIndent(),
+        )
+        check(LiveSdk.run(root, "build").exitCode == 0)
+        LiveSdk.install(root, "--emulator", "emery", "--vnc")
+
+        val arguments = PebbleInstallCommand.arguments(PebbleRunTarget.EMULATOR, "emery", "", "", logs = true)
+        val handler = PebbleRunState.processHandler(tool, arguments, root, LogLevel.WARNING)
+        val output = StringBuffer()
+        val done = CountDownLatch(1)
+        handler.addProcessListener(
+            object : ProcessListener {
+                override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+                    output.append(event.text)
+                    if (output.contains("a warning")) done.countDown()
+                }
+            },
+        )
+        handler.startNotify()
+        try {
+            assertTrue("no warning within the time limit:\n$output", done.await(4, TimeUnit.MINUTES))
+            Thread.sleep(2000) // the info and debug lines follow the warning, if they are coming at all
+            assertTrue(output.toString(), output.contains("an error"))
+            assertFalse(output.toString(), output.contains("an info") || output.contains("a debug"))
+            assertTrue(output.toString(), output.contains("App install succeeded."))
         } finally {
             handler.destroyProcess()
             handler.waitFor(10_000)

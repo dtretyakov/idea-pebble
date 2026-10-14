@@ -143,7 +143,9 @@ remedy.
 [14:02:11] pkjs> Hello from the phone
 ```
 
-The level is not in the text: pebble-tool shows it only as a colour, and only when its output is
+The level is not in the text: pebble-tool shows it only as a colour (`PebbleLogPrinter.colour_scheme`:
+error `\e[41m\e[1m\e[37m`, warning `\e[1m\e[31m`, info none, debug `\e[35m`, verbose `\e[36m`,
+PebbleKit JS none), and only when its output is
 a terminal. `pebble logs` has `--color` to force it; `pebble install --logs` has not, so the plugin
 runs it on a pseudo-terminal and lets the console render the colours.
 

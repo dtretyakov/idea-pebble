@@ -13,6 +13,7 @@ class PebbleRunOptions : RunConfigurationOptions() {
     private val adbSerialOption = string("").provideDelegate(this, "adbSerial")
     private val logsOption = property(true).provideDelegate(this, "logs")
     private val debugBuildOption = property(false).provideDelegate(this, "debugBuild")
+    private val minimumLogLevelOption = string(LogLevel.VERBOSE.name).provideDelegate(this, "minimumLogLevel")
 
     var target: PebbleRunTarget
         get() = PebbleRunTarget.of(targetOption.getValue(this))
@@ -36,6 +37,11 @@ class PebbleRunOptions : RunConfigurationOptions() {
     var logs: Boolean
         get() = logsOption.getValue(this)
         set(value) = logsOption.setValue(this, value)
+
+    /** The least severe log lines to show; everything below is left out of the console. */
+    var minimumLogLevel: LogLevel
+        get() = LogLevel.of(minimumLogLevelOption.getValue(this))
+        set(value) = minimumLogLevelOption.setValue(this, value.name)
 
     /** Build with `--debug`: `-O0 -DPBL_DEBUG` for C, and xsbug for Alloy. */
     var debugBuild: Boolean

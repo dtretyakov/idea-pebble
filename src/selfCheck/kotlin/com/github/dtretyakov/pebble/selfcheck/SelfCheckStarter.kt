@@ -8,6 +8,7 @@ import com.github.dtretyakov.pebble.project.IdeCapabilities
 import com.github.dtretyakov.pebble.project.PebbleEnvironment
 import com.intellij.codeInspection.LocalInspectionEP
 import com.intellij.openapi.roots.AdditionalLibraryRootsProvider
+import com.intellij.openapi.vfs.VfsUtil
 import com.redhat.devtools.lsp4ij.LanguageServersRegistry
 import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider
@@ -92,6 +93,16 @@ class SelfCheckStarter : ModernApplicationStarter() {
             problems += "the package.json inspection is not registered"
         } else {
             println("[self-check] package.json inspection")
+        }
+
+        // From the packaged jar, which is where a user's IDE reads it: a resource that is in the
+        // sources but not in the jar is a library that silently never appears.
+        val typings = PebbleLibraryProvider::class.java.getResource(PebbleLibraryProvider.PEBBLEKIT_JS)
+            ?.let(VfsUtil::findFileByURL)
+        if (typings?.parent == null) {
+            problems += "the PebbleKit JS typings are not readable from the plugin"
+        } else {
+            println("[self-check] PebbleKit JS typings: ${typings.url}")
         }
 
         if (AdditionalLibraryRootsProvider.EP_NAME.extensionList.none { it is PebbleLibraryProvider }) {

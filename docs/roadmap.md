@@ -73,7 +73,7 @@ emulator and a separate debugger.
 - Debugging Alloy: a debug run that starts xsbug the way `pebble install` does.
 - Inspections: API not available on a target platform (from that platform's `pebble.h`), resources
   declared in `package.json` and missing on disk, message keys that do not match their use.
-- PebbleKit JS typings for `src/pkjs`.
+- [x] PebbleKit JS typings for `src/pkjs`, the plugin's own, under External Libraries.
 
 ## Phase 3 — Integrated tooling and automation (P2)
 

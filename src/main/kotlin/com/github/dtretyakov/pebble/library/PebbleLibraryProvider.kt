@@ -13,7 +13,9 @@ import com.intellij.openapi.roots.AdditionalLibraryRootsListener
 import com.intellij.openapi.roots.AdditionalLibraryRootsProvider
 import com.intellij.openapi.roots.SyntheticLibrary
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import java.nio.file.Files
 import java.nio.file.Path
 import javax.swing.Icon
 
@@ -44,7 +46,16 @@ class PebbleLibraryProvider : AdditionalLibraryRootsProvider() {
             sdk.toolchain.resolve("moddable/typings")
                 .takeIf { model.infoAt(root)?.projectType == PebbleProjectInfo.ProjectType.ALLOY }
                 ?.let { library("Alloy typings", it) },
+            pebbleKitJs?.takeIf { Files.isDirectory(root.resolve("src/pkjs")) }?.let { PebbleLibrary("PebbleKit JS", it) },
         )
+    }
+
+    /**
+     * The plugin's own typings for PebbleKit JS, which the SDK does not ship: the `Pebble` object
+     * the phone half of an app is written against. Read from the plugin's jar where it is.
+     */
+    private val pebbleKitJs: VirtualFile? by lazy {
+        PebbleLibraryProvider::class.java.getResource(PEBBLEKIT_JS)?.let(VfsUtil::findFileByURL)?.parent
     }
 
     private fun library(name: String, directory: Path): PebbleLibrary? =
@@ -56,6 +67,8 @@ class PebbleLibraryProvider : AdditionalLibraryRootsProvider() {
     }
 
     companion object {
+        const val PEBBLEKIT_JS = "/typings/pebblekit-js/pebblekit-js.d.ts"
+
         /**
          * Tells the IDE the libraries changed, when they have — the platform or the SDK moved — so
          * External Libraries and every index over it follow.

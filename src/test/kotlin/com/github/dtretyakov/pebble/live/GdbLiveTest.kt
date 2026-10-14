@@ -80,7 +80,11 @@ class GdbLiveTest : IdeTestCase() {
             type(handler, "bt")
             waitFor(output, "#0")
             assertTrue(output.toString(), Regex("""#0\s+.*select_clicked""").containsMatchIn(output.replace(Regex("\u001b\\[[0-9;?]*[a-zA-Z]"), "")))
+            // Leaves the watch running and gdb gone before the next test needs the emulator.
             type(handler, "detach")
+            waitFor(output, "detached")
+            type(handler, "quit")
+            handler.waitFor(10_000)
         } finally {
             session.stopWatching()
             handler.destroyProcess()

@@ -20,8 +20,8 @@ class GifLiveTest : IdeTestCase() {
     fun `test a recording of the emulator becomes a GIF`() {
         if (System.getProperty("pebble.liveTests") != "true") return
         val root = LiveSdk.fixture("fixture-c")
-        check(LiveSdk.run(root, "build").exitCode == 0)
-        check(LiveSdk.install(root, "--emulator", "emery", "--vnc").exitCode == 0)
+        LiveSdk.run(root, "build").let { assertEquals(it.text, 0, it.exitCode) }
+        LiveSdk.install(root, "--emulator", "emery", "--vnc").let { assertEquals(it.text, 0, it.exitCode) }
 
         val recorder = GifRecorder()
         val firstFrame = CountDownLatch(1)

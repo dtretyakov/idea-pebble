@@ -52,7 +52,8 @@ class PebbleToolsetTest : IdeTestCase() {
         val tools = client.request("tools/list")["tools"]!!.jsonArray.map { it.jsonObject }.associateBy { it["name"]!!.jsonPrimitive.content }
         val pebble = tools.keys.filter { it.startsWith("pebble_") }.toSet()
         assertEquals(
-            setOf("pebble_project", "pebble_build", "pebble_run", "pebble_logs", "pebble_screenshot", "pebble_emulator", "pebble_api", "pebble_ui_tests", "pebble_ui_test_accept"),
+            setOf("pebble_project", "pebble_build", "pebble_run", "pebble_logs", "pebble_screenshot", "pebble_emulator", "pebble_api", "pebble_ui_tests", "pebble_ui_test_accept",
+                "pebble_debug_start", "pebble_debug_breakpoint", "pebble_debug_wait", "pebble_debug_control", "pebble_debug_evaluate", "pebble_debug_stop"),
             pebble,
         )
         for (name in pebble) {
@@ -94,6 +95,10 @@ class PebbleToolsetTest : IdeTestCase() {
         assertTrue(badStep.toString(), badStep["isError"]?.jsonPrimitive?.boolean == true)
         val text = (badStep["content"] as JsonArray).joinToString { it.jsonObject["text"]!!.jsonPrimitive.content }
         assertTrue(text, "emulator is running" in text || "'press' takes a button" in text)
+
+        val notDebugging = client.callTool("pebble_debug_control", mapOf("action" to JsonPrimitive("over")))
+        assertTrue(notDebugging.toString(), "No Pebble debug session" in notDebugging.toString())
+        assertEquals("none", structured(client.callTool("pebble_debug_wait", mapOf("timeout" to JsonPrimitive(1))))["state"]!!.jsonPrimitive.content)
 
         val noScenarios = client.callTool("pebble_ui_tests")
         assertTrue(noScenarios.toString(), noScenarios["isError"]!!.jsonPrimitive.boolean && "No .pbtest scenarios at tests/ui" in noScenarios.toString())

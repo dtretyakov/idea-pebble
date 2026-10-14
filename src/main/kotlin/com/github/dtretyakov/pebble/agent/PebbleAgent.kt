@@ -20,6 +20,7 @@ import com.github.dtretyakov.pebble.uitest.ScenarioPaths
 import com.github.dtretyakov.pebble.uitest.ScenarioParser
 import com.github.dtretyakov.pebble.uitest.ScenarioRunner
 import com.intellij.execution.ExecutionListener
+import com.intellij.execution.Executor
 import com.intellij.execution.ExecutionManager
 import com.intellij.execution.ProgramRunnerUtil
 import com.intellij.execution.RunManager
@@ -224,20 +225,21 @@ class PebbleAgent(private val project: Project) {
         return RunOutcome(installed, platform, output = if (installed) emptyList() else lines.takeLast(30), logsAfter = 0)
     }
 
-    private data class Execution(val output: String, val matched: Boolean, val ended: Boolean)
+    internal data class Execution(val output: String, val matched: Boolean, val ended: Boolean)
 
     /**
      * Runs [settings] as Run does, in the Run window, and waits until its output satisfies [done],
      * its process ends, or [timeoutSeconds] pass.
      */
-    private suspend fun execute(
+    internal suspend fun execute(
         settings: RunnerAndConfigurationSettings,
         timeoutSeconds: Long,
+        executor: Executor = DefaultRunExecutor.getRunExecutorInstance(),
         onStart: (ProcessHandler) -> Unit = {},
         onText: (String) -> Unit = {},
         done: (CharSequence) -> Boolean,
     ): Execution {
-        val environment = ExecutionEnvironmentBuilder.create(DefaultRunExecutor.getRunExecutorInstance(), settings).build()
+        val environment = ExecutionEnvironmentBuilder.create(executor, settings).build()
         val output = StringBuffer()
         val finished = CompletableDeferred<Boolean>()
         val ended = java.util.concurrent.atomic.AtomicBoolean()
@@ -392,12 +394,12 @@ class PebbleAgent(private val project: Project) {
         return Screenshot(platform, relative(root, file), image?.width ?: 0, image?.height ?: 0, PebblePlatform.of(platform)?.round == true)
     }
 
-    private suspend fun root(): Path =
+    internal suspend fun root(): Path =
         readAction { PebbleProject.getInstance(project).primaryRoot() } ?: throw AgentProblem("No Pebble project is open in this IDE window.")
 
-    private fun tool(): Path = PebbleSdkService.getInstance().tool() ?: throw AgentProblem("pebble-tool is not installed: see https://developer.repebble.com/sdk/")
+    internal fun tool(): Path = PebbleSdkService.getInstance().tool() ?: throw AgentProblem("pebble-tool is not installed: see https://developer.repebble.com/sdk/")
 
-    private suspend fun platform(root: Path, asked: String?): String {
+    internal suspend fun platform(root: Path, asked: String?): String {
         val model = PebbleProject.getInstance(project)
         val targets = readAction { model.infoAt(root)?.targetPlatforms.orEmpty() }
         if (asked != null) {
@@ -432,11 +434,11 @@ class PebbleAgent(private val project: Project) {
         )
     }
 
-    private suspend fun saveDocuments() = withContext(ui) { FileDocumentManager.getInstance().saveAllDocuments() }
+    internal suspend fun saveDocuments() = withContext(ui) { FileDocumentManager.getInstance().saveAllDocuments() }
 
     private fun refresh(directory: Path) = LocalFileSystem.getInstance().refreshNioFiles(listOf(directory), true, false, null)
 
-    private fun relative(root: Path, file: Path): String =
+    internal fun relative(root: Path, file: Path): String =
         if (file.startsWith(root)) root.relativize(file).invariantSeparatorsPathString else file.toString()
 
     private class OutputOnly(private val output: (String) -> Unit) : ScenarioRunner.Reporter {
@@ -455,7 +457,7 @@ class PebbleAgent(private val project: Project) {
         private const val MAX_PROBLEMS = 100
 
         /** The UI thread, where writing — saving documents — is safe: not inside some dialog's modality. */
-        private val ui = Dispatchers.EDT + ModalityState.nonModal().asContextElement()
+        internal val ui = Dispatchers.EDT + ModalityState.nonModal().asContextElement()
         private val STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")
         private val ANSI = Regex("\u001b\\[[0-9;?]*[A-Za-z]")
 

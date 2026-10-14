@@ -2,10 +2,14 @@ package com.github.dtretyakov.pebble.agent.mcp
 
 import com.github.dtretyakov.pebble.agent.AgentProblem
 import com.github.dtretyakov.pebble.agent.ApiLookup
+import com.github.dtretyakov.pebble.agent.BreakpointOutcome
 import com.github.dtretyakov.pebble.agent.BuildOutcome
+import com.github.dtretyakov.pebble.agent.DebugState
+import com.github.dtretyakov.pebble.agent.DebugValue
 import com.github.dtretyakov.pebble.agent.EmulatorOutcome
 import com.github.dtretyakov.pebble.agent.LogPage
 import com.github.dtretyakov.pebble.agent.PebbleAgent
+import com.github.dtretyakov.pebble.agent.PebbleDebugger
 import com.github.dtretyakov.pebble.agent.ProjectSummary
 import com.github.dtretyakov.pebble.agent.RunOutcome
 import com.github.dtretyakov.pebble.agent.Screenshot
@@ -153,11 +157,90 @@ class PebbleToolset : McpToolset {
         @McpDescription("The screen's name, as in its `expect` line") screen: String,
     ): AcceptedScreenshot = call { AcceptedScreenshot(it.acceptScreenshot(scenario, platform, screen)) }
 
+    @McpTool(name = "pebble_debug_start")
+    @McpDescription(
+        """
+        |Starts the IDE's debugger on the app in one platform's emulator, as Debug does: a debug build, installed and
+        |run with gdb attached (C) or the app's JavaScript engine connected (Alloy). Returns once attached, with the
+        |app running. Set breakpoints with pebble_debug_breakpoint — before or after — then make the app reach them
+        |(pebble_emulator) and pebble_debug_wait.
+        """,
+    )
+    suspend fun pebble_debug_start(
+        @McpDescription("The platform; the active platform when left out. C debugs on any, Alloy on emery and gabbro") platform: String? = null,
+    ): DebugState = debug { it.start(platform) }
+
+    @McpTool(name = "pebble_debug_breakpoint")
+    @McpDescription(
+        """
+        |Sets a line breakpoint in the app's sources, optionally with a condition (C or JavaScript, as the source is) or
+        |an expression to log when it is hit; or removes the breakpoints on that line. Says whether the debugger
+        |could set it (verified), could not and why (invalid), or will when it attaches (pending).
+        """,
+    )
+    suspend fun pebble_debug_breakpoint(
+        @McpDescription("The source file, relative to the project") file: String,
+        @McpDescription("The line, counting from 1") line: Int,
+        @McpDescription("Stop only when this is true") condition: String? = null,
+        @McpDescription("Log this expression's value when the line is hit") log: String? = null,
+        @McpDescription("Remove the breakpoints on this line instead") remove: Boolean = false,
+    ): BreakpointOutcome = debug { it.breakpoint(file, line, condition, log, remove) }
+
+    @McpTool(name = "pebble_debug_wait")
+    @McpDescription(
+        """
+        |Waits until the app stops — at a breakpoint, the end of a step, or a crash — and returns where: the file
+        |and line, the stack, and the frame's variables with structs and objects one level deep. Returns at once if it
+        |is stopped already, and with state `running` if it has not stopped when the time is up.
+        """,
+    )
+    suspend fun pebble_debug_wait(
+        @McpDescription("How long to wait, in seconds") timeout: Int = 30,
+    ): DebugState = debug { it.await(timeout.toLong()) }
+
+    @McpTool(name = "pebble_debug_control")
+    @McpDescription(
+        """
+        |Steps or runs the stopped app: `over` (the next line), `into` (into the call on this line), `out` (to the
+        |caller), `resume` (on to the next breakpoint), or `pause` a running app. Steps return the next stop,
+        |as pebble_debug_wait does.
+        """,
+    )
+    suspend fun pebble_debug_control(
+        @McpDescription("over, into, out, resume or pause") action: String,
+        @McpDescription("Seconds to wait for the next stop") timeout: Int = 30,
+    ): DebugState = debug { it.control(action, wait = true, timeoutSeconds = timeout.toLong()) }
+
+    @McpTool(name = "pebble_debug_evaluate")
+    @McpDescription(
+        """
+        |Evaluates an expression in the stopped app — C in a C app, JavaScript in an Alloy app — and returns its value,
+        |with its fields or elements one level deep. Use it to look into a variable further than pebble_debug_wait shows.
+        """,
+    )
+    suspend fun pebble_debug_evaluate(
+        @McpDescription("The expression, e.g. clicks->where.x or s_buffer") expression: String,
+        @McpDescription("The stack frame to evaluate in, 0 being where it stopped") frame: Int = 0,
+    ): DebugValue = debug { it.evaluate(expression, frame) }
+
+    @McpTool(name = "pebble_debug_stop")
+    @McpDescription("Ends the debug session; the app runs on in the emulator without the debugger.")
+    suspend fun pebble_debug_stop(): DebugState = debug { it.stop() }
+
     @Serializable
     data class AcceptedScreenshot(val reference: String)
 
     @Serializable
     data class Screenshots(val screenshots: List<Screenshot>)
+
+    private suspend fun <T> debug(block: suspend (PebbleDebugger) -> T): T {
+        val debugger = PebbleDebugger.getInstance(currentCoroutineContext().project)
+        return try {
+            block(debugger)
+        } catch (e: AgentProblem) {
+            mcpFail(e.message ?: "The Pebble plugin could not do it.")
+        }
+    }
 
     private suspend fun <T> call(block: suspend (PebbleAgent) -> T): T {
         val agent = PebbleAgent.getInstance(currentCoroutineContext().project)

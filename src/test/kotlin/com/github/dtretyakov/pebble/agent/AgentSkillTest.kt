@@ -45,7 +45,7 @@ class AgentSkillTest {
     @Test
     fun `the skill names every tool there is, and no tool that is not`() {
         val tools = PebbleToolset::class.java.methods.mapNotNull { it.getAnnotation(McpTool::class.java)?.name }.toSet()
-        assertEquals(9, tools.size)
+        assertEquals(15, tools.size)
         val text = AgentSkill.text("SKILL.md")
         val named = Regex("""`(pebble_[a-z_]+)`""").findAll(text).map { it.groupValues[1] }.toSet()
         assertEquals(tools, named)

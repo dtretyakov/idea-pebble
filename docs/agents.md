@@ -68,16 +68,17 @@ and 2026.2. Every tool calls code the plugin already has; none reimplements pebb
 | `pebble_emulator(steps, platform?, screenshot?)` | 4 | Steps in the `.pbtest` language — `press`, `tap`, `wait`, `time`, `battery`, `bluetooth`, `quick-view`, `motion`, `shake` — what each did, and a screenshot after | P0 |
 | `pebble_ui_tests(file?, platforms?)` | 7 | Each screen's verdict, and the actual and diff images of a failure | P1 |
 | `pebble_ui_test_accept(file, screen, platform)` | 7 | The new reference written | P1 |
-| `debug_start(platform?)`, `debug_stop` | 8 | A debug session of the Pebble run configuration: gdb for C, xsbug's protocol for Alloy | P1 |
-| `debug_breakpoint(file, line, condition?, remove?)` | 8 | Verified or invalid, with gdb's or the engine's reason | P1 |
-| `debug_wait(timeout)` | 8 | Where it stopped and why, the stack, and the top frame's variables | P1 |
-| `debug_evaluate(expression, frame?)`, `debug_step(over \| into \| out)`, `debug_resume` | 8 | A value, or the next stop | P1 |
+| `pebble_debug_start(platform?)`, `pebble_debug_stop` | 8 | A debug session of the Pebble run configuration: gdb for C, xsbug's protocol for Alloy | P1 |
+| `pebble_debug_breakpoint(file, line, condition?, log?, remove?)` | 8 | Verified, invalid with gdb's or the engine's reason, or pending until the debugger attaches | P1 |
+| `pebble_debug_wait(timeout)` | 8 | Where it stopped, the stack, and the frame's variables one level deep | P1 |
+| `pebble_debug_evaluate(expression, frame?)`, `pebble_debug_control(over \| into \| out \| resume \| pause)` | 8 | A value with its fields, or the next stop | P1 |
 | `pebble_emulator_reset(kill \| wipe)` | 3 | Done; for an emulator that stopped booting | P2 |
 | `pebble_sdk(list \| install \| activate)` | 10 | SDKs, or done | P2 |
 
-The `debug_*` tools work through `XDebuggerManager` and `XDebugSession`, not through gdb or
+The `pebble_debug_*` tools work through `XDebuggerManager` and `XDebugSession`, not through gdb or
 xsbug directly, so they serve both debuggers — and any other `XDebugProcess`. They are worth
-offering to the platform for every language.
+offering to the platform for every language; until it has its own, they carry the plugin's prefix,
+so a later tool of the platform's cannot clash with them.
 
 Tools that act — install, input, debug — say so in `@McpToolHints`, so a client can ask before
 calling them. None touches anything outside the project and its emulators.
@@ -149,6 +150,10 @@ is nothing else to install. The agent connects to that server once:
 - The IDE's server drops a Streamable HTTP session about 15 seconds after it starts unless the
   client has opened the standing event stream (a `GET` on the same URL). Agents do; a client of
   one's own must, or long tool calls fail with 404.
+- The debugger tools read the session as the Debug window does — stack frames, values and their
+  presentations through the platform's callbacks — so the same code reads gdb's and xsbug's.
+  Whether a breakpoint could be set is shown only as its icon; the Pebble debuggers also record
+  it in `BreakpointStates`, where `pebble_debug_breakpoint` reads it.
 - `@JvmDefaultWithoutCompatibility` on the toolset: otherwise Kotlin writes bridges to
   `McpToolset` methods that only 2026.2 has, and 2026.1 cannot load the class.
 
@@ -157,7 +162,7 @@ is nothing else to install. The agent connects to that server once:
 1. Built in 0.9.0: `projectTaskRunner` for `build_project`, the P0 tools, and the skill with its
    install action and Claude Code marketplace.
 2. Built in 0.9.0: UI tests as tools, `pebble_ui_tests` and `pebble_ui_test_accept`.
-3. The `debug_*` tools.
+3. Built in 0.9.0: the `pebble_debug_*` tools.
 
 Each with the same tests as the rest of the plugin: the tools called in an `IdeTestCase`, and a
 live test that has the MCP server answer a real client.

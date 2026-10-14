@@ -18,6 +18,9 @@
   only a stub, and the nearest real names when it does not exist.
 - UI test scenarios as tools: run them in the IDE's test runner and get each screen's verdict,
   with the reference, the screenshot and a diff image of a failure; accept a new screen.
+- The debugger as tools: start a debug session, set breakpoints with conditions or logged
+  expressions, wait for a stop and read the stack and variables, step, evaluate, resume and stop
+  — for C through gdb and for Alloy through the app's engine alike.
 - Build Project, and the MCP server's `build_project`, run `pebble build`.
 - A `pebble` skill for agents: in new projects, through Tools | Add Pebble Skill for Agents, and
   as a Claude Code plugin from the plugin's repository.

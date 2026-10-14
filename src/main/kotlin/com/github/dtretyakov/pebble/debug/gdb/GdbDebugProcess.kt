@@ -1,6 +1,8 @@
 package com.github.dtretyakov.pebble.debug.gdb
 
 import com.github.dtretyakov.pebble.debug.gdb.GdbConnection.GdbError
+import com.github.dtretyakov.pebble.debug.invalidate
+import com.github.dtretyakov.pebble.debug.verify
 import com.intellij.execution.ExecutionResult
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessHandler
@@ -175,11 +177,11 @@ class GdbDebugProcess(
         val answer = try {
             whileStopped(gdb) { gdb.call(command) }
         } catch (e: GdbError) {
-            return session.setBreakpointInvalid(breakpoint, e.message)
+            return session.invalidate(breakpoint, e.message)
         }
-        val number = answer.tuple("bkpt")?.text("number") ?: return session.setBreakpointInvalid(breakpoint, "gdb set no breakpoint")
+        val number = answer.tuple("bkpt")?.text("number") ?: return session.invalidate(breakpoint, "gdb set no breakpoint")
         numbers[breakpoint] = number
-        session.setBreakpointVerified(breakpoint)
+        session.verify(breakpoint)
     }
 
     /**

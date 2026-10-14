@@ -181,6 +181,20 @@ class GdbDebugProcessTest : IdeTestCase() {
             assertEquals("3", XDebuggerTestUtil.computePresentation(fields[0]).myValue)
             assertEquals("-var-create: unable to create variable object", XDebuggerTestUtil.evaluate(session, "nope").second)
 
+            // What an agent reads of the same stop, through the platform's debugger API.
+            val debugger = com.github.dtretyakov.pebble.agent.PebbleDebugger.getInstance(project)
+            val state = agentCall { debugger.state() }
+            assertEquals("suspended", state.state)
+            assertEquals(com.github.dtretyakov.pebble.agent.DebugPosition("src/c/fixture-c.c", 4), state.position)
+            assertEquals(8, state.frames.size)
+            assertTrue(state.frames[0].text, state.frames[0].text.startsWith("select_clicked"))
+            assertNull(state.frames[1].file)
+            assertEquals(listOf("recognizer", "context"), state.variables.map { it.name })
+            val clicks = agentCall { debugger.evaluate("s_clicks", 0) }
+            assertEquals(listOf("count", "where"), clicks.children!!.map { it.name })
+            assertEquals("3", clicks.children!![0].value)
+            assertEquals(com.github.dtretyakov.pebble.debug.BreakpointStates.State(true, null), com.github.dtretyakov.pebble.debug.BreakpointStates.getInstance(project).of(conditional))
+
             // Stepping over: the variable objects go, gdb steps, and the session stops on the next line.
             session.stepOver(false)
             assertEquals("-var-delete \"var1\"", gdb.next("-var-delete.*", pump))
@@ -228,6 +242,17 @@ class GdbDebugProcessTest : IdeTestCase() {
         assertFalse("not on a blank line", PebbleCLineBreakpointType().canPutAt(main, 100, project))
         assertTrue(PebbleCLineBreakpointType.offersOwnType(clionPresent = false, cSource = true))
         assertFalse(PebbleCLineBreakpointType.offersOwnType(clionPresent = true, cSource = true))
+    }
+
+    /** A call as an agent makes it: off the UI thread, which the debugger's callbacks may need. */
+    private fun <T> agentCall(block: suspend () -> T): T {
+        val future = com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread<T> { kotlinx.coroutines.runBlocking { block() } }
+        val deadline = System.currentTimeMillis() + 20_000
+        while (!future.isDone && System.currentTimeMillis() < deadline) {
+            UIUtil.dispatchAllInvocationEvents()
+            Thread.sleep(10)
+        }
+        return future.get(1, java.util.concurrent.TimeUnit.SECONDS)
     }
 
     private fun waitUntil(condition: () -> Boolean) {

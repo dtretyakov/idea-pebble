@@ -25,6 +25,12 @@ and Run window in step with what you do.
 | `pebble_emulator` | Press buttons, tap, set the time, battery or Bluetooth, tilt or shake, one step per line. Returns a screenshot after. |
 | `pebble_ui_tests` | Run the UI test scenarios (`tests/ui/*.pbtest`) on each platform. Every expected screen passes, fails with a diff image, or is recorded as a new reference. |
 | `pebble_ui_test_accept` | Make a run's screenshot the reference, when a screen changed on purpose. |
+| `pebble_debug_start` | Run the app under the IDE's debugger: gdb for C, the JavaScript engine for Alloy. |
+| `pebble_debug_breakpoint` | Set, condition or remove a line breakpoint, and learn whether the debugger could set it. |
+| `pebble_debug_wait` | Wait for the app to stop. Returns the file and line, the stack and the variables. |
+| `pebble_debug_control` | Step `over`, `into` or `out`, `resume`, or `pause`. Steps return the next stop. |
+| `pebble_debug_evaluate` | Evaluate an expression where the app stopped, to look deeper into a value. |
+| `pebble_debug_stop` | End the session. The app runs on. |
 
 The IDE's own tools work on Pebble projects too: `get_file_problems` runs the plugin's checks
 (calls a platform only stubs out, missing resources, unused message keys), and `build_project`
@@ -46,7 +52,12 @@ Without the IDE, do the same with `pebble` on the command line: see
 6. Before you call it done, check a round screen (`chalk`, `gabbro`) and a black-and-white one
    (`aplite`, `diorite`, `flint`) if the app targets them: `pebble_run` each, or
    `pebble_screenshot` with `all: true`.
-7. If the project has `tests/ui`, run `pebble_ui_tests`. Read the diff of every failure. Accept a
+7. When the logs do not explain a wrong value or a crash, debug.
+   - Set `pebble_debug_breakpoint` on the line that matters, then `pebble_debug_start`.
+   - Make the app reach it with `pebble_emulator`, then `pebble_debug_wait`.
+   - Look deeper with `pebble_debug_evaluate`, step with `pebble_debug_control`.
+   - `pebble_debug_stop` when done.
+8. If the project has `tests/ui`, run `pebble_ui_tests`. Read the diff of every failure. Accept a
    new screen with `pebble_ui_test_accept` only when the change is the one you meant. Look at
    recorded screens before committing them.
 

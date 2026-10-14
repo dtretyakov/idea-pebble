@@ -81,19 +81,19 @@ class AlloyDebugProcess(
         if (!AlloyBreakpoints.isAlloySource(session.project, file)) return
         val enginePath = AlloySources.enginePath(path).toString()
         if (!XsbugCommands.canSend(enginePath)) {
-            session.setBreakpointInvalid(breakpoint, "The Alloy debugger cannot be given a path with a double quote or a line break")
+            session.invalidate(breakpoint, "The Alloy debugger cannot be given a path with a double quote or a line break")
             return
         }
         // Compiling a condition runs xsc: off the thread the platform calls from.
         requests.execute {
             val target = when (val made = AlloyBreakpointTargets.of(breakpoint, enginePath, file.name, compiler)) {
                 is AlloyBreakpointTargets.Made.Target -> made.breakpoint
-                is AlloyBreakpointTargets.Made.Invalid -> return@execute session.setBreakpointInvalid(breakpoint, made.message)
+                is AlloyBreakpointTargets.Made.Invalid -> return@execute session.invalidate(breakpoint, made.message)
                 AlloyBreakpointTargets.Made.Nothing -> return@execute
             }
             lineBreakpoints[breakpoint] = target
             val connection = server.connection ?: return@execute
-            if (connection.send(XsbugCommands.setBreakpoint(target))) session.setBreakpointVerified(breakpoint)
+            if (connection.send(XsbugCommands.setBreakpoint(target))) session.verify(breakpoint)
         }
     }
 
@@ -114,7 +114,7 @@ class AlloyDebugProcess(
         val (withOptions, plain) = lineBreakpoints.values.distinct().partition { it.hasOptions }
         connection.send(XsbugCommands.setAllBreakpoints(plain + listOfNotNull(XsbugCommands.EXCEPTIONS.takeIf { exceptionBreakpoint != null })))
         withOptions.forEach { connection.send(XsbugCommands.setBreakpoint(it)) }
-        lineBreakpoints.keys.forEach { session.setBreakpointVerified(it) }
+        lineBreakpoints.keys.forEach { session.verify(it) }
         print("The app's JavaScript is connected to the debugger (${login.version}).\n", ProcessOutputTypes.SYSTEM)
     }
 

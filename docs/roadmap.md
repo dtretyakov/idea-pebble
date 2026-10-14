@@ -110,7 +110,8 @@ emulator and a separate debugger.
   as `pebble build`, and a `pebble` Agent Skill the plugin adds to projects, also installable in
   Claude Code from this repository. Scenarios, tools and installation in [agents.md](agents.md).
 - [x] Coding agents, part two: UI test scenarios run and their screens accepted as tools.
-- Coding agents, part three: the debugger as tools.
+- [x] Coding agents, part three: the debugger as tools — start, breakpoints, wait, step, evaluate,
+  stop — for C and Alloy alike, through the IDE's own debug session.
 
 ## Risks to settle early in Phase 1
 

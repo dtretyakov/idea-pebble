@@ -56,6 +56,14 @@
             doNotActivateOnStart="true"
             factoryClass="com.github.dtretyakov.pebble.emulator.EmulatorToolWindowFactory"/>
         <additionalLibraryRootsProvider implementation="com.github.dtretyakov.pebble.library.PebbleLibraryProvider"/>
+        <!-- No language: a C file is CLion's language in CLion, TextMate's in IDEA, plain text elsewhere. -->
+        <localInspection
+            shortName="PebblePlatformStubCall"
+            displayName="Call to a function the target platform stubs out"
+            groupName="Pebble"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.github.dtretyakov.pebble.lang.PlatformStubCallInspection"/>
     </extensions>
 
     <applicationListeners>

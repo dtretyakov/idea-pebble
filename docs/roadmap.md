@@ -74,8 +74,11 @@ emulator and a separate debugger.
   debug process (the SDK's gdb has no Python, so no DAP), and that is Phase 3.
 - [x] Debugging Alloy: Debug builds with `--debug` and installs, and pebble-tool starts xsbug and
   bridges the watch to it.
-- Inspections: API not available on a target platform (from that platform's `pebble.h`), resources
-  declared in `package.json` and missing on disk, message keys that do not match their use.
+- [x] Calls in C to functions a target platform only stubs out, from each platform's `pebble.h`,
+  wherever no `PBL_` condition chooses the platform — an inspection in every IDE, whatever the
+  C file's language there.
+- Inspections: resources declared in `package.json` and missing on disk, message keys that do not
+  match their use.
 - [x] PebbleKit JS typings for `src/pkjs`, the plugin's own, under External Libraries.
 - **Windows.** Projects inside WSL: pebble-tool run in the distribution (`WSLDistribution`), its data
   directory and `pb-emulator.json` read through the distribution's paths, and the emulator's VNC

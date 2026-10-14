@@ -1,0 +1,20 @@
+<html>
+<body>
+Reports calls in C to SDK functions that some of the project's <code>targetPlatforms</code> only stub out.
+<p>
+  Each platform's <code>pebble.h</code> declares the whole API. What a watch lacks &mdash; the speaker, touch, the RGB
+  backlight on the older platforms &mdash; is a macro there that ignores its arguments, such as
+  <code>#define speaker_play_notes(...) (0)</code>. The call compiles for every platform and does nothing on those.
+</p>
+<p>A call is not reported where a <code>PBL_</code> condition chooses the platforms:</p>
+<pre><code>#if defined(PBL_SPEAKER)
+  speaker_play_notes(notes, count, 100);
+#endif
+
+int width = PBL_IF_ROUND_ELSE(180, 144);</code></pre>
+<p>
+  Stubs that return a value of their own, like <code>persist_get_max_size</code> on aplite, are the SDK's answer for
+  that platform and are not reported.
+</p>
+</body>
+</html>

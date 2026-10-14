@@ -72,6 +72,32 @@ Sources: `src/c/` for C, `src/pkjs/` for PebbleKit JS on the phone, `src/embedde
 | emery | Pebble Time 2 | 200×228, 64 colours, touch | yes |
 | gabbro | Pebble Round 2 | 260×260 round, 64 colours, touch | yes |
 
+## Platform differences in the API
+
+Every platform's `pebble.h` declares the whole API. What a platform's watches lack is a macro that
+ignores its arguments — 60 of them on aplite, 44 on basalt, chalk and diorite, none on flint,
+emery and gabbro in SDK 4.33.1:
+
+```c
+#define speaker_play_notes(...) (0)
+#define health_service_register_metric_alert(...) (NULL)
+#define app_glance_reload(...) do {} while(0)
+#define persist_get_max_size(...) (4096)
+```
+
+So a call compiles on every platform and does nothing on those — the build never says. Most stubs
+are `(0)`, `(false)`, `(NULL)` or an empty statement; a few return the platform's real answer, like
+`persist_get_max_size` above, and calling those is no mistake.
+
+The headers and the capability macros disagree in one place: flint's `pebble.h` declares the
+speaker and touch functions, while `PBL_SPEAKER` and `PBL_TOUCH` are defined only for emery and
+gabbro (`pebble_sdk_platform.py`). The plugin goes by the headers.
+
+Code chooses a platform with the macros waf defines per platform — `PBL_PLATFORM_<NAME>`,
+`PBL_COLOR`/`PBL_BW`, `PBL_ROUND`/`PBL_RECT`, `PBL_HEALTH`, `PBL_MICROPHONE`, `PBL_COMPASS`,
+`PBL_SMARTSTRAP`, `PBL_SPEAKER`, `PBL_TOUCH`, `PBL_RGB_BACKLIGHT`, `PBL_DISPLAY_WIDTH` and
+`_HEIGHT` — and with `pebble.h`'s `PBL_IF_<capability>_ELSE(a, b)` and `PBL_PLATFORM_SWITCH`.
+
 ## Building
 
 `pebble build` runs `waf configure` and `waf build` from the SDK. `--debug` adds `-O0 -DPBL_DEBUG`.

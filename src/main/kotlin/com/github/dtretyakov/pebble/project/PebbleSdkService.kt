@@ -4,10 +4,13 @@ import com.github.dtretyakov.pebble.sdk.PebbleDataDir
 import com.github.dtretyakov.pebble.sdk.PebbleSdk
 import com.github.dtretyakov.pebble.sdk.PebbleSdks
 import com.github.dtretyakov.pebble.sdk.PebbleTool
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.util.Disposer
 import com.intellij.util.EnvironmentUtil
 import com.intellij.util.messages.Topic
+import org.jetbrains.annotations.TestOnly
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -31,8 +34,18 @@ class PebbleSdkService {
     fun tool(): Path? =
         PebbleTool.locate(PebbleAppSettings.getInstance().pebbleToolPath, EnvironmentUtil.getValue("PATH"))
 
+    @Volatile
+    private var dataDirForTests: Path? = null
+
     /** Where pebble-tool keeps its SDKs on this machine; null on Windows, where it runs in WSL. */
-    fun dataDir(): Path? = PebbleDataDir.locate()
+    fun dataDir(): Path? = dataDirForTests ?: PebbleDataDir.locate()
+
+    /** An SDK laid out on disk by a test, in place of this machine's, until [disposable] goes. */
+    @TestOnly
+    fun useDataDir(dataDir: Path, disposable: Disposable) {
+        dataDirForTests = dataDir
+        Disposer.register(disposable) { dataDirForTests = null }
+    }
 
     fun sdks(): PebbleSdks {
         val dataDir = dataDir()

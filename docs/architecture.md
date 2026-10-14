@@ -63,6 +63,7 @@ project/    what a Pebble project is, settings, the active platform, the environ
 build/      pebble build into the Build tool window, and reading its output
 run/        the run configuration, the before-launch build, the log console and its links
 emulator/   pebble-tool's record of running emulators, the RFB client, the tool window
+lang/       package.json's pebble section, calls in C to what a target platform stubs out
 lsp/        clangd through LSP4IJ, outside CLion — loaded only where LSP4IJ is installed
 library/    SDK headers and Alloy typings under External Libraries
 ui/         settings, the platform selector, the missing SDK banner, the new project wizard

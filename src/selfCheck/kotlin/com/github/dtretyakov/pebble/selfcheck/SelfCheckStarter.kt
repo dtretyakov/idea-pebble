@@ -99,6 +99,11 @@ class SelfCheckStarter : ModernApplicationStarter() {
         } else {
             println("[self-check] package.json inspection")
         }
+        if (LocalInspectionEP.LOCAL_INSPECTION.extensionList.none { it.shortName == "PebblePlatformStubCall" }) {
+            problems += "the platform stub inspection for C is not registered"
+        } else {
+            println("[self-check] platform stub inspection")
+        }
 
         // From the packaged jar, which is where a user's IDE reads it: a resource that is in the
         // sources but not in the jar is a library that silently never appears.

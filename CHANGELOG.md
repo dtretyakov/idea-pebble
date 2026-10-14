@@ -7,6 +7,20 @@
   inline `backticks`.
 -->
 
+## 0.6.0
+
+### Running and debugging
+
+- Alloy expressions in the debugger: Evaluate Expression and watches, breakpoint conditions, and
+  breakpoints that log a message or an expression without stopping — compiled for the watch by
+  the SDK's own `xsc`.
+- When an app exits with memory it never freed, the run's console says how much.
+
+### Building
+
+- Each platform's RAM, free heap and resources under that platform in the Build window, with a
+  warning when the heap is short or the app store would refuse the resources.
+
 ## 0.5.0
 
 ### Running and debugging

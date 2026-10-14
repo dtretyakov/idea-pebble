@@ -73,6 +73,7 @@
         <stepsBeforeRunProvider implementation="com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurations"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.project.CompileDatabase$Startup"/>
+        <postStartupActivity implementation="com.github.dtretyakov.pebble.project.TypeScriptConfig$Startup"/>
         <toolWindow
             id="Pebble Emulator"
             anchor="right"
@@ -122,6 +123,12 @@
         <listener
             class="com.github.dtretyakov.pebble.project.CompileDatabase$Listener"
             topic="com.github.dtretyakov.pebble.build.PebbleBuild$Listener"/>
+        <listener
+            class="com.github.dtretyakov.pebble.project.TypeScriptConfig$Listener"
+            topic="com.github.dtretyakov.pebble.build.PebbleBuild$Listener"/>
+        <listener
+            class="com.github.dtretyakov.pebble.project.TypeScriptConfig$Listener"
+            topic="com.github.dtretyakov.pebble.project.PebbleSettings$Listener"/>
         <listener class="com.github.dtretyakov.pebble.agent.PebbleRunLogs$Listener"
             topic="com.intellij.execution.ExecutionListener"/>
         <listener

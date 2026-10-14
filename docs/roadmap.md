@@ -128,9 +128,13 @@ Each of these is a short experiment against a real SDK before the feature that d
   GDB/MI instead, which this gdb has.
 - **CLion and a regenerated compile database.** Confirm that CLion reloads `compile_commands.json`
   when it changes. If it does not, a small optional module on CLion's API, in that one place.
-- **C highlighting outside CLion.** Confirm the bundled TextMate grammar for C is enough to carry
-  LSP4IJ's results in IDEA and WebStorm.
-- **TypeScript and library roots.** Confirm the TypeScript service sees `.d.ts` files from library
-  roots in Alloy `.ts` sources; if not, a generated `tsconfig.json`.
+- **TypeScript and library roots — settled: a generated `tsconfig.json`.** Library roots alone do
+  not do it: `import Poco from "commodetto/Poco"` resolves to nothing. The build writes the
+  TypeScript settings it checks the app with for itself, under `build/mods/`; a root
+  `tsconfig.json` that extends them, written after each build, makes the import resolve into the
+  SDK's typings, and the build does not mind it.
+- **C highlighting outside CLion — open.** clangd checks a Pebble source clean from the compile
+  database (a live test). Whether LSP4IJ carries its diagnostics into a TextMate C file's editor
+  cannot be tested in a headless IDE, where LSP4IJ's annotator waits for answers that never come.
 - **The name.** Pebble is a trademark, and the Marketplace refuses names that lean on one. The
   plugin's listed name is settled before the first upload.

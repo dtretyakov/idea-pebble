@@ -12,7 +12,7 @@ pebble-tool, or in the IDE — and the plugin's job is to find those things and 
 |---|---|---|
 | SDKs, new projects | `pebble` (pebble-tool): `sdk install/activate`, `new-project` | command line; state is read from the SDK's own files, never parsed out of prose |
 | C code insight | CLion's own engine; clangd in IDEA and WebStorm | `pebble compile-commands` writes `compile_commands.json` for the active platform; clangd through [LSP4IJ](https://plugins.jetbrains.com/plugin/23257-lsp4ij) |
-| Alloy code insight | the IDE's own JavaScript and TypeScript support | the SDK's `.d.ts` typings as library roots |
+| Alloy code insight | the IDE's own JavaScript and TypeScript support | the SDK's `.d.ts` typings as library roots, and a `tsconfig.json` extending the one the build writes for itself |
 | Building | `pebble build` (waf and gcc) | command line, output parsed into the Build tool window |
 | Running, installing, logs | `pebble install --emulator P \| --phone IP \| --cloudpebble \| --adb --logs` | the run configuration's process and console |
 | The emulator's screen | QEMU's VNC server (`pebble install --vnc`) | a small RFB client: frames in, buttons and touches out |

@@ -372,3 +372,13 @@ release must be and a client can check before submitting:
   diorite, flint), 180×180 (chalk), 200×228 (emery), 260×260 (gabbro) — up to five per platform.
 - Optional: a 720×320 banner per platform; for apps, 80×80 and 144×144 icons, made from the name
   when missing. The name, description and, for apps, category are entered in the store.
+
+## TypeScript in Alloy apps
+
+The build checks `src/embeddedjs` with TypeScript and writes the settings it uses, for each
+platform and variant, to `build/mods/<platform>/mcrun/tmp/pebble/<debug|release>/embeddedjs/files/tsconfig-js.json`:
+`paths` from every module name — `commodetto/Poco`, `piu/MC`, `embedded:io/…`, `pebble/button`
+— to the SDK's typings, the global `types` (`pebble/global`, `pebble/piu`, `pebble/poco`, …),
+`target` and `lib` es2025, `allowJs` and `checkJs`. The settings come from Moddable's
+`examples/manifest_typings.json`, which the template's manifest includes. A `tsconfig.json` at
+the project's root does not change the build.

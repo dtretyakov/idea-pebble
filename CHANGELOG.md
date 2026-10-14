@@ -9,6 +9,12 @@
 
 ## 0.9.0
 
+### Code insight
+
+- Alloy TypeScript sees the SDK's modules: after each build the plugin writes a `tsconfig.json`
+  that extends the TypeScript settings the build checks the app with, so `import Poco from
+  "commodetto/Poco"` resolves. A `tsconfig.json` of your own is left alone.
+
 ### Releasing
 
 - Build | Check Pebble Release: a release build, checked against what the Pebble appstore takes —

@@ -105,6 +105,9 @@ emulator and a separate debugger.
   pause, the stack, variables, Evaluate Expression and watches, setting values, and a stop where
   the app crashes; Stop detaches, and the app runs on.
 - Release preparation: `.pbw` checks and store metadata.
+- Coding agents: Pebble tools in the IDE's MCP server — build, run, logs, screenshots, the
+  emulator's input, API lookup, UI tests, the debugger — and a `pebble` Agent Skill the plugin
+  can add to a project. Scenarios, tools and installation in [agents.md](agents.md).
 
 ## Risks to settle early in Phase 1
 

@@ -29,7 +29,14 @@ import java.nio.file.Path
 import kotlin.io.path.extension
 import kotlin.io.path.listDirectoryEntries
 
-data class BuildResult(val exitCode: Int, val messages: List<BuildMessage>, val bundle: Path?) {
+data class BuildResult(
+    val exitCode: Int,
+    val messages: List<BuildMessage>,
+    val bundle: Path?,
+    val memory: List<MemoryUsage> = emptyList(),
+    /** Why the build did not start, when it did not. */
+    val problem: String? = null,
+) {
     val succeeded: Boolean get() = exitCode == 0
 }
 
@@ -69,7 +76,7 @@ object PebbleBuild {
             val reason = "pebble-tool is not installed. See Settings | Languages & Frameworks | Pebble."
             view.onEvent(id, output(id, "$reason\n", isError = true))
             view.onEvent(id, finish(id, "failed", succeeded = false))
-            return BuildResult(-1, emptyList(), null)
+            return BuildResult(-1, emptyList(), null, problem = reason)
         }
 
         val command = PebbleCommands.command(tool, listOfNotNull("build", "--debug".takeIf { debug }), root)
@@ -140,7 +147,7 @@ object PebbleBuild {
         messages.forEach { view.onEvent(id, event(id, it)) }
         memory.forEach { view.onEvent(id, event(id, it)) }
         val bundle = bundleIn(root)
-        val result = BuildResult(exitCode, messages, bundle.takeIf { exitCode == 0 })
+        val result = BuildResult(exitCode, messages, bundle.takeIf { exitCode == 0 }, memory)
         view.onEvent(id, finish(id, if (result.succeeded) "successful" else "failed", result.succeeded))
 
         // The build wrote to build/, which the IDE should see now rather than at the next focus.

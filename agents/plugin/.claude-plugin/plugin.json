@@ -1,0 +1,17 @@
+{
+  "name": "pebble",
+  "version": "0.9.0",
+  "description": "Build, run, look at and fix Pebble smartwatch apps in C or Alloy. A skill for the Pebble plugin's tools in JetBrains IDEs, and for pebble-tool on the command line.",
+  "author": {
+    "name": "dtretyakov"
+  },
+  "homepage": "https://github.com/dtretyakov/idea-pebble",
+  "repository": "https://github.com/dtretyakov/idea-pebble",
+  "license": "Apache-2.0",
+  "keywords": [
+    "pebble",
+    "smartwatch",
+    "jetbrains",
+    "mcp"
+  ]
+}

@@ -27,6 +27,9 @@ class PebbleLogProcessHandler(commandLine: GeneralCommandLine, private val minim
     @Volatile
     var beforeDestroy: (() -> Unit)? = null
 
+    /** Everything the process and the run print, as written: with its colours, whatever [minimum] hides. */
+    val rawOutput: MutableList<(String, Key<*>) -> Unit> = java.util.concurrent.CopyOnWriteArrayList()
+
     override fun destroyProcessImpl() {
         val hook = beforeDestroy ?: return super.destroyProcessImpl()
         beforeDestroy = null
@@ -40,6 +43,7 @@ class PebbleLogProcessHandler(commandLine: GeneralCommandLine, private val minim
     }
 
     override fun notifyTextAvailable(text: String, outputType: Key<*>) {
+        rawOutput.forEach { it(text, outputType) }
         if (outputType != ProcessOutputTypes.STDOUT || minimum == LogLevel.VERBOSE) {
             decoder.escapeText(text, outputType, this)
             return

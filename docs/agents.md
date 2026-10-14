@@ -1,9 +1,10 @@
 # Coding agents and the IDE
 
 How a coding agent (Claude Code, Codex, Junie, Copilot, Cursor) develops a Pebble app, where it
-struggles, and what the plugin should hand it through the IDE's MCP server and a skill. A plan;
-nothing here is built yet. Facts were read from IntelliJ IDEA 2026.1 and 2026.2's bundled MCP
-server and from the Claude Code documentation (October 2026).
+struggles, and what the plugin hands it through the IDE's MCP server and a skill. Since 0.9.0
+the first part is built: the `projectTaskRunner`, the P0 tools and the skill; the rest is the plan
+at the end. Facts were read from IntelliJ IDEA 2026.1 and 2026.2's bundled MCP server and from
+the Claude Code documentation (October 2026).
 
 ## What an agent does, how often, and how much it hurts
 
@@ -49,7 +50,7 @@ Some of these already do Pebble work, and should simply be made to:
   `pebble build` for it would make the built-in tool, Build Project and Ctrl+F9 all build — the
   IntelliJ way, and no new tool.
 
-## Tools the plugin should add
+## Tools the plugin adds
 
 A `mcpServer.mcpToolset` extension (`McpToolset`, functions with `@McpTool` and
 `@McpDescription`, the project from the call's coroutine context), loaded through an optional
@@ -64,8 +65,7 @@ and 2026.2. Every tool calls code the plugin already has; none reimplements pebb
 | `pebble_run(platform)` | 3 | Builds if needed, installs on the emulator, returns once pebble-tool says the app is installed; logs keep coming into the run's console | P0 |
 | `pebble_logs(platform?, after?, level?, limit?)` | 5 | Log lines since a cursor, with crash addresses resolved to functions and lines, and leaked memory called out | P0 |
 | `pebble_screenshot(platform \| all)` | 3, 6 | Paths of PNG files (tool results are text only), with each screen's size and shape | P0 |
-| `pebble_emulator_input(press \| long_press \| tap, …)` | 4 | Done, through the RFB client, in milliseconds; optionally a screenshot after | P0 |
-| `pebble_emulator_set(time \| battery \| bluetooth \| tilt \| tap \| quick_view \| content_size, …)` | 4 | Done, through `pebble emu-*` | P1 |
+| `pebble_emulator(steps, platform?, screenshot?)` | 4 | Steps in the `.pbtest` language — `press`, `tap`, `wait`, `time`, `battery`, `bluetooth`, `quick-view`, `motion`, `shake` — what each did, and a screenshot after | P0 |
 | `pebble_ui_tests(file?, platforms?)` | 7 | Each screen's verdict, and the actual and diff images of a failure | P1 |
 | `pebble_ui_test_accept(file, screen, platform)` | 7 | The new reference written | P1 |
 | `debug_start(platform?)`, `debug_stop` | 8 | A debug session of the Pebble run configuration: gdb for C, xsbug's protocol for Alloy | P1 |
@@ -116,16 +116,39 @@ is nothing else to install. The agent connects to that server once:
    get it.
 2. A Claude Code plugin from this repository: a marketplace, `.claude-plugin/marketplace.json`,
    listing a plugin whose `skills/pebble/SKILL.md` is the same file.
-   `claude plugin marketplace add dtretyakov/idea-pebble`, then
-   `claude plugin install pebble@idea-pebble`. The plugin ships no `.mcp.json`: Auto-Configure
+   `/plugin install pebble --marketplace dtretyakov/idea-pebble` (Claude Code 2.1.275 and later),
+   or `claude plugin marketplace add dtretyakov/idea-pebble`, then
+   `claude plugin install pebble@idea-pebble`. Its version is the IDE plugin's. The plugin ships no `.mcp.json`: Auto-Configure
    already adds the IDE's server, and a second copy would only duplicate its tools.
 3. By hand: the directory copied to `~/.claude/skills/pebble/`, or another agent's skills
    directory.
 
+## What building them showed
+
+- One tool for the emulator rather than two. The UI test scenarios' language already covers
+  buttons, touches and the emulator's settings, so `pebble_emulator` takes its steps: an agent
+  that has learned one has learned the other.
+- `pebble_screenshot` saves where Capture Every Platform does, `screenshots/<platform>_<sdk>_<time>.png`,
+  so what an agent looked at is in the emulator tool window's Platforms tab too.
+- `pebble_run` uses a run configuration of its own (the user's are left alone), shows in the Run
+  window like any run, and returns when pebble-tool prints `App install succeeded.`; a cold
+  emulator that refuses the first install is tried once more, as the live tests do.
+- `pebble_logs` reads every Pebble run's output — the user's runs too — from a buffer of the last
+  5,000 lines, taken before the console's level filter, so each line keeps its level.
+- `pebble_api` reads `pebble.h` for each target platform: its `//!` comments are the SDK's
+  documentation, and a function defined as a macro that does nothing is a stub there. Suggestions
+  rank the header's names by shared words, `snake_case` and `CamelCase` alike, then by edits.
+- The MCP server calls a tool off the UI thread, and the tools need that thread free: saving
+  documents and refreshing `build/` happen on it. A test that holds it waits forever, so the
+  live test calls the tools from another thread, as an agent does.
+- The Build Project runner is called off the UI thread, sometimes under a read lock: it saves
+  documents and starts the build from the UI thread later, rather than waiting for it.
+
 ## Order
 
-1. `projectTaskRunner` for `build_project`; the P0 tools; the skill and its install action.
-2. UI tests and the emulator's settings as tools.
+1. Built in 0.9.0: `projectTaskRunner` for `build_project`, the P0 tools, and the skill with its
+   install action and Claude Code marketplace.
+2. UI tests as tools: `pebble_ui_tests`, `pebble_ui_test_accept`.
 3. The `debug_*` tools.
 
 Each with the same tests as the rest of the plugin: the tools called in an `IdeTestCase`, and a

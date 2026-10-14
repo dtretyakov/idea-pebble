@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin)
+    alias(libs.plugins.kotlinSerialization)
     // Version comes from the settings plugin, which already has IPGP on the classpath.
     id("org.jetbrains.intellij.platform")
 }
@@ -41,6 +42,8 @@ dependencies {
         // The IDE's test runner, for UI test scenarios.
         bundledModule("intellij.platform.testRunner")
         bundledModule("intellij.platform.smRunner")
+        // The IDE's MCP server, for the tools agents call; an optional dependency in plugin.xml.
+        bundledPlugin("com.intellij.mcpServer")
         // In tests, the IDE as most users have it: package.json already has npm's schema.
         testBundledPlugins("JavaScript", "NodeJS")
         pluginVerifier()
@@ -83,6 +86,14 @@ val selfCheckJar = tasks.register<Jar>("selfCheckJar") {
     // second plugin carrying the first one's descriptor is a duplicate the IDE refuses to load.
     from(selfCheck.output.classesDirs)
     from(selfCheck.resources.srcDirs)
+}
+
+/**
+ * The agent skill has one copy, `agents/plugin/skills`, where Claude Code's marketplace installs it
+ * from; the plugin carries the same files, to write into a project.
+ */
+tasks.named<ProcessResources>("processResources") {
+    from("agents/plugin/skills") { into("agent-skills") }
 }
 
 tasks.withType<Test>().configureEach {

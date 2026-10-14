@@ -24,6 +24,27 @@ checks for calls that platform only stubs out. What is still to come is in the
 
 For C in IntelliJ IDEA or WebStorm, install the LSP4IJ plugin and clangd; CLion needs neither.
 
+## Coding agents
+
+The plugin adds Pebble tools to the IDE's own MCP server, so an agent such as Claude Code, Codex,
+Junie or Copilot can build the app, run it in the emulator, read its logs, press its buttons,
+look at its screen and check the SDK's API.
+
+1. Connect the agent to the IDE: **Settings | Tools | MCP Server**, enable the server, then
+   **Auto-Configure** for your agent.
+2. Give the agent the `pebble` skill, which tells it how to use those tools. New projects have it
+   already. For an existing project, use **Tools | Add Pebble Skill for Agents**. For Claude Code
+   everywhere, install it from this repository:
+
+   ```
+   /plugin install pebble --marketplace dtretyakov/idea-pebble
+   ```
+
+   On Claude Code before 2.1.275, run `/plugin marketplace add dtretyakov/idea-pebble`, then
+   `/plugin install pebble@idea-pebble`.
+
+[Coding agents](docs/agents.md) has the details.
+
 On Windows the Pebble SDK runs only inside WSL, which this version does not drive yet.
 
 ## Documentation
@@ -31,6 +52,7 @@ On Windows the Pebble SDK runs only inside WSL, which this version does not driv
 - [Architecture](docs/architecture.md) — how the plugin is put together, and why.
 - [Roadmap](docs/roadmap.md) — what comes in which phase.
 - [Notes on the Pebble SDK](docs/pebble-sdk-notes.md) — what a client of pebble-tool needs to know.
+- [Coding agents](docs/agents.md) — the MCP tools and the skill, and why they are what they are.
 - [Developing](docs/developing.md) — building and testing the plugin.
 
 ## License

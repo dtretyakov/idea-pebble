@@ -50,6 +50,8 @@
     <depends optional="true" config-file="pebble-lsp4ij.xml">com.redhat.devtools.lsp4ij</depends>
     <!-- Completion and checks for package.json's pebble section. -->
     <depends optional="true" config-file="pebble-json.xml">com.intellij.modules.json</depends>
+    <!-- Tools for coding agents, in the IDE's own MCP server. -->
+    <depends optional="true" config-file="pebble-mcp.xml">com.intellij.mcpServer</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Pebble" displayType="BALLOON"/>
@@ -67,6 +69,7 @@
         <configurationType implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurationType"/>
         <runConfigurationProducer implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurationProducer"/>
         <programRunner implementation="com.github.dtretyakov.pebble.run.PebbleDebugRunner"/>
+        <projectTaskRunner implementation="com.github.dtretyakov.pebble.build.PebbleProjectTaskRunner"/>
         <stepsBeforeRunProvider implementation="com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurations"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.project.CompileDatabase$Startup"/>
@@ -119,6 +122,8 @@
         <listener
             class="com.github.dtretyakov.pebble.project.CompileDatabase$Listener"
             topic="com.github.dtretyakov.pebble.build.PebbleBuild$Listener"/>
+        <listener class="com.github.dtretyakov.pebble.agent.PebbleRunLogs$Listener"
+            topic="com.intellij.execution.ExecutionListener"/>
         <listener
             class="com.github.dtretyakov.pebble.library.PebbleLibraryProvider$PlatformListener"
             topic="com.github.dtretyakov.pebble.project.PebbleSettings$Listener"/>
@@ -141,6 +146,13 @@
                 group-id="RunToolbarMainActionGroup"
                 anchor="after"
                 relative-to-action="RunToolbarTopLevelExecutorActionGroup"/>
+        </action>
+        <action
+            id="Pebble.AddAgentSkill"
+            class="com.github.dtretyakov.pebble.ui.AddAgentSkillAction"
+            text="Add Pebble Skill for Agents"
+            description="Writes the pebble Agent Skill into the project's .claude/skills, for coding agents">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action
             id="Pebble.Build"

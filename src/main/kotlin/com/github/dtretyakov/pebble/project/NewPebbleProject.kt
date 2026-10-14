@@ -32,6 +32,8 @@ object NewPebbleProject {
         var worker: Boolean = false,
         /** A bare `main` rather than the template's windows and handlers. */
         var simple: Boolean = false,
+        /** The `pebble` Agent Skill in `.claude/skills`, for coding agents. */
+        var agentSkill: Boolean = true,
     )
 
     fun arguments(name: String, options: Options): List<String> = buildList {
@@ -72,6 +74,7 @@ object NewPebbleProject {
                 if (!destination.exists()) Files.move(entry, destination)
             }
             setWatchface(target.resolve(PebbleProjectInfo.FILE_NAME), options.watchface)
+            if (options.agentSkill) com.github.dtretyakov.pebble.agent.AgentSkill.write(target)
         } finally {
             scratch.deleteRecursively()
         }

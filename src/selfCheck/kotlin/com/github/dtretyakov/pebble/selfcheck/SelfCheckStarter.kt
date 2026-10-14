@@ -112,6 +112,22 @@ class SelfCheckStarter : ModernApplicationStarter() {
         } else {
             println("[self-check] Alloy breakpoint types")
         }
+        val toolsets = com.intellij.openapi.extensions.ExtensionPointName<Any>("com.intellij.mcpServer.mcpToolset").extensionList.map { it.javaClass.simpleName }
+        if ("PebbleToolset" !in toolsets) {
+            problems += "the Pebble tools are not registered in the IDE's MCP server"
+        } else {
+            println("[self-check] MCP tools: PebbleToolset")
+        }
+        if (com.intellij.task.ProjectTaskRunner.EP_NAME.extensionList.none { it.javaClass.simpleName == "PebbleProjectTaskRunner" }) {
+            problems += "Build Project does not build Pebble apps: the project task runner is not registered"
+        } else {
+            println("[self-check] project task runner")
+        }
+        if (com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction("Pebble.AddAgentSkill") == null) {
+            problems += "the Add Pebble Skill for Agents action is not registered"
+        } else {
+            println("[self-check] agent skill action")
+        }
         if ("pebble-c-line" !in breakpointTypes) {
             problems += "the C debugger's breakpoint type is not registered"
         } else {

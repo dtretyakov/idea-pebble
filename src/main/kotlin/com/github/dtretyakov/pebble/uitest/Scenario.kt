@@ -45,8 +45,10 @@ object ScenarioParser {
     private val NAME = Regex("""[A-Za-z0-9_.\-]+""")
     private val TIME = Regex("""(\d{1,2}):(\d{2})(?::(\d{2}))?""")
 
-    fun parse(text: String): Scenario {
+    /** A scenario; [steps] alone, as the agents' emulator tool takes them, need not expect a screen. */
+    fun parse(text: String, steps: Boolean = false): Scenario {
         var platforms: List<String>? = null
+        val onlySteps = steps
         val steps = mutableListOf<Scenario.Step>()
         val problems = mutableListOf<Scenario.Problem>()
         text.lines().forEachIndexed { index, raw ->
@@ -123,7 +125,7 @@ object ScenarioParser {
                 else -> problem("Unknown step '${words[0]}'. Steps: platforms, install, wait, press, tap, time, battery, bluetooth, quick-view, motion, shake, expect")
             }
         }
-        if (steps.none { it is Scenario.Step.Expect } && problems.isEmpty()) problems += Scenario.Problem(1, "A scenario expects at least one screen")
+        if (!onlySteps && steps.none { it is Scenario.Step.Expect } && problems.isEmpty()) problems += Scenario.Problem(1, "A scenario expects at least one screen")
         return Scenario(platforms, steps, problems)
     }
 }

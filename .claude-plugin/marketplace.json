@@ -1,0 +1,14 @@
+{
+  "name": "idea-pebble",
+  "owner": { "name": "dtretyakov" },
+  "metadata": {
+    "description": "Agent skills for developing Pebble smartwatch apps, from the Pebble plugin for JetBrains IDEs."
+  },
+  "plugins": [
+    {
+      "name": "pebble",
+      "source": "./agents/plugin",
+      "description": "Build, run, look at and fix Pebble smartwatch apps in C or Alloy."
+    }
+  ]
+}

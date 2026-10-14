@@ -7,6 +7,19 @@
   inline `backticks`.
 -->
 
+## 0.9.0
+
+### Coding agents
+
+- Pebble tools in the IDE's MCP server, for agents such as Claude Code, Codex, Junie and Copilot:
+  describe the project, build with problems listed once for all platforms and memory per
+  platform, run in the emulator, read the logs from where they left off, press buttons, tap, set
+  the time and battery, take screenshots, and look up the SDK's API — where a call is missing or
+  only a stub, and the nearest real names when it does not exist.
+- Build Project, and the MCP server's `build_project`, run `pebble build`.
+- A `pebble` skill for agents: in new projects, through Tools | Add Pebble Skill for Agents, and
+  as a Claude Code plugin from the plugin's repository.
+
 ## 0.8.0
 
 ### Running and debugging

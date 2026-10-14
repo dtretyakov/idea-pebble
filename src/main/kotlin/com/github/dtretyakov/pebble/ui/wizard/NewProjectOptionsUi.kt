@@ -58,5 +58,9 @@ internal object NewProjectOptionsUi {
         panel.row {
             checkBox("Minimal main() only").bindSelected(options::simple)
         }.visibleIf(isC)
+        panel.row {
+            checkBox("Skill for coding agents").bindSelected(options::agentSkill)
+                .comment("${'$'}{com.github.dtretyakov.pebble.agent.AgentSkill.DIRECTORY}: how to build, run and check the app with the IDE's tools")
+        }
     }
 }

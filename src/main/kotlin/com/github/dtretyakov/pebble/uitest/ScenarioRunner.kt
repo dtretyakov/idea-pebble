@@ -80,7 +80,7 @@ class ScenarioRunner(
     }
 
     /** Null when the step went through; otherwise why it did not. */
-    private fun perform(platform: String, step: Scenario.Step): String? {
+    internal fun perform(platform: String, step: Scenario.Step): String? {
         reporter.output("line ${step.line}: ${describe(step)}\n")
         return when (step) {
             is Scenario.Step.Install -> checked(emulator.pebble(platform, listOf("install")))

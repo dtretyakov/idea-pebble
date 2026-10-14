@@ -18,6 +18,7 @@ pebble-tool, or in the IDE — and the plugin's job is to find those things and 
 | The emulator's screen | QEMU's VNC server (`pebble install --vnc`) | a small RFB client: frames in, buttons and touches out |
 | Emulator controls | `pebble emu-*`, `screenshot`, `kill`, `wipe` | command line |
 | Debugging C | `arm-none-eabi-gdb` from the SDK's toolchain, attached to QEMU's gdb stub | the IDE's debugger over GDB/MI (`--interpreter=mi3`), attached the way `pebble gdb` attaches; the SDK's gdb has no Python, so no DAP. `pebble gdb` in the console behind an advanced setting |
+| Coding agents | the IDE's MCP server (`com.intellij.mcpServer`) | Pebble tools registered as an `mcpServer.mcpToolset`, each a call into the same code the IDE's actions use; the `pebble` Agent Skill written into the project |
 | Debugging Alloy | the app's JavaScript engine, over xsbug's protocol | the IDE's debugger listens where xsbug would, on `localhost:5002`, and `pebble install` bridges the watch to it |
 
 Nothing from the SDK is redistributed: the plugin finds what the user installed with pebble-tool
@@ -69,6 +70,9 @@ debug/      Alloy in the IDE's debugger: xsbug's protocol (the Xsbug* files, no 
             process, breakpoints, frames and values
 debug/gdb/  C in the IDE's debugger: gdb's machine interface (Mi, GdbCommands), attaching as
             pebble gdb does (GdbSetup), the debug process, breakpoints, frames and values
+agent/      what coding agents ask for: the project, builds, runs, logs, screenshots, emulator
+            steps, API lookups in the SDK's headers, and the Agent Skill; agent/mcp/ is the thin
+            MCP toolset, loaded only where the IDE has its MCP server
 lsp/        clangd through LSP4IJ, outside CLion — loaded only where LSP4IJ is installed
 library/    SDK headers and Alloy typings under External Libraries
 ui/         settings, the platform selector, the missing SDK banner, the new project wizard

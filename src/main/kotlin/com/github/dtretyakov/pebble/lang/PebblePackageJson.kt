@@ -15,12 +15,12 @@ import com.intellij.psi.PsiElement
  *
  * The npm schema the IDE applies to `package.json` is the only schema it will use for the file —
  * a second one for the `pebble` section is attached and then ignored — so this section gets its
- * completion and checks from the JSON tree directly, for the two values worth checking: the
- * platforms and the project type.
+ * completion and checks from the JSON tree directly, for the values worth checking: the
+ * platforms, the project type, the resources' files and the message keys.
  */
 internal object PebblePackageJson {
 
-    enum class Slot { TARGET_PLATFORM, PROJECT_TYPE }
+    enum class Slot { TARGET_PLATFORM, PROJECT_TYPE, RESOURCE_FILE, MESSAGE_KEY }
 
     /** The `pebble` object of a `package.json`, or null for any other file. */
     fun pebbleSection(file: JsonFile): JsonObject? {
@@ -28,22 +28,41 @@ internal object PebblePackageJson {
         return (file.topLevelValue as? JsonObject)?.findProperty("pebble")?.value as? JsonObject
     }
 
-    /** Which value [literal] is, or null when it is not one of the two. */
+    /** Which value [literal] is, or null when it is none of them. */
     fun slotOf(literal: JsonStringLiteral): Slot? {
         val parent = literal.parent
+        // The object form of the message keys, {"KEY": 10000}: the key is the property's name.
+        if (parent is JsonProperty && parent.nameElement == literal) {
+            val keys = (parent.parent as? JsonObject)?.parent as? JsonProperty
+            return Slot.MESSAGE_KEY.takeIf { keys?.name == "messageKeys" && inSection(keys) }
+        }
         val property = when (parent) {
             is JsonArray -> parent.parent as? JsonProperty
             is JsonProperty -> parent.takeIf { it.value == literal }
             else -> null
         } ?: return null
-        val section = property.parent as? JsonObject ?: return null
-        val file = section.containingFile as? JsonFile ?: return null
-        if (pebbleSection(file) != section) return null
+        // resources.media[].file
+        if (property.name == "file" && parent is JsonProperty) {
+            val media = ((property.parent as? JsonObject)?.parent as? JsonArray)?.parent as? JsonProperty
+            val resources = (media?.parent as? JsonObject)?.parent as? JsonProperty
+            return Slot.RESOURCE_FILE.takeIf { media?.name == "media" && resources?.name == "resources" && inSection(resources) }
+        }
+        if (!inSection(property)) return null
         return when {
             property.name == "targetPlatforms" && parent is JsonArray -> Slot.TARGET_PLATFORM
             property.name == "projectType" && parent is JsonProperty -> Slot.PROJECT_TYPE
+            property.name == "messageKeys" && parent is JsonArray -> Slot.MESSAGE_KEY
             else -> null
         }
+    }
+
+    /** The name a message key gives its C constant: `KEY[4]`, an array of four, is `KEY`. */
+    fun messageKeyName(declared: String): String = declared.substringBefore('[')
+
+    private fun inSection(property: JsonProperty): Boolean {
+        val section = property.parent as? JsonObject ?: return false
+        val file = section.containingFile as? JsonFile ?: return false
+        return pebbleSection(file) == section
     }
 
     /** The project type the section declares, as pebble-tool reads it: native when absent. */

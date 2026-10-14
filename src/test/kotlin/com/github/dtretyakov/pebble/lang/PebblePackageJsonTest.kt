@@ -64,4 +64,47 @@ class PebblePackageJsonTest : IdeTestCase() {
         myFixture.configureByText("other.json", """{"pebble": {"targetPlatforms": ["emerald"]}}""")
         myFixture.checkHighlighting()
     }
+
+    fun `test a resource is found as named or as a platform variant, and reported when neither`() {
+        myFixture.enableInspections(PebblePackageJsonInspection())
+        myFixture.addFileToProject("resources/images/icon.png", "")
+        myFixture.addFileToProject("resources/images/logo~color.png", "")
+        myFixture.addFileToProject("resources/images/logo~bw.png", "")
+        myFixture.addFileToProject("resources/images/badge-big.png", "")
+        myFixture.configureByText(
+            "package.json",
+            """
+            {"pebble": {"resources": {"media": [
+              {"type": "bitmap", "name": "ICON", "file": "images/icon.png"},
+              {"type": "bitmap", "name": "LOGO", "file": "images/logo.png"},
+              {"type": "bitmap", "name": "BADGE", "file": <error descr="No resources/images/badge.png, nor a variant of it such as images/badge~color.png: the build will fail.">"images/badge.png"</error>}
+            ]}}}
+            """.trimIndent(),
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test a message key is used from C, from JavaScript or from Clay's configuration`() {
+        myFixture.enableInspections(PebblePackageJsonInspection())
+        myFixture.addFileToProject("src/c/main.c", "int t = MESSAGE_KEY_Temperature; int r = MESSAGE_KEY_Readings + 1;")
+        myFixture.addFileToProject("src/pkjs/index.js", "Pebble.sendAppMessage({ City: 'Paris' });")
+        myFixture.addFileToProject("src/pkjs/config.json", """[{"type": "toggle", "messageKey": "Celsius"}]""")
+        myFixture.configureByText(
+            "package.json",
+            """
+            {"pebble": {"messageKeys": ["Temperature", "Readings[4]", "City", "Celsius", <warning descr="Message key 'dummy' is used nowhere in src/ or worker_src/.">"dummy"</warning>]}}
+            """.trimIndent(),
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test the object form of message keys is checked by name`() {
+        myFixture.enableInspections(PebblePackageJsonInspection())
+        myFixture.addFileToProject("src/c/main.c", "int t = MESSAGE_KEY_Temperature;")
+        myFixture.configureByText(
+            "package.json",
+            """{"pebble": {"messageKeys": {"Temperature": 0, <warning descr="Message key 'Humidity' is used nowhere in src/ or worker_src/.">"Humidity"</warning>: 1}}}""",
+        )
+        myFixture.checkHighlighting()
+    }
 }

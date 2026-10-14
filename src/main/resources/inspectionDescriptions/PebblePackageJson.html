@@ -5,7 +5,11 @@ would otherwise report only when building, or not at all:
 <ul>
   <li>a <code>targetPlatforms</code> entry that is not a Pebble platform;</li>
   <li>an Alloy project targeting a platform Alloy does not run on — only emery and gabbro;</li>
-  <li>a <code>projectType</code> pebble-tool cannot build.</li>
+  <li>a <code>projectType</code> pebble-tool cannot build;</li>
+  <li>a <code>resources.media</code> entry whose <code>file</code> is not in <code>resources/</code>, either as
+    named or as a platform variant like <code>logo~color.png</code> — the build fails with a Python traceback;</li>
+  <li>a message key that no source in <code>src/</code> or <code>worker_src/</code> mentions, as
+    <code>MESSAGE_KEY_name</code> in C or as the name itself in JavaScript and Clay's configuration.</li>
 </ul>
 </body>
 </html>

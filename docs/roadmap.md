@@ -77,8 +77,8 @@ emulator and a separate debugger.
 - [x] Calls in C to functions a target platform only stubs out, from each platform's `pebble.h`,
   wherever no `PBL_` condition chooses the platform — an inspection in every IDE, whatever the
   C file's language there.
-- Inspections: resources declared in `package.json` and missing on disk, message keys that do not
-  match their use.
+- [x] `package.json`: a resource whose file is in `resources/` neither as named nor as a platform
+  variant, and message keys no source uses.
 - [x] PebbleKit JS typings for `src/pkjs`, the plugin's own, under External Libraries.
 - **Windows.** Projects inside WSL: pebble-tool run in the distribution (`WSLDistribution`), its data
   directory and `pb-emulator.json` read through the distribution's paths, and the emulator's VNC

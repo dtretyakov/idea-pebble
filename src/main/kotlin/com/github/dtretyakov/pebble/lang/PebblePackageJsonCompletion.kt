@@ -39,7 +39,7 @@ class PebblePackageJsonCompletion : CompletionContributor() {
                         PebblePackageJson.Slot.PROJECT_TYPE -> PebblePackageJson.PROJECT_TYPES.forEach { (type, text) ->
                             result.addElement(LookupElementBuilder.create(type.id).withTypeText(text, true))
                         }
-                        null -> Unit
+                        PebblePackageJson.Slot.RESOURCE_FILE, PebblePackageJson.Slot.MESSAGE_KEY, null -> Unit
                     }
                 }
             },

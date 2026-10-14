@@ -72,6 +72,20 @@ Sources: `src/c/` for C, `src/pkjs/` for PebbleKit JS on the phone, `src/embedde
 | emery | Pebble Time 2 | 200×228, 64 colours, touch | yes |
 | gabbro | Pebble Round 2 | 260×260 round, 64 colours, touch | yes |
 
+## Resources and message keys
+
+`resources.media` entries are `{"type", "name", "file"}`, with `file` relative to the project's
+`resources/` directory. waf looks for the file by its name and for variants of it tagged for some
+platforms, `images/logo~color.png` or `images/logo~bw~round.png` for `images/logo.png`, and takes the
+variant whose tags best match the platform being built (`find_most_specific_filename`). A
+resource whose file exists neither way does not fail with a message: waf ends in a Python
+`FileNotFoundError` traceback naming the path.
+
+`messageKeys` is a list of names — `"KEY[4]"` reserves four numbers under one name — or, in older
+projects, an object from name to number. C sees each as `MESSAGE_KEY_<name>` from the generated
+`message_keys.auto.h`; PebbleKit JS and Clay's configuration use the bare name. The template
+`pebble new-project` writes declares a key, `dummy`, that its code never uses.
+
 ## Platform differences in the API
 
 Every platform's `pebble.h` declares the whole API. What a platform's watches lack is a macro that

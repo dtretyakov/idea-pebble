@@ -212,6 +212,14 @@ platforms take about half a minute. It needs no display. `--gif-all-platforms` d
 animated GIF, but wipes each emulator's persistent state on the way, so the plugin does not offer
 it.
 
+Each emulator input is a command of its own, so a test scenario can be written in them:
+`emu-button click|push|release <back|up|select|down> --duration <ms>` presses the buttons through
+QEMU's serial (no screen needed); `emu-set-time HH:MM:SS`, `emu-battery --percent N [--charging]`,
+`emu-bt-connection --connected yes|no`, `emu-accel <tilt-left|…>`, `emu-tap --direction <x+|…>`,
+`emu-set-timeline-quick-view on|off`, and health values (`emu-steps`, `emu-heart-rate`, …). Touch
+has no command: it is a VNC pointer event. `pebble screenshot --no-open <file>` saves the screen
+at the watch's own size; the same app gives the same pixels run after run.
+
 ## Watches
 
 `--phone IP` connects to the Developer Connection of the Pebble phone app on `ws://IP:9000`;

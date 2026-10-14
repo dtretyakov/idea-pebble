@@ -63,6 +63,7 @@ project/    what a Pebble project is, settings, the active platform, the environ
 build/      pebble build into the Build tool window, and reading its output
 run/        the run configuration, the before-launch build, the log console and its links
 emulator/   pebble-tool's record of running emulators, the RFB client, the tool window
+uitest/     UI test scenarios: the format, the runner (no IDE API), and the run in the test runner
 lang/       package.json's pebble section, calls in C to what a target platform stubs out
 debug/      Alloy in the IDE's debugger: xsbug's protocol (the Xsbug* files, no IDE API), the debug
             process, breakpoints, frames and values

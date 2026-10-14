@@ -96,8 +96,9 @@ emulator and a separate debugger.
 - [x] Memory: each platform's RAM, heap and resources from `pebble build`'s own report, under that
   platform in the Build window, a warning when the heap is short or the store would refuse the
   resources; and a word in the console when an app exits with memory it never freed.
-- Scripted test scenarios: `emu-*` inputs and screenshots, run as tests.
-- Visual regression across platforms.
+- [x] Scripted test scenarios: `.pbtest` files of steps — install, buttons, touches, time,
+  battery, Bluetooth, motion — and expected screens, run on each platform in the IDE's test
+  runner, each screen compared with a reference screenshot: visual regression across platforms.
 - Release preparation: `.pbw` checks and store metadata.
 
 ## Risks to settle early in Phase 1

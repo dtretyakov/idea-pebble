@@ -38,6 +38,9 @@ dependencies {
         plugin("com.redhat.devtools.lsp4ij:${libs.versions.lsp4ij.get()}")
         // JSON PSI for package.json support; an optional dependency in plugin.xml.
         bundledPlugin("com.intellij.modules.json")
+        // The IDE's test runner, for UI test scenarios.
+        bundledModule("intellij.platform.testRunner")
+        bundledModule("intellij.platform.smRunner")
         // In tests, the IDE as most users have it: package.json already has npm's schema.
         testBundledPlugins("JavaScript", "NodeJS")
         pluginVerifier()

@@ -15,6 +15,8 @@
                 expressions — and C with gdb in the console.</li>
             <li>Each platform's memory after a build, and a word when an app exits with memory it never freed.</li>
             <li>Screenshots of every platform side by side, and GIFs of the emulator's screen.</li>
+            <li>UI test scenarios run in the IDE's test runner, comparing each platform's screens with reference
+                screenshots.</li>
             <li>Code insight from the IDE's own engines with the SDK's headers and typings, and checks for
                 what the build would not catch: calls a target platform only stubs out, missing resources,
                 unused message keys.</li>
@@ -36,6 +38,11 @@
       compiled against none of them; build.gradle.kts verifies all three.
     -->
     <depends>com.intellij.modules.platform</depends>
+    <!-- The IDE's test runner, for UI test scenarios: core modules in 2026.1, a bundled plugin's from 2026.2. -->
+    <dependencies>
+        <module name="intellij.platform.testRunner"/>
+        <module name="intellij.platform.smRunner"/>
+    </dependencies>
     <!-- clangd for C outside CLion. Optional: CLion has its own C engine, and nothing else needs it. -->
     <depends optional="true" config-file="pebble-lsp4ij.xml">com.redhat.devtools.lsp4ij</depends>
     <!-- Completion and checks for package.json's pebble section. -->
@@ -68,6 +75,19 @@
             doNotActivateOnStart="true"
             factoryClass="com.github.dtretyakov.pebble.emulator.EmulatorToolWindowFactory"/>
         <additionalLibraryRootsProvider implementation="com.github.dtretyakov.pebble.library.PebbleLibraryProvider"/>
+        <!-- UI test scenarios: plain text files, run in the IDE's test runner. -->
+        <fileType name="PLAIN_TEXT" extensions="pbtest"/>
+        <configurationType implementation="com.github.dtretyakov.pebble.uitest.PebbleUiTestConfigurationType"/>
+        <runConfigurationProducer implementation="com.github.dtretyakov.pebble.uitest.PebbleUiTestConfigurationProducer"/>
+        <runLineMarkerContributor language="TEXT" implementationClass="com.github.dtretyakov.pebble.uitest.ScenarioRunLineMarker"/>
+        <localInspection
+            language="TEXT"
+            shortName="PebbleUiScenario"
+            displayName="Pebble UI test scenario"
+            groupName="Pebble"
+            enabledByDefault="true"
+            level="ERROR"
+            implementationClass="com.github.dtretyakov.pebble.uitest.ScenarioInspection"/>
         <!-- The Alloy debugger's own line breakpoints, where the JavaScript debugger's are not installed. -->
         <xdebugger.breakpointType implementation="com.github.dtretyakov.pebble.debug.AlloyLineBreakpointType"/>
         <xdebugger.breakpointType implementation="com.github.dtretyakov.pebble.debug.AlloyExceptionBreakpointType"/>
@@ -100,6 +120,9 @@
     </projectListeners>
 
     <actions>
+        <action id="Pebble.AcceptScreenshot" class="com.github.dtretyakov.pebble.uitest.AcceptScreenshotAction">
+            <add-to-group group-id="TestTreePopupMenu" anchor="last"/>
+        </action>
         <!--
           The active platform, beside the run configuration in the run widget: the choice that the
           build, the compile database and the emulator all follow.

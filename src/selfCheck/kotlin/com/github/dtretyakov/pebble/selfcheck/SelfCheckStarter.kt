@@ -71,6 +71,13 @@ class SelfCheckStarter : ModernApplicationStarter() {
         } else {
             println("[self-check] run configuration: ${runType.displayName}")
         }
+        // The UI tests use the IDE's test runner, which moved into a bundled plugin in 2026.2.
+        val uiTests = ConfigurationType.CONFIGURATION_TYPE_EP.extensionList.firstOrNull { it.id == "PebbleUiTests" }
+        if (uiTests == null || runCatching { Class.forName("com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil") }.isFailure) {
+            problems += "the UI test run configuration, or the test runner it needs, is not there"
+        } else {
+            println("[self-check] run configuration: ${uiTests.displayName}")
+        }
         if (ProgramRunner.PROGRAM_RUNNER_EP.extensionList.none { it is PebbleDebugRunner }) {
             problems += "the Alloy debug runner is not registered, so Debug is never offered"
         }

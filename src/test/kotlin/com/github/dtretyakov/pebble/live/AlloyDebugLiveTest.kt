@@ -145,11 +145,19 @@ class AlloyDebugLiveTest : IdeTestCase() {
         }
         assertTrue("the bridge did not hang up after logout:\n$output", loggedOut)
 
-        // The app runs on by itself: its clock moves between two screenshots.
-        val before = screenshot(root, "before")
-        Thread.sleep(1500)
-        val after = screenshot(root, "after")
-        assertFalse("the watchface stopped drawing", sameImage(before, after))
+        try {
+            // The app runs on by itself: its clock moves between two screenshots.
+            val before = screenshot(root, "before")
+            Thread.sleep(1500)
+            val after = screenshot(root, "after")
+            assertFalse("the watchface stopped drawing", sameImage(before, after))
+        } finally {
+            // The ordinary build back, as Run would put it: a debug build left on the watch waits
+            // for a debugger the next time it starts, and its "not responding" dialog would take
+            // the next tests' buttons and touches.
+            assertEquals(0, LiveSdk.run(root, "build").exitCode)
+            LiveSdk.install(root, "--emulator", "emery", "--vnc")
+        }
     }
 
     private fun screenshot(root: Path, name: String): Path {

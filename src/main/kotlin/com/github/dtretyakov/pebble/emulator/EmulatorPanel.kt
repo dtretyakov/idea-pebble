@@ -97,7 +97,9 @@ class EmulatorPanel(private val project: Project, parent: Disposable) : JPanel(B
                     }
 
                     override fun mouseReleased(e: MouseEvent) = touch(e, pressed = false)
-                },
+
+                    override fun mouseDragged(e: MouseEvent) = touch(e, pressed = true, dragging = true)
+                }.also(::addMouseMotionListener),
             )
             addKeyListener(
                 object : KeyAdapter() {
@@ -156,16 +158,18 @@ class EmulatorPanel(private val project: Project, parent: Disposable) : JPanel(B
             )
         }
 
-        private fun touch(e: MouseEvent, pressed: Boolean) {
+        private fun touch(e: MouseEvent, pressed: Boolean, dragging: Boolean = false) {
             val emulator = emulator ?: return
             if (PebblePlatform.of(emulator.platform)?.touch != true) return
             val image = image ?: return
             val area = area(image) ?: return
             val target = placement(area)
-            if (pressed && !target.contains(e.point)) return
-            val x = area.x + (e.x - target.x) * area.width / target.width
-            val y = area.y + (e.y - target.y) * area.height / target.height
-            session.client?.pointer(x.coerceIn(area.x, area.x + area.width - 1), y.coerceIn(area.y, area.y + area.height - 1), pressed)
+            // A press starts on the screen; a drag or a release may wander off it and is clamped.
+            if (pressed && !dragging && !target.contains(e.point)) return
+            val x = (e.x - target.x) * area.width / target.width
+            val y = (e.y - target.y) * area.height / target.height
+            val pointer = EmulatorScreen.pointerFor(area, image.width, image.height, x, y)
+            session.client?.pointer(pointer.x, pointer.y, pressed)
         }
 
         private fun key(e: KeyEvent, down: Boolean) {

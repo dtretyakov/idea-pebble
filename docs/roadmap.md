@@ -50,13 +50,13 @@ Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by 
   pebble-tool cannot build. Not a JSON Schema: the IDE uses one schema per file, and
   `package.json` already has npm's — a second is attached and never consulted.
 - [x] **The emulator in the IDE.** A tool window with the live screen over VNC, the four buttons as
-  buttons and arrow keys, clicks as touches on emery and gabbro, screenshots, and stopping it.
+  buttons and arrow keys, clicks and drags as touches on emery and gabbro — confirmed by an app
+  that logs its touches — screenshots, and stopping it.
 
 Still to do:
 
 1. **SDKs.** Choosing among installed SDKs and removing one, beyond installing and activating.
 2. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
-3. **Touch.** Confirm that VNC pointer events reach emery's and gabbro's touch screens.
 
 ## Phase 2 — Advanced development experience (P1)
 

@@ -23,6 +23,8 @@ and Run window in step with what you do.
 | `pebble_logs` | Read the app's `APP_LOG` / `console.log` lines, crashes and memory notes after a cursor. Pass the returned `next` the next time. |
 | `pebble_screenshot` | Save the emulator's screen as a PNG and return its path; read the image. Use `all: true` for every platform (slow). |
 | `pebble_emulator` | Press buttons, tap, set the time, battery or Bluetooth, tilt or shake, one step per line. Returns a screenshot after. |
+| `pebble_ui_tests` | Run the UI test scenarios (`tests/ui/*.pbtest`) on each platform. Every expected screen passes, fails with a diff image, or is recorded as a new reference. |
+| `pebble_ui_test_accept` | Make a run's screenshot the reference, when a screen changed on purpose. |
 
 The IDE's own tools work on Pebble projects too: `get_file_problems` runs the plugin's checks
 (calls a platform only stubs out, missing resources, unused message keys), and `build_project`
@@ -44,6 +46,22 @@ Without the IDE, do the same with `pebble` on the command line: see
 6. Before you call it done, check a round screen (`chalk`, `gabbro`) and a black-and-white one
    (`aplite`, `diorite`, `flint`) if the app targets them: `pebble_run` each, or
    `pebble_screenshot` with `all: true`.
+7. If the project has `tests/ui`, run `pebble_ui_tests`. Read the diff of every failure. Accept a
+   new screen with `pebble_ui_test_accept` only when the change is the one you meant. Look at
+   recorded screens before committing them.
+
+## UI test scenarios
+
+A `.pbtest` file is the `pebble_emulator` steps plus `expect <screen>` lines. Each `expect` line
+compares the screen with `screenshots/<platform>/<screen>.png` beside the file:
+
+```
+platforms emery basalt        # the app's target platforms when left out
+install
+wait 1000
+press select
+expect menu
+```
 
 ## Platforms
 

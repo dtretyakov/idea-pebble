@@ -19,7 +19,7 @@ class PebbleProjectTaskRunnerTest : IdeTestCase() {
 
     fun `test a module holding a Pebble project is built by pebble build, and only such a module`() {
         val runner = ProjectTaskRunner.EP_NAME.extensionList.filterIsInstance<PebbleProjectTaskRunner>().single()
-        assertFalse("not before there is a Pebble project", runner.canRun(project, ModuleBuildTaskImpl(module, false)))
+        assertFalse("not before there is a Pebble project", runner.canRun(project, ModuleBuildTaskImpl(module, false), null))
 
         val root = Files.createTempDirectory("task").toRealPath().resolve("app")
         VfsRootAccess.allowRootAccess(testRootDisposable, root.parent.toString())
@@ -27,7 +27,7 @@ class PebbleProjectTaskRunnerTest : IdeTestCase() {
         val rootFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root)!!
         PsiTestUtil.addContentRoot(module, rootFile)
         Disposer.register(testRootDisposable) { PsiTestUtil.removeContentEntry(module, rootFile) }
-        assertTrue(runner.canRun(project, ModuleBuildTaskImpl(module, false)))
+        assertTrue(runner.canRun(project, ModuleBuildTaskImpl(module, false), null))
         assertEquals(root, PebbleProjectTaskRunner.rootOf(module))
 
         // An app with no sources fails to build — or, with no pebble-tool, does not start — either

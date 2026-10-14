@@ -9,6 +9,7 @@ import com.github.dtretyakov.pebble.agent.PebbleAgent
 import com.github.dtretyakov.pebble.agent.ProjectSummary
 import com.github.dtretyakov.pebble.agent.RunOutcome
 import com.github.dtretyakov.pebble.agent.Screenshot
+import com.github.dtretyakov.pebble.agent.UiTestOutcome
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
@@ -26,6 +27,8 @@ import kotlinx.serialization.Serializable
  * tool — it is the only documentation an agent reads before calling.
  */
 @Suppress("FunctionName")
+// No bridges to the interface's default methods, some of which 2026.1 does not have.
+@JvmDefaultWithoutCompatibility
 class PebbleToolset : McpToolset {
 
     @McpTool(name = "pebble_project")
@@ -122,6 +125,36 @@ class PebbleToolset : McpToolset {
         @McpDescription("The name to look up, e.g. text_layer_set_text, GTextAlignment, PBL_IF_ROUND_ELSE or Poco") symbol: String,
         @McpDescription("Only this platform; every target platform when left out") platform: String? = null,
     ): ApiLookup = call { it.api(symbol, platform) }
+
+    @McpTool(name = "pebble_ui_tests")
+    @McpDescription(
+        """
+        |Runs UI test scenarios (.pbtest files: steps such as `install`, `press select`, `tap 100 120`, and
+        |`expect <screen>` lines) on each of their platforms' emulators, in the IDE's test runner. Each expected
+        |screen is compared with its reference screenshot: it passes, fails (with the reference, the actual
+        |screenshot and a diff image to read), or is recorded when it had no reference yet — look at it then.
+        |Slow: minutes per platform.
+        """,
+    )
+    suspend fun pebble_ui_tests(
+        @McpDescription("A .pbtest file or a directory of them, relative to the project; tests/ui when left out") path: String? = null,
+    ): UiTestOutcome = call { it.uiTests(path) }
+
+    @McpTool(name = "pebble_ui_test_accept")
+    @McpDescription(
+        """
+        |Makes the last run's screenshot of a screen the scenario's reference, when the app changed on purpose and
+        |the new screen is right. Read the actual screenshot first. Returns the reference's path.
+        """,
+    )
+    suspend fun pebble_ui_test_accept(
+        @McpDescription("The .pbtest file, relative to the project") scenario: String,
+        @McpDescription("The platform the screenshot was taken on") platform: String,
+        @McpDescription("The screen's name, as in its `expect` line") screen: String,
+    ): AcceptedScreenshot = call { AcceptedScreenshot(it.acceptScreenshot(scenario, platform, screen)) }
+
+    @Serializable
+    data class AcceptedScreenshot(val reference: String)
 
     @Serializable
     data class Screenshots(val screenshots: List<Screenshot>)

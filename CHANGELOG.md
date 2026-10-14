@@ -16,6 +16,8 @@
   platform, run in the emulator, read the logs from where they left off, press buttons, tap, set
   the time and battery, take screenshots, and look up the SDK's API — where a call is missing or
   only a stub, and the nearest real names when it does not exist.
+- UI test scenarios as tools: run them in the IDE's test runner and get each screen's verdict,
+  with the reference, the screenshot and a diff image of a failure; accept a new screen.
 - Build Project, and the MCP server's `build_project`, run `pebble build`.
 - A `pebble` skill for agents: in new projects, through Tools | Add Pebble Skill for Agents, and
   as a Claude Code plugin from the plugin's repository.

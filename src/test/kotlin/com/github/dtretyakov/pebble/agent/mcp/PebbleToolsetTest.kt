@@ -51,7 +51,10 @@ class PebbleToolsetTest : IdeTestCase() {
     fun `test the tools are listed, each saying when to call it`() {
         val tools = client.request("tools/list")["tools"]!!.jsonArray.map { it.jsonObject }.associateBy { it["name"]!!.jsonPrimitive.content }
         val pebble = tools.keys.filter { it.startsWith("pebble_") }.toSet()
-        assertEquals(setOf("pebble_project", "pebble_build", "pebble_run", "pebble_logs", "pebble_screenshot", "pebble_emulator", "pebble_api"), pebble)
+        assertEquals(
+            setOf("pebble_project", "pebble_build", "pebble_run", "pebble_logs", "pebble_screenshot", "pebble_emulator", "pebble_api", "pebble_ui_tests", "pebble_ui_test_accept"),
+            pebble,
+        )
         for (name in pebble) {
             val description = tools.getValue(name)["description"]!!.jsonPrimitive.content
             assertFalse("$name: $description", description.contains("|") || description.isBlank())
@@ -91,6 +94,9 @@ class PebbleToolsetTest : IdeTestCase() {
         assertTrue(badStep.toString(), badStep["isError"]?.jsonPrimitive?.boolean == true)
         val text = (badStep["content"] as JsonArray).joinToString { it.jsonObject["text"]!!.jsonPrimitive.content }
         assertTrue(text, "emulator is running" in text || "'press' takes a button" in text)
+
+        val noScenarios = client.callTool("pebble_ui_tests")
+        assertTrue(noScenarios.toString(), noScenarios["isError"]!!.jsonPrimitive.boolean && "No .pbtest scenarios at tests/ui" in noScenarios.toString())
 
         val wrongPlatform = client.callTool("pebble_run", mapOf("platform" to JsonPrimitive("aplite")))
         assertTrue(wrongPlatform["isError"]!!.jsonPrimitive.boolean)

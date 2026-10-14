@@ -109,7 +109,8 @@ emulator and a separate debugger.
   logs, screenshots, the emulator's buttons and settings, API lookup in the SDK — Build Project
   as `pebble build`, and a `pebble` Agent Skill the plugin adds to projects, also installable in
   Claude Code from this repository. Scenarios, tools and installation in [agents.md](agents.md).
-- Coding agents, part two: UI tests and the debugger as tools.
+- [x] Coding agents, part two: UI test scenarios run and their screens accepted as tools.
+- Coding agents, part three: the debugger as tools.
 
 ## Risks to settle early in Phase 1
 

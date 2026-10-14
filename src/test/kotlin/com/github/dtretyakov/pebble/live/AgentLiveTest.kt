@@ -3,7 +3,10 @@ package com.github.dtretyakov.pebble.live
 import com.github.dtretyakov.pebble.agent.mcp.McpClient
 import com.github.dtretyakov.pebble.testing.IdeTestCase
 import com.intellij.execution.ExecutionManager
+import com.intellij.execution.ui.RunContentManager
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.EditorKind
 import com.intellij.mcpserver.impl.McpServerService
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -114,10 +117,26 @@ class AgentLiveTest : IdeTestCase() {
             val screen = call("pebble_screenshot")["screenshots"]!!.jsonArray.single().jsonObject
             assertEquals("emery", screen["platform"]!!.jsonPrimitive.content)
             assertTrue(screen["file"]!!.jsonPrimitive.content.startsWith("screenshots/emery_"))
+
+            // A scenario: recorded the first time, passed the next, and its screen accepted.
+            root.resolve("tests/ui").also { Files.createDirectories(it) }.resolve("hello.pbtest")
+                .let { Files.writeString(it, "platforms emery\ninstall\nwait 1500\nexpect hello\n") }
+            val first = call("pebble_ui_tests")
+            assertEquals(first.toString(), 1, first["recorded"]!!.jsonPrimitive.int)
+            assertTrue(Files.exists(root.resolve("tests/ui/screenshots/emery/hello.png")))
+            val second = call("pebble_ui_tests", "path" to "tests/ui/hello.pbtest")
+            assertEquals(second.toString(), 1, second["passed"]!!.jsonPrimitive.int)
+            val accepted = call("pebble_ui_test_accept", "scenario" to "tests/ui/hello.pbtest", "platform" to "emery", "screen" to "hello")
+            assertEquals("tests/ui/screenshots/emery/hello.png", accepted["reference"]!!.jsonPrimitive.content)
         } finally {
             ExecutionManager.getInstance(project).getRunningProcesses().forEach {
                 it.destroyProcess()
                 it.waitFor(20_000)
+            }
+            // The runs' consoles, which a headless IDE shows in no Run window that would dispose of them.
+            ApplicationManager.getApplication().invokeAndWait {
+                RunContentManager.getInstance(project).allDescriptors.forEach { Disposer.dispose(it) }
+                EditorFactory.getInstance().allEditors.filter { it.editorKind == EditorKind.CONSOLE }.forEach { EditorFactory.getInstance().releaseEditor(it) }
             }
         }
     }

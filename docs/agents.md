@@ -143,12 +143,20 @@ is nothing else to install. The agent connects to that server once:
   live test calls the tools from another thread, as an agent does.
 - The Build Project runner is called off the UI thread, sometimes under a read lock: it saves
   documents and starts the build from the UI thread later, rather than waiting for it.
+- `pebble_ui_tests` runs the Pebble UI Tests configuration, so the run is in the IDE's test
+  runner as the user's would be, and reads each screen's verdict back from the service messages
+  it gives the test runner.
+- The IDE's server drops a Streamable HTTP session about 15 seconds after it starts unless the
+  client has opened the standing event stream (a `GET` on the same URL). Agents do; a client of
+  one's own must, or long tool calls fail with 404.
+- `@JvmDefaultWithoutCompatibility` on the toolset: otherwise Kotlin writes bridges to
+  `McpToolset` methods that only 2026.2 has, and 2026.1 cannot load the class.
 
 ## Order
 
 1. Built in 0.9.0: `projectTaskRunner` for `build_project`, the P0 tools, and the skill with its
    install action and Claude Code marketplace.
-2. UI tests as tools: `pebble_ui_tests`, `pebble_ui_test_accept`.
+2. Built in 0.9.0: UI tests as tools, `pebble_ui_tests` and `pebble_ui_test_accept`.
 3. The `debug_*` tools.
 
 Each with the same tests as the rest of the plugin: the tools called in an `IdeTestCase`, and a

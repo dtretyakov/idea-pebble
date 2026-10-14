@@ -13,12 +13,17 @@ import com.github.dtretyakov.pebble.run.PebbleRunConfigurationType
 import com.github.dtretyakov.pebble.run.PebbleRunTarget
 import com.github.dtretyakov.pebble.sdk.PebblePlatform
 import com.github.dtretyakov.pebble.uitest.PebbleToolEmulator
+import com.github.dtretyakov.pebble.uitest.PebbleUiTestConfiguration
+import com.github.dtretyakov.pebble.uitest.PebbleUiTestConfigurationType
+import com.github.dtretyakov.pebble.uitest.PebbleUiTestState
+import com.github.dtretyakov.pebble.uitest.ScenarioPaths
 import com.github.dtretyakov.pebble.uitest.ScenarioParser
 import com.github.dtretyakov.pebble.uitest.ScenarioRunner
 import com.intellij.execution.ExecutionListener
 import com.intellij.execution.ExecutionManager
 import com.intellij.execution.ProgramRunnerUtil
 import com.intellij.execution.RunManager
+import com.intellij.execution.RunnerAndConfigurationSettings
 import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.execution.process.ProcessEvent
@@ -214,25 +219,46 @@ class PebbleAgent(private val project: Project) {
                 configuration.beforeRunTasks = emptyList()
             }
         }
+        val (output, installed) = execute(settings, timeoutSeconds, onStart = { lastRun = it }) { INSTALLED in it }.let { it.output to it.matched }
+        val lines = output.lines().map { ANSI.replace(it, "").trimEnd() }.filter { it.isNotBlank() }
+        return RunOutcome(installed, platform, output = if (installed) emptyList() else lines.takeLast(30), logsAfter = 0)
+    }
+
+    private data class Execution(val output: String, val matched: Boolean, val ended: Boolean)
+
+    /**
+     * Runs [settings] as Run does, in the Run window, and waits until its output satisfies [done],
+     * its process ends, or [timeoutSeconds] pass.
+     */
+    private suspend fun execute(
+        settings: RunnerAndConfigurationSettings,
+        timeoutSeconds: Long,
+        onStart: (ProcessHandler) -> Unit = {},
+        onText: (String) -> Unit = {},
+        done: (CharSequence) -> Boolean,
+    ): Execution {
         val environment = ExecutionEnvironmentBuilder.create(DefaultRunExecutor.getRunExecutorInstance(), settings).build()
         val output = StringBuffer()
-        val done = CompletableDeferred<Boolean>()
+        val finished = CompletableDeferred<Boolean>()
+        val ended = java.util.concurrent.atomic.AtomicBoolean()
         val connection = project.messageBus.connect()
         connection.subscribe(
             ExecutionManager.EXECUTION_TOPIC,
             object : ExecutionListener {
                 override fun processStarting(executorId: String, env: ExecutionEnvironment, handler: ProcessHandler) {
                     if (env !== environment) return
-                    lastRun = handler
+                    onStart(handler)
                     handler.addProcessListener(
                         object : ProcessListener {
                             override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
                                 output.append(event.text)
-                                if (INSTALLED in output) done.complete(true)
+                                onText(event.text)
+                                if (done(output)) finished.complete(true)
                             }
 
                             override fun processTerminated(event: ProcessEvent) {
-                                done.complete(INSTALLED in output)
+                                ended.set(true)
+                                finished.complete(done(output))
                             }
                         },
                     )
@@ -241,18 +267,58 @@ class PebbleAgent(private val project: Project) {
                 override fun processNotStarted(executorId: String, env: ExecutionEnvironment, cause: Throwable?) {
                     if (env !== environment) return
                     output.append(cause?.message ?: "The run did not start.")
-                    done.complete(false)
+                    ended.set(true)
+                    finished.complete(false)
                 }
             },
         )
         try {
             withContext(ui) { ProgramRunnerUtil.executeConfiguration(environment, false, true) }
-            val installed = withTimeoutOrNull(timeoutSeconds * 1000) { done.await() } ?: false
-            val lines = output.lines().map { ANSI.replace(it, "").trimEnd() }.filter { it.isNotBlank() }
-            return RunOutcome(installed, platform, output = if (installed) emptyList() else lines.takeLast(30), logsAfter = 0)
+            val result = withTimeoutOrNull(timeoutSeconds * 1000) { finished.await() } ?: false
+            return Execution(output.toString(), result, ended.get())
         } finally {
             Disposer.dispose(connection)
         }
+    }
+
+    /**
+     * Runs UI test scenarios — a `.pbtest` file, or a directory of them — with the Pebble UI
+     * Tests run configuration, in the IDE's test runner, and returns each screen's verdict.
+     */
+    suspend fun uiTests(path: String?, timeoutSeconds: Long = 1800): UiTestOutcome {
+        val root = root()
+        tool()
+        val target = (path?.takeIf { it.isNotBlank() } ?: "tests/ui").let { Path.of(it) }.let { if (it.isAbsolute) it else root.resolve(it) }.normalize()
+        if (PebbleUiTestState.scenarios(target).isEmpty()) throw AgentProblem("No .pbtest scenarios at ${relative(root, target)}.")
+        saveDocuments()
+        val settings = withContext(ui) {
+            val type = ConfigurationTypeUtil.findConfigurationType(PebbleUiTestConfigurationType::class.java)
+            RunManager.getInstance(project).createConfiguration("UI tests: ${target.fileName}", type.configurationFactories.first()).also {
+                (it.configuration as PebbleUiTestConfiguration).options.scenario = target.toString()
+            }
+        }
+        val results = UiTestResults(root)
+        val execution = execute(settings, timeoutSeconds, onText = { synchronized(results) { results.feed(it) } }) { false }
+        val outcome = synchronized(results) { results.outcome() }
+        if (!execution.ended) throw AgentProblem("The UI tests did not finish in $timeoutSeconds seconds; ${outcome.tests.size} screens were checked by then.")
+        return outcome
+    }
+
+    /** Makes the last run's screenshot of [screen] on [platform] the scenario's reference. */
+    suspend fun acceptScreenshot(scenario: String, platform: String, screen: String): String {
+        val root = root()
+        val file = Path.of(scenario).let { if (it.isAbsolute) it else root.resolve(it) }.normalize()
+        if (!Files.isRegularFile(file)) throw AgentProblem("No scenario at $scenario.")
+        val paths = ScenarioPaths(file, root)
+        val actual = paths.result(platform, screen)
+        if (!Files.exists(actual)) throw AgentProblem("No screenshot of '$screen' on $platform from the last run: run the scenario first.")
+        val reference = paths.reference(platform, screen)
+        withContext(Dispatchers.IO) {
+            Files.createDirectories(reference.parent)
+            Files.copy(actual, reference, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
+        refresh(reference.parent)
+        return relative(root, reference)
     }
 
     /** Runs scenario steps — `press select`, `tap 100 120`, `time 10:10`, `battery 20` — on a running emulator. */

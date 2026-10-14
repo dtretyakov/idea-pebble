@@ -14,9 +14,9 @@ import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * A minimal MCP client over Streamable HTTP, as an agent talks to the IDE: `initialize`, then
- * JSON-RPC requests carrying the session id the server gave. Answers may come as JSON or as one
- * server-sent event.
+ * A minimal MCP client over Streamable HTTP, as an agent talks to the IDE: `initialize`, the
+ * standing event stream, then JSON-RPC requests carrying the session id the server gave. Answers
+ * may come as JSON or as server-sent events.
  */
 class McpClient(private val url: String, private val headers: Map<String, String> = emptyMap()) {
 
@@ -34,7 +34,19 @@ class McpClient(private val url: String, private val headers: Map<String, String
             },
         )
         notify("notifications/initialized")
+        listen()
         return result
+    }
+
+    /**
+     * The standing stream a client opens for what the server sends unasked, as agents do: the
+     * IDE's server drops a session that has not opened it within seconds.
+     */
+    private fun listen() {
+        val builder = HttpRequest.newBuilder(URI(url)).header("Accept", "text/event-stream").GET()
+        session?.let { builder.header("mcp-session-id", it) }
+        headers.forEach { (key, value) -> builder.header(key, value) }
+        http.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofLines()).thenAccept { response -> response.body().forEach { } }
     }
 
     fun request(method: String, params: JsonObject = JsonObject(emptyMap()), timeoutSeconds: Long = 120): JsonObject {
@@ -50,7 +62,8 @@ class McpClient(private val url: String, private val headers: Map<String, String
         val text = response.body()
         val json = if (text.trimStart().startsWith("{")) text else
             text.lines().filter { it.startsWith("data:") }.map { it.removePrefix("data:").trim() }
-                .last { it.contains("\"id\":$id") || it.contains("\"id\": $id") }
+                .lastOrNull { runCatching { Json.parseToJsonElement(it).jsonObject["id"]?.toString() == id.toString() }.getOrDefault(false) }
+                ?: throw AssertionError("$method: no answer in HTTP ${response.statusCode()}: ${text.take(2000)}")
         val message = Json.parseToJsonElement(json).jsonObject
         message["error"]?.let { throw AssertionError("$method failed: $it") }
         return message["result"]!!.jsonObject

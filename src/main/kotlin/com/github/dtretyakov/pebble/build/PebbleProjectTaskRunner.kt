@@ -27,9 +27,10 @@ import java.nio.file.Path
  */
 class PebbleProjectTaskRunner : ProjectTaskRunner() {
 
+    /** Abstract in 2026.1, deprecated since: the project's say comes from the overload below. */
     override fun canRun(projectTask: ProjectTask): Boolean = false
 
-    override fun canRun(project: Project, projectTask: ProjectTask): Boolean =
+    override fun canRun(project: Project, projectTask: ProjectTask, context: ProjectTaskContext?): Boolean =
         projectTask is ModuleBuildTask && rootOf(projectTask.module) != null
 
     override fun run(project: Project, context: ProjectTaskContext, vararg tasks: ProjectTask): Promise<Result> {

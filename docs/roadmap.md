@@ -86,7 +86,7 @@ emulator and a separate debugger.
 Each of these is a short experiment against a real SDK before the feature that depends on it.
 
 - **VNC — confirmed.** Frames arrive as raw 32-bit pixels and key events reach the buttons.
-  Still open: whether pointer events act as touch on emery and gabbro. pebble-tool's `--vnc` uses
+  Pointer events are touches on emery and gabbro. pebble-tool's `--vnc` uses
   display `:1` for every emulator, so only one can have it; the fix is a display number option
   upstream.
 - **gdb and DAP — ruled out.** The SDK's gdb has no Python, so no `-i=dap`. C debugging uses

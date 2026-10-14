@@ -117,6 +117,11 @@ and black beside it; basalt alone pads both ways and puts its screen two pixels 
 | chalk | 192×180 | 0, 0 |
 | emery | 208×228 | 0, 0 |
 | gabbro | 272×260 | 0, 0 |
+
+VNC pointer events are the touch panel on emery and gabbro: button 1 down is Touchdown, a move
+while it is held a PositionUpdate, release Liftoff. QEMU stretches the pointer over the whole
+framebuffer, so the watch sees x scaled by screen width over framebuffer width — x 100 of 208 is
+x 96 on emery's 200 — and a client stretches the other way to touch where it means to.
  Key events are
 the watch's buttons, as in the SDL window: Left is Back, Up is Up, Right is Select, Down is Down.
 

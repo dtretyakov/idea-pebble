@@ -7,6 +7,27 @@
   inline `backticks`.
 -->
 
+## 0.4.0
+
+### Running and debugging
+
+- Debug for C apps in the emulator: a debug build is installed and `pebble gdb` runs in the
+  console, where breakpoints, `bt` and `print` are typed.
+
+### The emulator
+
+- Capture Every Platform: a screenshot of the app on each platform it targets, from pebble-tool's
+  own `screenshot --all-platforms`, side by side in the Pebble Emulator tool window's new
+  Platforms tab.
+
+### Code
+
+- Calls in C to functions that some target platforms only stub out — the speaker, touch, the RGB
+  backlight on the older watches — are reported where no `PBL_` condition chooses the platform.
+  They compile everywhere and do nothing there, so the build never says.
+- In `package.json`, a resource whose file is not in `resources/` is an error, and a message key
+  no source uses is shown as unused.
+
 ## 0.3.0
 
 ### Running and debugging

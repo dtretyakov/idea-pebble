@@ -5,18 +5,28 @@
         Build, run and deploy apps and watchfaces for Pebble smartwatches — in C or in Alloy
         (JavaScript and TypeScript) — in IntelliJ IDEA, CLion and WebStorm.
         <p>
-        The plugin drives the official Pebble SDK and pebble-tool; it does not replace them. This
-        early version finds the SDK, checks that everything a build needs is installed, and installs
-        or activates an SDK for you. Code insight, building, the emulator inside the IDE, installing
-        on a watch and logs are on the way.
+        The plugin drives the official Pebble SDK and pebble-tool; it does not replace them.
         </p>
+        <ul>
+            <li>New projects, SDKs to install and activate, and a platform to work on beside the Run button.</li>
+            <li>Build into the Build tool window, and run in the emulator — its screen, buttons and touch in the
+                IDE — or on a watch, with the app's logs in the console.</li>
+            <li>Debug C with gdb in the console, and Alloy with xsbug.</li>
+            <li>Screenshots of every platform side by side, and GIFs of the emulator's screen.</li>
+            <li>Code insight from the IDE's own engines with the SDK's headers and typings, and checks for
+                what the build would not catch: calls a target platform only stubs out, missing resources,
+                unused message keys.</li>
+        </ul>
         <h3>Getting started</h3>
         <ol>
             <li>Install pebble-tool: <code>uv tool install pebble-tool</code>.</li>
-            <li>Open a folder whose <code>package.json</code> has a <code>pebble</code> section.</li>
+            <li><b>New Project | Pebble</b>, or open a folder whose <code>package.json</code> has a
+                <code>pebble</code> section.</li>
             <li>If the SDK is missing, the editor says so and offers to install it.
                 <b>Tools | Pebble | Check Environment</b> shows everything at once.</li>
+            <li>Pick a platform beside the Run button and press Run.</li>
         </ol>
+        <p>For C in IntelliJ IDEA or WebStorm, install the LSP4IJ plugin and clangd; CLion needs neither.</p>
     ]]></description>
 
     <!--

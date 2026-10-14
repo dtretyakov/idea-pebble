@@ -219,7 +219,8 @@ source-mapped `./src/pkjs/index.js:3:0` position.
 `pebble gdb --emulator P` runs the toolchain's `arm-none-eabi-gdb` on the platform's
 `<platform>_sdk_debug.elf`, connects to QEMU's gdb stub and adds `build/<platform>/pebble-app.elf`
 at the app's load address. Alloy debugging is `pebble build --debug`, then `pebble install`, which
-starts xsbug and bridges it on `localhost:5002`.
+bridges the app's JavaScript engine to a debugger on `localhost:5002` — xsbug, which it starts,
+or one already listening there.
 
 Which it is depends on the last build: `pebble build --debug` leaves `build/.pebble_debug`, an
 ordinary build removes it, and `pebble install` launches xsbug (waiting up to 15 seconds for it on
@@ -227,11 +228,47 @@ port 5002) whenever the marker is there and the project is Alloy. Without `--log
 does not return: it holds the bridge open until stopped. With no display xsbug cannot open, and
 pebble-tool says `Alloy: failed to connect to debugger` and runs the app anyway.
 
-When the session ends the debug build goes on waiting for xsbug, and the watch puts up
-"… is not responding". That dialog outlives the app: it stays over whatever runs next — an
-ordinary build of the same app included — and takes its button presses and touches, and the
-watch remembers the debug app across an emulator restart. Back dismisses it; installing the
-ordinary build then leaves a working app. Neither has a debug adapter.
+When a session ends with xsbug simply gone, the debug build goes on waiting for it, and the
+watch puts up "… is not responding". That dialog outlives the app: it stays over whatever runs
+next — an ordinary build of the same app included — and takes its button presses and touches,
+and the watch remembers the debug app across an emulator restart. Back dismisses it. A debugger
+that logs out first (below) leaves none of this.
+
+### Alloy: being the debugger
+
+pebble-tool's bridge (`pebble_tool/util/xsbug.py`) launches xsbug only when nothing listens on
+`localhost:5002`. With a server already there, it connects to it instead: twice to check the
+port, hanging up at once, then — when the watch's first debugger bytes arrive — for real, as a
+TCP client, and relays bytes both ways over Pebble protocol endpoint 51967, untouched. A NUL
+byte from the watch ends a session; if the debugger hangs up, pebble-tool sends the watch
+`<logout/>`. The firmware keeps the engine's debug flag only while a log listener is connected,
+which is why the install runs with `--logs`. There is no option for another port.
+
+The protocol is xsbug's, specified by the engine's `xsDebug.c` in the SDK's `toolchain/moddable`
+(Moddable's `tools/xsbug-log` is a small client). Against emery with SDK 4.33.1:
+
+- The engine sends `\r\n<xsbug>…</xsbug>\r\n`, first `<login name="main" value="XS 17.8.0 32-bit
+  LE 16-bit ID" flags="e"/>`, and then waits: it disconnects unless a command comes within two
+  seconds. `<set-all-breakpoints>…</set-all-breakpoints>` alone lets it go on.
+- Commands are bare elements with a CRLF before and after; the engine acts on one only once the
+  line after it ends. Attribute values are read as they are, without references.
+- A breakpoint's `path` is the absolute path of the source on the machine that built it, as
+  mcrun gave it to xsc, and the engine reports the same strings in `<break>` and `<frame>`. A
+  TypeScript source is reported by its own `.ts` path and lines, through tsc's source map.
+- A break is one message: `<frames>`, `<local>` (the top frame's variables), `<global>`,
+  `<grammar>` (modules) and `<break path line># Break: breakpoint!</break>`. `<select id>` and
+  `<toggle id>` are answered, in order, with a new `<local>`/`<global>`/`<grammar>` view; an
+  expanded object's properties are nested in it, and stay expanded across breaks.
+- `<step/>`, `<step-inside/>` and `<step-outside/>` step; breakpoints can be set and cleared while
+  the app runs. To pause a running app, `<step-inside/>`: it stops at the next JavaScript
+  statement — the next `draw()` of a watchface. `<step/>` while running does nothing, and the
+  `start` breakpoint stops in a host frame with no source.
+- `<instruments>` once, then `<samples>` every second, come unasked; they are not replies.
+- While a debugger is connected, `console.log` goes to it as `<log>` (and a separate `<log>` for
+  the line's end), not to pebble-tool's log stream.
+- `<logout/>` lets the app run on, even after a break held for half a minute; pebble-tool hangs
+  up half a second later, and the watch shows the app as it was, with no "not responding".
+- With break on exceptions on, a watchface starts without breaking.
 
 `pebble gdb --emulator P --vnc` works on a pseudo-terminal with commands written to its input:
 it attaches to QEMU's gdb stub, adds the app's ELF at its load address, breaks on `app_crashed`,

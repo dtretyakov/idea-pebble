@@ -20,7 +20,7 @@ class EmulatorLiveTest : IdeTestCase() {
         if (System.getProperty("pebble.liveTests") != "true") return
         val root = LiveSdk.fixture("fixture-c")
         check(LiveSdk.run(root, "build").exitCode == 0)
-        val install = LiveSdk.run(root, "install", "--emulator", "emery", "--vnc")
+        val install = LiveSdk.install(root, "--emulator", "emery", "--vnc")
         assertEquals(install.text, 0, install.exitCode)
 
         val frames = LinkedBlockingQueue<Pair<RunningEmulator, IntArray>>()

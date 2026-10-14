@@ -44,18 +44,19 @@ Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by 
 - [x] **Watches.** Tools | Pebble | Take Screenshot from the watch the selected run configuration
   installs on; a hint after pebble-tool's error when a run cannot reach the phone; the Logs tab's
   "Save console output to file" on every Pebble run.
+- [x] **package.json.** Platform names and project types complete in the `pebble` section, and an
+  inspection reports unknown platforms, Alloy on a platform without it, and project types
+  pebble-tool cannot build. Not a JSON Schema: the IDE uses one schema per file, and
+  `package.json` already has npm's — a second is attached and never consulted.
 - [x] **The emulator in the IDE.** A tool window with the live screen over VNC, the four buttons as
   buttons and arrow keys, clicks as touches on emery and gabbro, screenshots, and stopping it.
 
 Still to do:
 
-1. **package.json.** A JSON Schema for the `pebble` section (`JsonSchemaProviderFactory`), so
-   project configuration completes and validates with no model of our own. Needs a look at how it
-   combines with the npm schema that JavaScript-enabled IDEs already apply to `package.json`.
-2. **Logs.** A level filter (the levels are only colours, so the filter reads them back).
-3. **SDKs.** Choosing among installed SDKs and removing one, beyond installing and activating.
-4. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
-5. **Touch.** Confirm that VNC pointer events reach emery's and gabbro's touch screens.
+1. **Logs.** A level filter (the levels are only colours, so the filter reads them back).
+2. **SDKs.** Choosing among installed SDKs and removing one, beyond installing and activating.
+3. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
+4. **Touch.** Confirm that VNC pointer events reach emery's and gabbro's touch screens.
 
 ## Phase 2 — Advanced development experience (P1)
 

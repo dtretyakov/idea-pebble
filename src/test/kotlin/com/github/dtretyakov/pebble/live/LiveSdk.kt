@@ -33,6 +33,16 @@ object LiveSdk {
 
     class Output(val exitCode: Int, val text: String)
 
+    /**
+     * `pebble install`, once more if the first attempt met an emulator still starting: pebble-tool
+     * waits about five seconds for it, and a cold start here can take longer.
+     */
+    fun install(directory: Path, vararg arguments: String): Output {
+        val first = run(directory, "install", *arguments)
+        if (first.exitCode == 0 || "Connection refused" !in first.text) return first
+        return run(directory, "install", *arguments)
+    }
+
     fun run(directory: Path, vararg arguments: String): Output {
         val process = ProcessBuilder(listOf(tool().toString()) + arguments)
             .directory(directory.toFile())

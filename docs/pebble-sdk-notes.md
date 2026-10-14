@@ -120,6 +120,11 @@ and black beside it; basalt alone pads both ways and puts its screen two pixels 
  Key events are
 the watch's buttons, as in the SDL window: Left is Back, Up is Up, Right is Select, Down is Down.
 
+A first `pebble install --emulator` can fail with `[Errno 111] Connection refused` while the
+emulator is in fact starting: pebble-tool tries pypkjs's WebSocket ten times, half a second
+apart, and a cold start on a slow machine takes longer than that. The next run finds the emulator
+up. The plugin says so after the error; a longer wait upstream is the fix.
+
 pypkjs listens on `("", port)`, which gevent opens as IPv6. On a host without IPv6 — some
 containers — it fails with `Address family not supported` and every `pebble install --emulator`
 ends in `Connection refused`, while QEMU itself runs. An upstream fix to bind `0.0.0.0` is the

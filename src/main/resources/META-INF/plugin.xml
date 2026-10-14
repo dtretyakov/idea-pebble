@@ -26,6 +26,8 @@
     <depends>com.intellij.modules.platform</depends>
     <!-- clangd for C outside CLion. Optional: CLion has its own C engine, and nothing else needs it. -->
     <depends optional="true" config-file="pebble-lsp4ij.xml">com.redhat.devtools.lsp4ij</depends>
+    <!-- Completion and checks for package.json's pebble section. -->
+    <depends optional="true" config-file="pebble-json.xml">com.intellij.modules.json</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Pebble" displayType="BALLOON"/>

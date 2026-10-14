@@ -6,6 +6,7 @@ import com.intellij.openapi.wm.ToolWindowEP
 import com.github.dtretyakov.pebble.lsp.ClangdServerFactory
 import com.github.dtretyakov.pebble.project.IdeCapabilities
 import com.github.dtretyakov.pebble.project.PebbleEnvironment
+import com.intellij.codeInspection.LocalInspectionEP
 import com.intellij.openapi.roots.AdditionalLibraryRootsProvider
 import com.redhat.devtools.lsp4ij.LanguageServersRegistry
 import com.github.dtretyakov.pebble.project.PebbleSdkService
@@ -85,6 +86,12 @@ class SelfCheckStarter : ModernApplicationStarter() {
         val generators = ExtensionPointName<DirectoryProjectGenerator<*>>("com.intellij.directoryProjectGenerator")
         if (generators.extensionList.none { it is PebbleDirectoryProjectGenerator }) {
             problems += "the directory project generator for CLion and WebStorm is not registered"
+        }
+
+        if (LocalInspectionEP.LOCAL_INSPECTION.extensionList.none { it.shortName == "PebblePackageJson" }) {
+            problems += "the package.json inspection is not registered"
+        } else {
+            println("[self-check] package.json inspection")
         }
 
         if (AdditionalLibraryRootsProvider.EP_NAME.extensionList.none { it is PebbleLibraryProvider }) {

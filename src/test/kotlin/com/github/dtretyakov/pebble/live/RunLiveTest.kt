@@ -27,6 +27,8 @@ class RunLiveTest : IdeTestCase() {
         val tool = PebbleTool.locate("", System.getenv("PATH")) ?: return
         val root = LiveSdk.fixture("fixture-c")
         check(LiveSdk.run(root, "build").exitCode == 0)
+        // The emulator up first, so the run under test meets a running one, as a second run does.
+        LiveSdk.install(root, "--emulator", "emery", "--vnc")
 
         val arguments = PebbleInstallCommand.arguments(PebbleRunTarget.EMULATOR, "emery", "", "", logs = true)
         val handler = PebbleRunState.processHandler(tool, arguments, root)

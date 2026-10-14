@@ -1,0 +1,20 @@
+<!--
+  The pebble section of package.json, loaded only where the JSON plugin is. Completion and an
+  inspection rather than a JSON Schema: package.json already has npm's schema, and the IDE uses
+  one schema per file, so a second would be attached and never consulted.
+-->
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <completion.contributor
+            language="JSON"
+            implementationClass="com.github.dtretyakov.pebble.lang.PebblePackageJsonCompletion"/>
+        <localInspection
+            language="JSON"
+            shortName="PebblePackageJson"
+            displayName="Pebble project configuration"
+            groupName="Pebble"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.github.dtretyakov.pebble.lang.PebblePackageJsonInspection"/>
+    </extensions>
+</idea-plugin>

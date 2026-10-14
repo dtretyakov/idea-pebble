@@ -52,8 +52,11 @@ object ConnectionHint {
                     "and its CloudPebble option."
             PebbleRunTarget.ADB ->
                 "Could not reach the phone over adb. Check `adb devices` lists it, and that the Pebble app is open on it."
+            // pebble-tool gives a starting emulator about five seconds, and a cold start on a slow
+            // machine takes longer; the emulator is up by the time anyone reads this.
             PebbleRunTarget.EMULATOR ->
-                "Could not reach the emulator. Stop it from the Pebble Emulator tool window and run again."
+                "The emulator was still starting: pebble-tool waits only a few seconds for it. Run again. " +
+                    "If it keeps failing, stop it from the Pebble Emulator tool window first."
         }
     }
 

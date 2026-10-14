@@ -36,6 +36,10 @@ dependencies {
     intellijPlatform {
         intellijIdea(libs.versions.ideaVersion)
         plugin("com.redhat.devtools.lsp4ij:${libs.versions.lsp4ij.get()}")
+        // JSON PSI for package.json support; an optional dependency in plugin.xml.
+        bundledPlugin("com.intellij.modules.json")
+        // In tests, the IDE as most users have it: package.json already has npm's schema.
+        testBundledPlugins("JavaScript", "NodeJS")
         pluginVerifier()
         // Gives the tests a real Project, so the parts that only exist inside an IDE can be
         // exercised rather than only compiled.

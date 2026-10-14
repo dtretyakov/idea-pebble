@@ -66,7 +66,8 @@ emulator and a separate debugger.
 
 - Several emulators at once, one per platform, side by side; screenshot comparison across them.
 - GIF recording from the frame stream (`javax.imageio`, no dependency).
-- Battery, Bluetooth, time, accelerometer and compass controls over `pebble emu-*`.
+- [x] Battery, Bluetooth, clock, tap, tilt, compass, Timeline Quick View and content size from the
+  emulator's tool window, over `pebble emu-*`.
 - Debugging C in the emulator: breakpoints, stack and variables in the IDE's own debugger through
   DAP, if the SDK's gdb speaks it; otherwise CLion's Remote GDB configuration in CLion.
 - Debugging Alloy: a debug run that starts xsbug the way `pebble install` does.

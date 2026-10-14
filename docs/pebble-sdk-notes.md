@@ -108,6 +108,12 @@ on port 6080 for a browser client.
 Starting an emulator with `--vnc` stops any other emulator that has the display, so switching
 platforms needs nothing from a client: the new one simply takes port 5901.
 
+Every command that names an emulator — `install`, `logs`, `screenshot`, `emu-*` — has to say
+`--vnc` if the emulator was started with it. pebble-tool restarts an emulator whose VNC setting
+differs from the command's (`ManagedEmulatorTransport._find_ports`), so a bare
+`pebble logs --emulator emery` in a terminal kills the emulator the IDE is showing and opens one in
+a window of its own.
+
 QEMU's VNC server needs no authentication and offers 32-bit true colour. The framebuffer is wider
 than the watch's screen — rounded up to a multiple of 16 pixels — with the screen at the top left
 and black beside it; basalt alone pads both ways and puts its screen two pixels in:

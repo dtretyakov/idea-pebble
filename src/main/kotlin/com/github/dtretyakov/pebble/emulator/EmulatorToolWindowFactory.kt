@@ -40,7 +40,7 @@ class EmulatorToolWindowFactory : ToolWindowFactory, DumbAware {
             toolbar = ActionManager.getInstance()
                 .createActionToolbar(
                     "PebbleEmulator",
-                    DefaultActionGroup(SaveScreenshot(project, panel), StopEmulator(project)),
+                    DefaultActionGroup(SaveScreenshot(project, panel), EmulatorControlActions(project), StopEmulator(project)),
                     true,
                 )
                 .also { it.targetComponent = panel }

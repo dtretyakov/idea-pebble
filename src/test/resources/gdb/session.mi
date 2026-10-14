@@ -1,0 +1,81 @@
+=thread-group-added,id="i1"
+~"Reading symbols from /root/.local/share/pebble-sdk/SDKs/4.33.1/sdk-core/pebble/emery/qemu/emery_sdk_debug.elf...\n"
+(gdb) 
+1^done
+(gdb) 
+0^done
+(gdb) 
+=thread-group-started,id="i1",pid="1"
+=thread-created,id="1",group-id="i1"
+~"__ISB () at ../third_party/cmsis_core/CMSIS/CMSIS/Core/Include/cmsis_gcc.h:266\n"
+&"warning: 266\t../third_party/cmsis_core/CMSIS/CMSIS/Core/Include/cmsis_gcc.h: No such file or directory\n"
+*stopped,frame={addr="0x000c46ec",func="__ISB",args=[],file="../third_party/cmsis_core/CMSIS/CMSIS/Core/Include/cmsis_gcc.h",fullname="./build/../third_party/cmsis_core/CMSIS/CMSIS/Core/Include/cmsis_gcc.h",line="266",arch="armv8-m.main"},thread-id="1",stopped-threads="all"
+2^connected
+(gdb) 
+~"add symbol table from file \"/work/app/build/emery/pebble-app.elf\" at\n"
+~"\t.text_addr = 0x200504a8\n"
+~"\t.header_addr = 0x20050400\n"
+~"\t.note.gnu.build-id_addr = 0x20050482\n"
+~"\t.init_addr = 0x200505b0\n"
+~"\t.fini_addr = 0x200505b4\n"
+~"\t.data_addr = 0x200505b8\n"
+~"\t.bss_addr = 0x200505b8\n"
+~"Reading symbols from /work/app/build/emery/pebble-app.elf...\n"
+3^done
+(gdb) 
+4^done,bkpt={number="1",type="breakpoint",disp="keep",enabled="y",addr="0x000c0f9e",func="app_crashed",file="../src/fw/kernel/fault_handling.c",fullname="./build/../src/fw/kernel/fault_handling.c",line="196",thread-groups=["i1"],times="0",original-location="app_crashed"}
+(gdb) 
+5^done,bkpt={number="2",type="breakpoint",disp="keep",enabled="y",addr="0x200504c6",func="select_clicked",file="../src/c/fixture-c.c",fullname="/work/app/src/c/fixture-c.c",line="4",thread-groups=["i1"],times="0",original-location="select_clicked"}
+(gdb) 
+6^done,bkpt={number="3",type="breakpoint",disp="keep",enabled="y",addr="0x200504c6",func="select_clicked",file="../src/c/fixture-c.c",fullname="/work/app/src/c/fixture-c.c",line="4",thread-groups=["i1"],times="0",original-location="../src/c/fixture-c.c:4"}
+(gdb) 
+7^done,bkpt={number="4",type="breakpoint",disp="keep",enabled="y",addr="0x200504c6",func="select_clicked",file="../src/c/fixture-c.c",fullname="/work/app/src/c/fixture-c.c",line="4",thread-groups=["i1"],times="0",original-location="/work/app/src/c/fixture-c.c:4"}
+(gdb) 
+8^running
+*running,thread-id="all"
+(gdb) 
+=breakpoint-modified,bkpt={number="2",type="breakpoint",disp="keep",enabled="y",addr="0x200504c6",func="select_clicked",file="../src/c/fixture-c.c",fullname="/work/app/src/c/fixture-c.c",line="4",thread-groups=["i1"],times="1",original-location="select_clicked"}
+=breakpoint-modified,bkpt={number="3",type="breakpoint",disp="keep",enabled="y",addr="0x200504c6",func="select_clicked",file="../src/c/fixture-c.c",fullname="/work/app/src/c/fixture-c.c",line="4",thread-groups=["i1"],times="1",original-location="../src/c/fixture-c.c:4"}
+=breakpoint-modified,bkpt={number="4",type="breakpoint",disp="keep",enabled="y",addr="0x200504c6",func="select_clicked",file="../src/c/fixture-c.c",fullname="/work/app/src/c/fixture-c.c",line="4",thread-groups=["i1"],times="1",original-location="/work/app/src/c/fixture-c.c:4"}
+~"\n"
+~"Breakpoint 2, select_clicked (recognizer=0x20070534, context=0x200505dc) at ../src/c/fixture-c.c:4\n"
+~"4\t  APP_LOG(APP_LOG_LEVEL_INFO, \"select\");\n"
+*stopped,reason="breakpoint-hit",disp="keep",bkptno="2",frame={addr="0x200504c6",func="select_clicked",args=[{name="recognizer",value="0x20070534"},{name="context",value="0x200505dc"}],file="../src/c/fixture-c.c",fullname="/work/app/src/c/fixture-c.c",line="4",arch="armv8-m.main"},thread-id="1",stopped-threads="all"
+9^done,stack=[frame={level="0",addr="0x200504c6",func="select_clicked",file="../src/c/fixture-c.c",fullname="/work/app/src/c/fixture-c.c",line="4",arch="armv8-m.main"},frame={level="1",addr="0x000ce358",func="prv_dispatch_event",file="../src/fw/applib/ui/click.c",fullname="./build/../src/fw/applib/ui/click.c",line="69",arch="armv8-m.main"},frame={level="2",addr="0x00028a08",func="do_handle",file="../src/fw/applib/event_service_client.c",fullname="./build/../src/fw/applib/event_service_client.c",line="45",arch="armv8-m.main"},frame={level="3",addr="0x00028a08",func="event_service_client_handle_event",file="../src/fw/applib/event_service_client.c",fullname="./build/../src/fw/applib/event_service_client.c",line="79",arch="armv8-m.main"},frame={level="4",addr="0x00027fe0",func="app_event_loop_common",file="../src/fw/applib/app.c",fullname="./build/../src/fw/applib/app.c",line="257",arch="armv8-m.main"},frame={level="5",addr="0x2005053c",func="main",file="../src/c/fixture-c.c",fullname="/work/app/src/c/fixture-c.c",line="13",arch="armv8-m.main"},frame={level="6",addr="0x0001f0c6",func="prv_app_task_main",file="../src/fw/process_management/app_manager.c",fullname="./build/../src/fw/process_management/app_manager.c",line="140",arch="armv8-m.main"},frame={level="7",addr="0x00000000",func="??",arch="armv8-m.main"}]
+(gdb) 
+10^done,variables=[{name="recognizer",arg="1",type="ClickRecognizerRef",value="0x20070534"},{name="context",arg="1",type="void *",value="0x200505dc"}]
+(gdb) 
+11^done,value="0x20070534"
+(gdb) 
+12^done,name="var1",numchild="0",value="0x200505dc",type="void *",thread-id="1",has_more="0"
+(gdb) 
+13^running
+*running,thread-id="all"
+(gdb) 
+*stopped,reason="end-stepping-range",frame={addr="0x200504d6",func="select_clicked",args=[{name="recognizer",value="0x20070534"},{name="context",value="0x200505dc"}],file="../src/c/fixture-c.c",fullname="/work/app/src/c/fixture-c.c",line="5",arch="armv8-m.main"},thread-id="1",stopped-threads="all"
+14^running
+*running,thread-id="all"
+(gdb) 
+15^done
+(gdb) 
+~"\nProgram"
+~" received signal SIGINT, Interrupt.\n"
+~"vPortSuppressTicksAndSleep (xExpectedIdleTime=<optimized out>) at ../soc/qemu/freertos.c:21\n"
+&"warning: 21\t../soc/qemu/freertos.c: No such file or directory\n"
+*stopped,reason="signal-received",signal-name="SIGINT",signal-meaning="Interrupt",frame={addr="0x000c46ec",func="vPortSuppressTicksAndSleep",args=[{name="xExpectedIdleTime",value="<optimized out>"}],file="../soc/qemu/freertos.c",fullname="./build/../soc/qemu/freertos.c",line="21",arch="armv8-m.main"},thread-id="1",stopped-threads="all"
+16^running
+*running,thread-id="all"
+(gdb) 
+17^done
+(gdb) 
+~"\nProgram"
+~" received signal SIGINT, Interrupt.\n"
+~"vPortSuppressTicksAndSleep (xExpectedIdleTime=<optimized out>) at ../soc/qemu/freertos.c:21\n"
+~"21\tin ../soc/qemu/freertos.c\n"
+*stopped,reason="signal-received",signal-name="SIGINT",signal-meaning="Interrupt",frame={addr="0x000c46ec",func="vPortSuppressTicksAndSleep",args=[{name="xExpectedIdleTime",value="<optimized out>"}],file="../soc/qemu/freertos.c",fullname="./build/../soc/qemu/freertos.c",line="21",arch="armv8-m.main"},thread-id="1",stopped-threads="all"
+=thread-exited,id="1",group-id="i1"
+=thread-group-exited,id="i1"
+~"[Inferior 1 (process 1) detached]\n"
+18^done
+(gdb) 
+19^exit

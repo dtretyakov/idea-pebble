@@ -38,9 +38,12 @@
       compiled against none of them; build.gradle.kts verifies all three.
     -->
     <depends>com.intellij.modules.platform</depends>
-    <!-- The IDE's test runner, for UI test scenarios: core modules in 2026.1, a bundled plugin's from 2026.2. -->
+    <!--
+      The IDE's test runner, for UI test scenarios: a core module in 2026.1, a bundled plugin's from
+      2026.2. Only smRunner, which brings the test runner it is built on: 2026.1 does not offer
+      intellij.platform.testRunner as a module to depend on.
+    -->
     <dependencies>
-        <module name="intellij.platform.testRunner"/>
         <module name="intellij.platform.smRunner"/>
     </dependencies>
     <!-- clangd for C outside CLion. Optional: CLion has its own C engine, and nothing else needs it. -->

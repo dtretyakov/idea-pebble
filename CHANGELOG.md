@@ -7,6 +7,33 @@
   inline `backticks`.
 -->
 
+## 0.3.0
+
+### Running and debugging
+
+- Debug for Alloy apps: a debug build is installed, and pebble-tool opens xsbug, Moddable's
+  JavaScript debugger, beside it.
+- A minimum log level per run configuration; PebbleKit JS lines count as Info.
+- After a run that could not reach a cold emulator, the console says to run again.
+
+### The emulator
+
+- Clicks on a Pebble Time 2 or Round 2 screen land where they are made, and drags are touch moves.
+- Battery, Bluetooth, the clock, tap, tilt, compass, Timeline Quick View and content size, from
+  the Pebble Emulator tool window.
+- Record GIF: the emulator's screen as an animated GIF, for up to a minute.
+
+### Code
+
+- In `package.json`, platform names and project types complete in the `pebble` section, and
+  unknown platforms, Alloy where it cannot run and unknown project types are reported.
+- PebbleKit JS typings under External Libraries, so `Pebble.` completes in `src/pkjs`.
+
+### SDKs
+
+- Settings lists the installed SDKs to activate or remove, and installs any version pebble-tool
+  offers.
+
 ## 0.2.0
 
 ### Build and run

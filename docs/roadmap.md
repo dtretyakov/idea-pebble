@@ -55,9 +55,7 @@ Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by 
   buttons and arrow keys, clicks and drags as touches on emery and gabbro — confirmed by an app
   that logs its touches — screenshots, and stopping it.
 
-Still to do:
-
-1. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
+Moved to Phase 2: Windows, which needs a machine with WSL to be verified on.
 
 ## Phase 2 — Advanced development experience (P1)
 
@@ -68,13 +66,16 @@ emulator and a separate debugger.
 - [x] GIF recording from the frame stream (`javax.imageio`, no dependency), up to a minute.
 - [x] Battery, Bluetooth, clock, tap, tilt, compass, Timeline Quick View and content size from the
   emulator's tool window, over `pebble emu-*`.
-- Debugging C in the emulator: breakpoints, stack and variables in the IDE's own debugger through
-  DAP, if the SDK's gdb speaks it; otherwise CLion's Remote GDB configuration in CLion.
+- Debugging C in the emulator. The SDK's gdb has no Python, so no DAP: CLion's Remote GDB
+  configuration in CLion, and a GDB/MI debug process of our own if one is worth its code.
 - [x] Debugging Alloy: Debug builds with `--debug` and installs, and pebble-tool starts xsbug and
   bridges the watch to it.
 - Inspections: API not available on a target platform (from that platform's `pebble.h`), resources
   declared in `package.json` and missing on disk, message keys that do not match their use.
 - [x] PebbleKit JS typings for `src/pkjs`, the plugin's own, under External Libraries.
+- **Windows.** Projects inside WSL: pebble-tool run in the distribution (`WSLDistribution`), its data
+  directory and `pb-emulator.json` read through the distribution's paths, and the emulator's VNC
+  reached over WSL's localhost forwarding.
 
 ## Phase 3 — Integrated tooling and automation (P2)
 

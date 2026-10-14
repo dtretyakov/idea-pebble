@@ -7,6 +7,15 @@
   inline `backticks`.
 -->
 
+## 0.7.0
+
+### Testing
+
+- UI test scenarios: `.pbtest` files of steps — install, press, tap, wait, time, battery,
+  Bluetooth, motion — and the screens to expect, run on each platform in the IDE's test runner.
+  Each screen is compared with a reference screenshot, recorded on the first run; a difference
+  fails the test with a picture of where, and Accept Screenshot takes the new one.
+
 ## 0.6.0
 
 ### Running and debugging

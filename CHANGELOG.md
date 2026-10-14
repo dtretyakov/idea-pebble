@@ -7,6 +7,18 @@
   inline `backticks`.
 -->
 
+## 0.5.0
+
+### Running and debugging
+
+- Debug on an Alloy app runs in the IDE's own debugger, in place of xsbug: breakpoints — the
+  JavaScript debugger's own where it is installed — stepping, pause, the call stack, variables and
+  globals, break on exceptions, and the app's `console.log` in the console. TypeScript sources
+  take breakpoints too.
+- Stopping an Alloy debug session logs out first, so the app runs on, without the watch's "not
+  responding" dialog.
+- Debug says so when port 5002 is taken, as by an open xsbug.
+
 ## 0.4.0
 
 ### Running and debugging

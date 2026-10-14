@@ -11,7 +11,8 @@
             <li>New projects, SDKs to install and activate, and a platform to work on beside the Run button.</li>
             <li>Build into the Build tool window, and run in the emulator — its screen, buttons and touch in the
                 IDE — or on a watch, with the app's logs in the console.</li>
-            <li>Debug C with gdb in the console, and Alloy with xsbug.</li>
+            <li>Debug Alloy in the IDE's debugger — breakpoints, stepping, the stack and variables — and C with
+                gdb in the console.</li>
             <li>Screenshots of every platform side by side, and GIFs of the emulator's screen.</li>
             <li>Code insight from the IDE's own engines with the SDK's headers and typings, and checks for
                 what the build would not catch: calls a target platform only stubs out, missing resources,

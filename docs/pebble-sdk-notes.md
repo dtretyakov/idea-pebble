@@ -126,6 +126,26 @@ Diagnostics are gcc's own, with paths relative to `build/`, and `-Werror` is on:
 
 waf stops at the first platform that fails, so one build reports one platform's errors.
 
+After linking each platform waf prints its memory (`memory_reports.py`):
+
+```
+-------------------------------------------------------
+EMERY APP MEMORY USAGE
+Total size of resources:        4092 bytes / 256.0KB
+Total footprint in RAM:         220 bytes / 128.0KB
+Free RAM available (heap):      130852 bytes
+-------------------------------------------------------
+```
+
+The RAM limit is the platform's memory for an app (24 KB on aplite, 64 KB on basalt, chalk,
+diorite and flint, 128 KB on emery and gabbro); the resource limit is the app store's, and a
+build over it says `WARNING: Your … app resources are too large`. A worker's block says `WORKER`.
+Alloy apps report the same.
+
+When an app exits — closed, or replaced by an install — the firmware logs its heap in the app's
+log: `Heap Usage for App <Fixture C>: Total Size <130720B> Used <128B> Still allocated <104B>`.
+What is still allocated was never freed; an allocation takes four bytes more than asked.
+
 `pebble compile-commands --platform P` writes `compile_commands.json` from the waf cache, with the
 absolute path of the SDK's `arm-none-eabi-gcc` — spelled through the `SDKs/current` link. It
 needs the waf cache for that platform (`build/c4che/P_cache.py`), so it fails before the first

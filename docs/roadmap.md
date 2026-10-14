@@ -92,7 +92,9 @@ emulator and a separate debugger.
   app's logs; Stop logs out, and the app runs on.
 - Alloy expressions: evaluation, watches and breakpoint conditions, compiled for the engine by the
   SDK's `xsc`, as Moddable's own xsbug-log does.
-- Memory: sizes from the app's ELF, heap from its logs.
+- [x] Memory: each platform's RAM, heap and resources from `pebble build`'s own report, under that
+  platform in the Build window, a warning when the heap is short or the store would refuse the
+  resources; and a word in the console when an app exits with memory it never freed.
 - Scripted test scenarios: `emu-*` inputs and screenshots, run as tests.
 - Visual regression across platforms.
 - Release preparation: `.pbw` checks and store metadata.

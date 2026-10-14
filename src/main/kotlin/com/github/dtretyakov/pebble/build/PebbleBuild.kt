@@ -76,7 +76,9 @@ object PebbleBuild {
         view.onEvent(id, output(id, command.commandLineString + "\n\n"))
 
         val parser = BuildOutputParser(root)
+        val memoryParser = MemoryReportParser()
         val messages = mutableListOf<BuildMessage>()
+        val memory = mutableListOf<MemoryUsage>()
         val handler = OSProcessHandler(command)
         handler.addProcessListener(
             object : ProcessListener {
@@ -101,6 +103,7 @@ object PebbleBuild {
                 private fun read(line: String) {
                     val before = parser.progress
                     parser.parseLine(line)?.let { messages += it }
+                    memoryParser.parseLine(line)?.let { memory += it }
                     val now = parser.progress
                     if (now != null && now != before) {
                         view.onEvent(
@@ -135,6 +138,7 @@ object PebbleBuild {
         val exitCode = handler.exitCode ?: -1
 
         messages.forEach { view.onEvent(id, event(id, it)) }
+        memory.forEach { view.onEvent(id, event(id, it)) }
         val bundle = bundleIn(root)
         val result = BuildResult(exitCode, messages, bundle.takeIf { exitCode == 0 })
         view.onEvent(id, finish(id, if (result.succeeded) "successful" else "failed", result.succeeded))
@@ -168,6 +172,13 @@ object PebbleBuild {
         @Suppress("DEPRECATION")
         return FileMessageEvent.builder(message.text, kind, position).withParentId(id).withGroup(group).build()
     }
+
+    /** Each platform's memory, under that platform: a warning when the heap is short or the store would refuse the resources. */
+    private fun event(id: Any, usage: MemoryUsage): MessageEvent =
+        MessageEvent.builder(usage.summary, if (usage.isTight) MessageEvent.Kind.WARNING else MessageEvent.Kind.INFO)
+            .withParentId(id)
+            .withGroup(usage.platform)
+            .build()
 
     private fun output(id: Any, text: String, isError: Boolean = false): BuildEvent =
         OutputBuildEvent.builder(text)

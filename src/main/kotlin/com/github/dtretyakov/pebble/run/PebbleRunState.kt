@@ -57,6 +57,7 @@ class PebbleRunState(environment: ExecutionEnvironment, private val configuratio
         }
         val handler = processHandler(tool, arguments, root, options.minimumLogLevel).also { ProcessTerminatedListener.attach(it) }
         ConnectionHint.attach(handler, options.target, options.phoneAddress)
+        HeapLeakHint.attach(handler)
         // The emulator's screen is in the IDE, not in a window of its own: bring it up.
         if (options.target == PebbleRunTarget.EMULATOR) EmulatorToolWindowFactory.reveal(project)
         return handler

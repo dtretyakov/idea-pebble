@@ -70,7 +70,8 @@ emulator and a separate debugger.
   emulator's tool window, over `pebble emu-*`.
 - Debugging C in the emulator: breakpoints, stack and variables in the IDE's own debugger through
   DAP, if the SDK's gdb speaks it; otherwise CLion's Remote GDB configuration in CLion.
-- Debugging Alloy: a debug run that starts xsbug the way `pebble install` does.
+- [x] Debugging Alloy: Debug builds with `--debug` and installs, and pebble-tool starts xsbug and
+  bridges the watch to it.
 - Inspections: API not available on a target platform (from that platform's `pebble.h`), resources
   declared in `package.json` and missing on disk, message keys that do not match their use.
 - [x] PebbleKit JS typings for `src/pkjs`, the plugin's own, under External Libraries.

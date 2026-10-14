@@ -43,6 +43,11 @@ still goes green — a red test there would be reporting the machine rather than
 property rather than an environment variable, because a test JVM inherits the Gradle daemon's
 environment and not the shell's.
 
+The live tests share the machine's emulators, and the watch in them remembers what was installed.
+After debugging an Alloy app by hand, `pebble wipe` before running them: a debug build left behind
+holds a "not responding" dialog over the next app. The suite's own Alloy debug test runs on gabbro
+for that reason, and the rest on emery.
+
 `runSelfCheck` catches the failures nothing else can: something named in `plugin.xml` that does
 not take is silent at run time. An `add-to-group` naming a group this IDE has not got is one line
 in `idea.log` and then a menu item that is simply not there. The check lives in `src/selfCheck` as

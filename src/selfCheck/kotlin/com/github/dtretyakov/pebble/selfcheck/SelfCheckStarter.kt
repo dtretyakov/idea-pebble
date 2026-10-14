@@ -12,6 +12,8 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.redhat.devtools.lsp4ij.LanguageServersRegistry
 import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider
+import com.github.dtretyakov.pebble.run.PebbleDebugRunner
+import com.intellij.execution.runners.ProgramRunner
 import com.github.dtretyakov.pebble.run.PebbleRunConfigurationType
 import com.github.dtretyakov.pebble.ui.MissingSdkNotification
 import com.github.dtretyakov.pebble.ui.wizard.PebbleDirectoryProjectGenerator
@@ -68,6 +70,9 @@ class SelfCheckStarter : ModernApplicationStarter() {
             problems += "the Pebble run configuration type is not registered"
         } else {
             println("[self-check] run configuration: ${runType.displayName}")
+        }
+        if (ProgramRunner.PROGRAM_RUNNER_EP.extensionList.none { it is PebbleDebugRunner }) {
+            problems += "the Alloy debug runner is not registered, so Debug is never offered"
         }
         if (BeforeRunTaskProvider.EP_NAME.getExtensions(ProjectManager.getInstance().defaultProject)
                 .none { it is PebbleBuildBeforeRunTaskProvider }

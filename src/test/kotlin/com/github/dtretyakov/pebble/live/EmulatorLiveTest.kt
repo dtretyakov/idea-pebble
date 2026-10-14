@@ -118,9 +118,14 @@ class EmulatorLiveTest : IdeTestCase() {
             val image = frames.poll(30, TimeUnit.SECONDS)!!
             val screen = EmulatorScreen.of("emery", image.width, image.height)
             val pointer = EmulatorScreen.pointerFor(screen, image.width, image.height, 100, 114)
-            session.client!!.pointer(pointer.x, pointer.y, true)
-            Thread.sleep(200)
-            session.client!!.pointer(pointer.x, pointer.y, false)
+            // Up to three taps, as a person would: the first can land while the app is still
+            // being brought up after its install, and then the watch never sees it.
+            for (attempt in 1..3) {
+                session.client!!.pointer(pointer.x, pointer.y, true)
+                Thread.sleep(300)
+                session.client!!.pointer(pointer.x, pointer.y, false)
+                if (waitFor(output, Regex("""touch 0 at"""), 5_000) != null) break
+            }
 
             val touch = waitFor(output, Regex("""touch 0 at (\d+),(\d+)"""))
             val (x, y) = touch.destructured
@@ -135,12 +140,15 @@ class EmulatorLiveTest : IdeTestCase() {
 
     private fun waitFor(output: StringBuffer, text: String) = waitFor(output, Regex(Regex.escape(text)))
 
-    private fun waitFor(output: StringBuffer, pattern: Regex): MatchResult {
-        val deadline = System.currentTimeMillis() + 120_000
+    private fun waitFor(output: StringBuffer, pattern: Regex): MatchResult =
+        waitFor(output, pattern, 120_000) ?: throw AssertionError("no '$pattern' in:\n$output")
+
+    private fun waitFor(output: StringBuffer, pattern: Regex, millis: Long): MatchResult? {
+        val deadline = System.currentTimeMillis() + millis
         while (System.currentTimeMillis() < deadline) {
             pattern.find(output)?.let { return it }
             Thread.sleep(200)
         }
-        throw AssertionError("no '$pattern' in:\n$output")
+        return null
     }
 }

@@ -48,10 +48,21 @@ class RfbClient(private val host: String, private val port: Int, private val lis
         out.writeInt(keysym)
     }
 
-    /** A press is button 1 held at [x], [y]; a release is the same position with no buttons. */
+    /**
+     * A press is button 1 held at [x], [y]; a release is the same position with no buttons.
+     *
+     * A press is preceded by a move there with no buttons, as a real mouse arrives before it
+     * clicks: the first press after connecting, sent alone, reaches the watch without its
+     * Touchdown.
+     */
     fun pointer(x: Int, y: Int, pressed: Boolean) = send { out ->
+        if (pressed) writePointer(out, x, y, 0)
+        writePointer(out, x, y, if (pressed) 1 else 0)
+    }
+
+    private fun writePointer(out: DataOutputStream, x: Int, y: Int, buttons: Int) {
         out.writeByte(POINTER_EVENT)
-        out.writeByte(if (pressed) 1 else 0)
+        out.writeByte(buttons)
         out.writeShort(x)
         out.writeShort(y)
     }

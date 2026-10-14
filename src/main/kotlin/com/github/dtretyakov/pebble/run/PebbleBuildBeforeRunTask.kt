@@ -43,7 +43,8 @@ class PebbleBuildBeforeRunTaskProvider : BeforeRunTaskProvider<PebbleBuildBefore
         val root = PebbleProject.getInstance(project).primaryRoot() ?: return false
         // waf reads the files, not the editors.
         ApplicationManager.getApplication().invokeAndWait { FileDocumentManager.getInstance().saveAllDocuments() }
-        val debug = (configuration as? PebbleRunConfiguration)?.options?.debugBuild == true
+        // pebble-tool installs whatever the last build was, debug or not, so Debug has to build for it.
+        val debug = (configuration as? PebbleRunConfiguration)?.let { PebbleDebugRunner.debugBuild(it, environment.executor.id) } == true
         return PebbleBuild.run(project, root, debug, indicator = null).succeeded
     }
 

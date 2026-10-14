@@ -170,7 +170,19 @@ source-mapped `./src/pkjs/index.js:3:0` position.
 `pebble gdb --emulator P` runs the toolchain's `arm-none-eabi-gdb` on the platform's
 `<platform>_sdk_debug.elf`, connects to QEMU's gdb stub and adds `build/<platform>/pebble-app.elf`
 at the app's load address. Alloy debugging is `pebble build --debug`, then `pebble install`, which
-starts xsbug and bridges it on `localhost:5002`. Neither has a debug adapter.
+starts xsbug and bridges it on `localhost:5002`.
+
+Which it is depends on the last build: `pebble build --debug` leaves `build/.pebble_debug`, an
+ordinary build removes it, and `pebble install` launches xsbug (waiting up to 15 seconds for it on
+port 5002) whenever the marker is there and the project is Alloy. Without `--logs` such an install
+does not return: it holds the bridge open until stopped. With no display xsbug cannot open, and
+pebble-tool says `Alloy: failed to connect to debugger` and runs the app anyway.
+
+When the session ends the debug build goes on waiting for xsbug, and the watch puts up
+"… is not responding". That dialog outlives the app: it stays over whatever runs next — an
+ordinary build of the same app included — and takes its button presses and touches, and the
+watch remembers the debug app across an emulator restart. Back dismisses it; installing the
+ordinary build then leaves a working app. Neither has a debug adapter.
 
 The SDK's gdb (xPack GNU Arm Embedded 15.2) is built without Python, so `gdb -i=dap` — gdb's own
 debug adapter — is not available.

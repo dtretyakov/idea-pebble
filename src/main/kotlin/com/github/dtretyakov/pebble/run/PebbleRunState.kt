@@ -7,6 +7,7 @@ import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.configurations.PtyCommandLine
+import com.intellij.execution.executors.DefaultDebugExecutor
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
@@ -41,6 +42,7 @@ class PebbleRunState(environment: ExecutionEnvironment, private val configuratio
         consoleBuilder.addFilter(PebbleLogFilter(project, root))
         val handler = processHandler(tool, arguments, root, options.minimumLogLevel).also { ProcessTerminatedListener.attach(it) }
         ConnectionHint.attach(handler, options.target, options.phoneAddress)
+        if (environment.executor.id == DefaultDebugExecutor.EXECUTOR_ID) AlloyDebugHint.attach(handler)
         // The emulator's screen is in the IDE, not in a window of its own: bring it up.
         if (options.target == PebbleRunTarget.EMULATOR) EmulatorToolWindowFactory.reveal(project)
         return handler

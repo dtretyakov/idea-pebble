@@ -44,6 +44,7 @@
 
         <configurationType implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurationType"/>
         <runConfigurationProducer implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurationProducer"/>
+        <programRunner implementation="com.github.dtretyakov.pebble.run.PebbleDebugRunner"/>
         <stepsBeforeRunProvider implementation="com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurations"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.project.CompileDatabase$Startup"/>

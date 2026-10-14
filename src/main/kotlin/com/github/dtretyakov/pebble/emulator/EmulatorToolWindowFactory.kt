@@ -3,12 +3,15 @@ package com.github.dtretyakov.pebble.emulator
 import com.github.dtretyakov.pebble.project.PebbleCommands
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.Disposable
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.ToggleAction
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
 import com.intellij.openapi.project.DumbAware
@@ -20,6 +23,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.ex.ToolWindowManagerListener
+import java.awt.image.BufferedImage
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.imageio.ImageIO
@@ -40,7 +44,7 @@ class EmulatorToolWindowFactory : ToolWindowFactory, DumbAware {
             toolbar = ActionManager.getInstance()
                 .createActionToolbar(
                     "PebbleEmulator",
-                    DefaultActionGroup(SaveScreenshot(project, panel), EmulatorControlActions(project), StopEmulator(project)),
+                    DefaultActionGroup(SaveScreenshot(project, panel), RecordGif(project, panel, toolWindow.disposable), EmulatorControlActions(project), StopEmulator(project)),
                     true,
                 )
                 .also { it.targetComponent = panel }
@@ -79,6 +83,65 @@ class EmulatorToolWindowFactory : ToolWindowFactory, DumbAware {
                 .save(project.guessProjectDir(), name)
                 ?: return
             ImageIO.write(image, "png", target.file)
+        }
+    }
+
+    /**
+     * Records the screen while held down, then asks where to save the GIF. Frames are the
+     * emulator's own updates, so the recording follows the screen and costs nothing while it is
+     * still.
+     */
+    private class RecordGif(private val project: Project, private val panel: EmulatorPanel, parent: Disposable) :
+        ToggleAction("Record GIF", "Records the emulator's screen as an animated GIF", AllIcons.Debugger.Db_set_breakpoint),
+        DumbAware {
+
+        private val recorder = GifRecorder()
+
+        init {
+            EmulatorSession.getInstance(project).addListener(
+                object : EmulatorSession.Listener {
+                    override fun frame(emulator: RunningEmulator, image: BufferedImage) {
+                        if (!recorder.recording) return
+                        panel.screenshot()?.let { if (!recorder.add(it)) ApplicationManager.getApplication().invokeLater(::save) }
+                    }
+
+                    override fun idle() = Unit
+                },
+                parent,
+            )
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+        override fun update(e: AnActionEvent) {
+            super.update(e)
+            e.presentation.isEnabled = recorder.recording || EmulatorSession.getInstance(project).emulator != null
+            e.presentation.text = if (recorder.recording) "Stop Recording" else "Record GIF"
+        }
+
+        override fun isSelected(e: AnActionEvent): Boolean = recorder.recording
+
+        override fun setSelected(e: AnActionEvent, state: Boolean) {
+            if (state) {
+                recorder.start()
+                panel.screenshot()?.let(recorder::add)
+            } else {
+                save()
+            }
+        }
+
+        private fun save() {
+            val frames = recorder.stop()
+            if (frames.isEmpty()) return
+            val platform = EmulatorSession.getInstance(project).emulator?.platform ?: "pebble"
+            val name = "$platform-${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))}.gif"
+            val target = FileChooserFactory.getInstance()
+                .createSaveFileDialog(FileSaverDescriptor("Save Recording", "", "gif"), project)
+                .save(project.guessProjectDir(), name)
+                ?: return
+            ApplicationManager.getApplication().executeOnPooledThread {
+                target.file.outputStream().buffered().use { GifWriter.write(frames, it) }
+            }
         }
     }
 

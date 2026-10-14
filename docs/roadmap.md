@@ -65,7 +65,7 @@ Done when testing across watches and finding bugs is quicker here than with a te
 emulator and a separate debugger.
 
 - Several emulators at once, one per platform, side by side; screenshot comparison across them.
-- GIF recording from the frame stream (`javax.imageio`, no dependency).
+- [x] GIF recording from the frame stream (`javax.imageio`, no dependency), up to a minute.
 - [x] Battery, Bluetooth, clock, tap, tilt, compass, Timeline Quick View and content size from the
   emulator's tool window, over `pebble emu-*`.
 - Debugging C in the emulator: breakpoints, stack and variables in the IDE's own debugger through

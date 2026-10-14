@@ -135,6 +135,17 @@ class AgentLiveTest : IdeTestCase() {
             val accepted = call("pebble_ui_test_accept", "scenario" to "tests/ui/hello.pbtest", "platform" to "emery", "screen" to "hello")
             assertEquals("tests/ui/screenshots/emery/hello.png", accepted["reference"]!!.jsonPrimitive.content)
 
+            // The release check of the same app: a release build, every target platform in it, and
+            // screenshots only of emery, where this test took them.
+            val release = call("pebble_release_check")["items"]!!.jsonArray.map { it.jsonObject }
+            fun item(check: String) = release.filter { it["check"]!!.jsonPrimitive.content == check }
+            assertEquals(release.toString(), "ok", item("platforms").single()["severity"]!!.jsonPrimitive.content)
+            assertEquals("ok", item("bundle size").single()["severity"]!!.jsonPrimitive.content)
+            assertEquals("ok", item("uuid").single()["severity"]!!.jsonPrimitive.content)
+            val screenshots = item("screenshots")
+            assertTrue(screenshots.toString(), screenshots.any { it["severity"]!!.jsonPrimitive.content == "ok" && "emery" in it["message"]!!.jsonPrimitive.content })
+            assertTrue(screenshots.any { it["severity"]!!.jsonPrimitive.content == "warning" && "No screenshot of aplite" in it["message"]!!.jsonPrimitive.content })
+
             val sdk = call("pebble_sdk")
             assertTrue(sdk.toString(), sdk["current"]!!.jsonPrimitive.content in sdk["installed"]!!.jsonArray.map { it.jsonPrimitive.content })
 

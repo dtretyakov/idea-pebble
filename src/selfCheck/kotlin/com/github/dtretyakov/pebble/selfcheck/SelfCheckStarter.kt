@@ -123,6 +123,11 @@ class SelfCheckStarter : ModernApplicationStarter() {
         } else {
             println("[self-check] project task runner")
         }
+        if (com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction("Pebble.CheckRelease") == null) {
+            problems += "the Check Pebble Release action is not registered"
+        } else {
+            println("[self-check] release check action")
+        }
         if (com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction("Pebble.AddAgentSkill") == null) {
             problems += "the Add Pebble Skill for Agents action is not registered"
         } else {

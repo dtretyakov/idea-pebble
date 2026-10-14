@@ -445,6 +445,14 @@ class PebbleAgent(private val project: Project) {
         (if (output.isTimeout) -1 else output.exitCode) to (output.stdout + output.stderr)
     }
 
+    /** A release build, and what the appstore would say of it; also in the Build window. */
+    suspend fun releaseCheck(): List<com.github.dtretyakov.pebble.build.ReleaseCheck.Item> {
+        val root = root()
+        saveDocuments()
+        return withContext(Dispatchers.IO) { com.github.dtretyakov.pebble.build.PebbleRelease.check(project, root, null) }
+            .map { item -> item.copy(file = item.file?.let { relative(root, Path.of(it)) }) }
+    }
+
     fun logs(after: Long, limit: Int, minimum: String?, contains: String?): LogPage {
         val level = minimum?.let { name -> LogLevel.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: throw AgentProblem("Levels: ${LogLevel.entries.joinToString { it.name.lowercase() }}") }
         return PebbleRunLogs.getInstance(project).buffer.read(after, limit, level, contains)

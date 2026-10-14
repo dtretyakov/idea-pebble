@@ -104,7 +104,10 @@ emulator and a separate debugger.
   installed — with conditions and logged expressions, stepping that keeps to the app's sources,
   pause, the stack, variables, Evaluate Expression and watches, setting values, and a stop where
   the app crashes; Stop detaches, and the app runs on.
-- Release preparation: `.pbw` checks and store metadata.
+- [x] Release preparation: Build | Check Pebble Release — a release build checked against what the
+  appstore's submission guide asks that can be checked here: the version's form, the UUID, the
+  `.pbw`'s size and platforms, resources within the limit, and each platform's screenshots at its
+  exact size. The listing's text and images beyond screenshots are the store's to ask for.
 - [x] Coding agents, part one: Pebble tools in the IDE's MCP server — the project, build, run,
   logs, screenshots, the emulator's buttons and settings, API lookup in the SDK — Build Project
   as `pebble build`, and a `pebble` Agent Skill the plugin adds to projects, also installable in

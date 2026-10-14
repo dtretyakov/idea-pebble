@@ -25,6 +25,7 @@ and Run window in step with what you do.
 | `pebble_emulator` | Press buttons, tap, set the time, battery or Bluetooth, tilt or shake, one step per line. Returns a screenshot after. |
 | `pebble_ui_tests` | Run the UI test scenarios (`tests/ui/*.pbtest`) on each platform. Every expected screen passes, fails with a diff image, or is recorded as a new reference. |
 | `pebble_ui_test_accept` | Make a run's screenshot the reference, when a screen changed on purpose. |
+| `pebble_release_check` | Before a release: a release build checked against what the Pebble appstore takes. |
 | `pebble_emulator_reset` | Stop the emulators (`kill`), or stop them and forget their installed apps (`wipe`), when one hangs, will not boot or keeps failing to install. |
 | `pebble_sdk` | List the SDKs, install one, or make one current. |
 | `pebble_debug_start` | Run the app under the IDE's debugger: gdb for C, the JavaScript engine for Alloy. |
@@ -59,7 +60,9 @@ Without the IDE, do the same with `pebble` on the command line: see
    - Make the app reach it with `pebble_emulator`, then `pebble_debug_wait`.
    - Look deeper with `pebble_debug_evaluate`, step with `pebble_debug_control`.
    - `pebble_debug_stop` when done.
-8. If the project has `tests/ui`, run `pebble_ui_tests`. Read the diff of every failure. Accept a
+8. Before a release, run `pebble_release_check` and fix every `error`. Missing screenshots come
+   from `pebble_screenshot`; look at each one first.
+9. If the project has `tests/ui`, run `pebble_ui_tests`. Read the diff of every failure. Accept a
    new screen with `pebble_ui_test_accept` only when the change is the one you meant. Look at
    recorded screens before committing them.
 

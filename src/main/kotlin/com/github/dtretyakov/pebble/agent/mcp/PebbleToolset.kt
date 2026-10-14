@@ -163,6 +163,20 @@ class PebbleToolset : McpToolset {
         @McpDescription("The screen's name, as in its `expect` line") screen: String,
     ): AcceptedScreenshot = call { AcceptedScreenshot(it.acceptScreenshot(scenario, platform, screen)) }
 
+    @McpTool(name = "pebble_release_check")
+    @McpDescription(
+        """
+        |Before a release: builds for release (never a debug build) and checks it against what the Pebble appstore
+        |takes — a version of numbers and dots, a UUID, a .pbw of at most 4.4 MB with every target platform in it,
+        |resources within the limit, and screenshots of each platform at its exact screen size. Each item is an
+        |`error` the store would refuse, a `warning`, or `ok`. Take missing screenshots with pebble_screenshot.
+        """,
+    )
+    suspend fun pebble_release_check(): ReleaseItems = call { ReleaseItems(it.releaseCheck()) }
+
+    @Serializable
+    data class ReleaseItems(val items: List<com.github.dtretyakov.pebble.build.ReleaseCheck.Item>)
+
     @McpTool(name = "pebble_emulator_reset")
     @McpDescription(
         """

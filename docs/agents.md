@@ -72,6 +72,7 @@ and 2026.2. Every tool calls code the plugin already has; none reimplements pebb
 | `pebble_debug_breakpoint(file, line, condition?, log?, remove?)` | 8 | Verified, invalid with gdb's or the engine's reason, or pending until the debugger attaches | P1 |
 | `pebble_debug_wait(timeout)` | 8 | Where it stopped, the stack, and the frame's variables one level deep | P1 |
 | `pebble_debug_evaluate(expression, frame?)`, `pebble_debug_control(over \| into \| out \| resume \| pause)` | 8 | A value with its fields, or the next stop | P1 |
+| `pebble_release_check` | — | A release build checked against the appstore's rules: each item an error the store would refuse, a warning, or fine | P2 |
 | `pebble_emulator_reset(kill \| wipe)` | 3 | `pebble kill`, waiting for the emulators to go (`--force` if they will not), then `pebble wipe` — never `wipe --everything`, which deletes the SDKs too | P2 |
 | `pebble_sdk(list \| install \| activate, version?)` | 10 | The current, installed and installable SDKs; or pebble-tool's last words after installing or activating | P2 |
 

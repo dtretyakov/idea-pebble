@@ -9,6 +9,12 @@
 
 ## 0.9.0
 
+### Releasing
+
+- Build | Check Pebble Release: a release build, checked against what the Pebble appstore takes —
+  the version's form, the UUID, the `.pbw`'s size and platforms, resources within the limit, and
+  each platform's screenshots at its exact size — in the Build window. For agents too.
+
 ### Coding agents
 
 - Pebble tools in the IDE's MCP server, for agents such as Claude Code, Codex, Junie and Copilot:

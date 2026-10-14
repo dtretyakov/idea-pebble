@@ -162,6 +162,13 @@
             icon="AllIcons.Actions.Compile">
             <add-to-group group-id="BuildMenu" anchor="first"/>
         </action>
+        <action
+            id="Pebble.CheckRelease"
+            class="com.github.dtretyakov.pebble.ui.CheckReleaseAction"
+            text="Check Pebble Release"
+            description="Builds for release and checks it against what the Pebble appstore takes: version, UUID, the .pbw, resources, screenshots">
+            <add-to-group group-id="BuildMenu" relative-to-action="Pebble.Build" anchor="after"/>
+        </action>
         <group id="Pebble.Tools" text="Pebble" popup="true" icon="/icons/pebble.svg">
             <action
                 id="Pebble.CheckEnvironment"

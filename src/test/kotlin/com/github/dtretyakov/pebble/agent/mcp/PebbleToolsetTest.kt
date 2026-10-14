@@ -52,7 +52,7 @@ class PebbleToolsetTest : IdeTestCase() {
         val tools = client.request("tools/list")["tools"]!!.jsonArray.map { it.jsonObject }.associateBy { it["name"]!!.jsonPrimitive.content }
         val pebble = tools.keys.filter { it.startsWith("pebble_") }.toSet()
         assertEquals(
-            setOf("pebble_project", "pebble_build", "pebble_run", "pebble_logs", "pebble_screenshot", "pebble_emulator", "pebble_api", "pebble_ui_tests", "pebble_ui_test_accept", "pebble_emulator_reset", "pebble_sdk",
+            setOf("pebble_project", "pebble_build", "pebble_run", "pebble_logs", "pebble_screenshot", "pebble_emulator", "pebble_api", "pebble_ui_tests", "pebble_ui_test_accept", "pebble_emulator_reset", "pebble_sdk", "pebble_release_check",
                 "pebble_debug_start", "pebble_debug_breakpoint", "pebble_debug_wait", "pebble_debug_control", "pebble_debug_evaluate", "pebble_debug_stop"),
             pebble,
         )

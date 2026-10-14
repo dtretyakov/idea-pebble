@@ -355,3 +355,20 @@ Then, against emery with SDK 4.33.1:
   - * <expr>` gives a value, a type and a child count, and `-var-list-children --all-values` a
   struct's fields or a pointer's target. `-var-delete` frees them.
 - `-target-detach` lets the watch run on; QEMU's stub accepts a new gdb afterwards.
+
+## The appstore
+
+From the appstore's guide, "Preparing a Submission" (developer.repebble.com, October 2026), what a
+release must be and a client can check before submitting:
+
+- `version` in `package.json`: numbers and dots only, each part 255 or less, and one the store
+  has not had for the app before.
+- `pebble.uuid`: the app's, unique in the store, the same for every release.
+- `pebble.watchapp.watchface`: whether the listing is a face or an app; the store cannot change it.
+- The `.pbw`: at most 4.4 MB, with a binary for each platform it targets. It is a zip of
+  `appinfo.json` and, per platform, `<platform>/pebble-app.bin`, `app_resources.pbpack` and
+  `manifest.json`.
+- Screenshots: PNG, JPEG or GIF of the screen's exact size, unframed — 144×168 (aplite, basalt,
+  diorite, flint), 180×180 (chalk), 200×228 (emery), 260×260 (gabbro) — up to five per platform.
+- Optional: a 720×320 banner per platform; for apps, 80×80 and 144×144 icons, made from the name
+  when missing. The name, description and, for apps, category are entered in the store.

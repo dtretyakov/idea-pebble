@@ -321,3 +321,37 @@ installs first. A breakpoint on a click handler stops when the button is pressed
 
 The SDK's gdb (xPack GNU Arm Embedded 15.2) is built without Python, so `gdb -i=dap` — gdb's own
 debug adapter — is not available.
+
+### C: gdb's machine interface
+
+pebble-tool's `commands/sdk/project/debug.py` is the recipe, and gdb does the same in MI mode,
+`arm-none-eabi-gdb --interpreter=mi3 -q <SDK>/sdk-core/pebble/<p>/qemu/<p>_sdk_debug.elf`:
+
+- `-target-select remote :<gdb port>`, the port from `pb-emulator.json`. QEMU stops the watch
+  and gdb reports a `*stopped` in the firmware; the stub takes one connection at a time, so a gdb
+  left over keeps a new one out.
+- `add-symbol-file "<build/<p>/pebble-app.elf>" *(void**)&g_app_load_address+<.text>` with
+  `-s <section> <base>+<offset>` for every other section `objdump --headers --wide` flags `ALLOC`,
+  through `-interpreter-exec console`; the worker's ELF likewise at `g_worker_load_address`. The
+  load address is read when the command runs, so the app has to be running: after `pebble
+  install` says `App install succeeded.`
+- `-break-insert app_crashed`, as `pebble gdb` does.
+
+Then, against emery with SDK 4.33.1:
+
+- `-exec-interrupt` is ignored unless `-gdb-set mi-async on` came first; with it, the watch stops
+  with `reason="signal-received",signal-name="SIGINT"`.
+- Breakpoints cannot be set or deleted while the watch runs ("Cannot execute this command while
+  the target is running"): interrupt, change them, continue.
+- `-break-insert --source "<absolute path>" --line N` works, spaces in the path included, and so
+  do `-c "<condition>"`, a function name and a path relative to the build directory. A line
+  with no code is an error; an unknown function with `-f` is pending.
+- Frames of the app carry `fullname` as the source's absolute path on this disk; the firmware's are
+  `./build/../src/fw/…`, whose sources are not shipped.
+- The SDK's functions are reached through stubs without line information, so `-exec-step` steps
+  over them by itself. Stepping off the end of a handler lands in the firmware (`prv_dispatch_event`),
+  and `-exec-finish --frame N` runs until frame N returns.
+- `-stack-list-variables --no-values` names a frame's variables; `-var-create --thread T --frame N
+  - * <expr>` gives a value, a type and a child count, and `-var-list-children --all-values` a
+  struct's fields or a pointer's target. `-var-delete` frees them.
+- `-target-detach` lets the watch run on; QEMU's stub accepts a new gdb afterwards.

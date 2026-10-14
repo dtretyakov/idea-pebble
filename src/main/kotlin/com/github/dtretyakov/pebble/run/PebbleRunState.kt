@@ -21,9 +21,10 @@ import java.nio.file.Path
  * when it is writing to a terminal; the console renders the colours, so an error reads as one.
  * Stopping the run stops the logs and leaves the emulator up, so the next run starts in seconds.
  *
- * Debug for Alloy is the same install, with logs whatever the configuration says — the watch keeps
- * the engine's debugger connection only while its log is being read — and the IDE's debugger in
- * xsbug's place ([PebbleDebugRunner]); for C, a gdb session in the console ([GdbSession]).
+ * Debug is the same install, with logs whatever the configuration says, and the IDE's debugger
+ * ([PebbleDebugRunner]): for Alloy in xsbug's place — the watch keeps the engine's debugger
+ * connection only while its log is being read — and for C attached through gdb once the app is
+ * installed. With the advanced setting for it, C is debugged in a gdb console instead ([GdbSession]).
  */
 class PebbleRunState(environment: ExecutionEnvironment, private val configuration: PebbleRunConfiguration) :
     CommandLineState(environment) {
@@ -37,17 +38,18 @@ class PebbleRunState(environment: ExecutionEnvironment, private val configuratio
 
         val options = configuration.options
         val debug = environment.executor.id == DefaultDebugExecutor.EXECUTOR_ID
-        val debugAlloy = debug && PebbleDebugRunner.debugsWithXsbug(configuration)
+        val gdbConsole = debug && PebbleDebugRunner.debugsWithGdb(configuration) && GdbSession.inConsole()
+        val debugger = debug && !gdbConsole && (PebbleDebugRunner.debugsWithXsbug(configuration) || PebbleDebugRunner.debugsWithGdb(configuration))
         val arguments = PebbleInstallCommand.arguments(
             options.target,
             configuration.platform(),
             options.phoneAddress,
             options.adbSerial,
-            options.logs || debugAlloy,
+            options.logs || debugger,
         )
 
         consoleBuilder.addFilter(PebbleLogFilter(project, root))
-        if (debug && PebbleDebugRunner.debugsWithGdb(configuration)) {
+        if (gdbConsole) {
             val platform = configuration.platform() ?: throw ExecutionException("The project targets no platform.")
             val gdb = KillableColoredProcessHandler(GdbSession.commandLine(tool, platform, root))
             ProcessTerminatedListener.attach(gdb)

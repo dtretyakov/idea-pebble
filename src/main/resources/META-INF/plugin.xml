@@ -94,6 +94,8 @@
         <!-- The Alloy debugger's own line breakpoints, where the JavaScript debugger's are not installed. -->
         <xdebugger.breakpointType implementation="com.github.dtretyakov.pebble.debug.AlloyLineBreakpointType"/>
         <xdebugger.breakpointType implementation="com.github.dtretyakov.pebble.debug.AlloyExceptionBreakpointType"/>
+        <xdebugger.breakpointType implementation="com.github.dtretyakov.pebble.debug.gdb.PebbleCLineBreakpointType"/>
+        <advancedSetting id="pebble.debug.gdbConsole" default="false" bundle="messages.PebbleBundle" groupKey="advanced.settings.group.pebble"/>
         <!-- No language: a C file is CLion's language in CLion, TextMate's in IDEA, plain text elsewhere. -->
         <localInspection
             shortName="PebblePlatformStubCall"

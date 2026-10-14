@@ -112,6 +112,17 @@ class SelfCheckStarter : ModernApplicationStarter() {
         } else {
             println("[self-check] Alloy breakpoint types")
         }
+        if ("pebble-c-line" !in breakpointTypes) {
+            problems += "the C debugger's breakpoint type is not registered"
+        } else {
+            println("[self-check] C breakpoint type")
+        }
+        val gdbConsole = runCatching { com.intellij.openapi.options.advanced.AdvancedSettings.getBoolean("pebble.debug.gdbConsole") }
+        if (gdbConsole.isFailure) {
+            problems += "the advanced setting for debugging C in a gdb console is not registered: ${gdbConsole.exceptionOrNull()}"
+        } else {
+            println("[self-check] gdb console setting: ${gdbConsole.getOrNull()}")
+        }
         if (LocalInspectionEP.LOCAL_INSPECTION.extensionList.none { it.shortName == "PebblePlatformStubCall" }) {
             problems += "the platform stub inspection for C is not registered"
         } else {

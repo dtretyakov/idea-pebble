@@ -70,8 +70,8 @@ emulator and a separate debugger.
 - [x] Battery, Bluetooth, clock, tap, tilt, compass, Timeline Quick View and content size from the
   emulator's tool window, over `pebble emu-*`.
 - [x] Debugging C in the emulator: Debug builds with `--debug`, installs, and runs `pebble gdb` in
-  the console — breakpoints, `bt` and `print` typed there. The IDE's own debugger needs a GDB/MI
-  debug process (the SDK's gdb has no Python, so no DAP), and that is Phase 3.
+  the console — breakpoints, `bt` and `print` typed there. Since 0.8.0 in the IDE's debugger,
+  below; the console stays behind an advanced setting.
 - [x] Debugging Alloy: Debug builds with `--debug` and installs, and pebble-tool bridges the
   watch's JavaScript engine to a debugger — since 0.5.0 the IDE's own, below.
 - [x] Calls in C to functions a target platform only stubs out, from each platform's `pebble.h`,
@@ -99,6 +99,11 @@ emulator and a separate debugger.
 - [x] Scripted test scenarios: `.pbtest` files of steps — install, buttons, touches, time,
   battery, Bluetooth, motion — and expected screens, run on each platform in the IDE's test
   runner, each screen compared with a reference screenshot: visual regression across platforms.
+- [x] C debugging in the IDE's debugger: an `XDebugProcess` over gdb's machine interface, attached
+  the way `pebble gdb` attaches once the app is installed. Breakpoints — CLion's own where it is
+  installed — with conditions and logged expressions, stepping that keeps to the app's sources,
+  pause, the stack, variables, Evaluate Expression and watches, setting values, and a stop where
+  the app crashes; Stop detaches, and the app runs on.
 - Release preparation: `.pbw` checks and store metadata.
 
 ## Risks to settle early in Phase 1
@@ -109,9 +114,8 @@ Each of these is a short experiment against a real SDK before the feature that d
   Pointer events are touches on emery and gabbro. pebble-tool's `--vnc` uses
   display `:1` for every emulator, so only one can have it; the fix is a display number option
   upstream.
-- **gdb and DAP — ruled out.** The SDK's gdb has no Python, so no `-i=dap`. C debugging uses
-  CLion's Remote GDB in CLion and `pebble gdb` elsewhere, until a GDB/MI debug process is worth
-  its code.
+- **gdb and DAP — ruled out.** The SDK's gdb has no Python, so no `-i=dap`. C debugging speaks
+  GDB/MI instead, which this gdb has.
 - **CLion and a regenerated compile database.** Confirm that CLion reloads `compile_commands.json`
   when it changes. If it does not, a small optional module on CLion's API, in that one place.
 - **C highlighting outside CLion.** Confirm the bundled TextMate grammar for C is enough to carry

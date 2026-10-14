@@ -17,7 +17,7 @@ pebble-tool, or in the IDE — and the plugin's job is to find those things and 
 | Running, installing, logs | `pebble install --emulator P \| --phone IP \| --cloudpebble \| --adb --logs` | the run configuration's process and console |
 | The emulator's screen | QEMU's VNC server (`pebble install --vnc`) | a small RFB client: frames in, buttons and touches out |
 | Emulator controls | `pebble emu-*`, `screenshot`, `kill`, `wipe` | command line |
-| Debugging C | `arm-none-eabi-gdb` from the SDK's toolchain | `pebble gdb` in the run's console; the SDK's gdb has no Python, so no DAP (see the roadmap) |
+| Debugging C | `arm-none-eabi-gdb` from the SDK's toolchain, attached to QEMU's gdb stub | the IDE's debugger over GDB/MI (`--interpreter=mi3`), attached the way `pebble gdb` attaches; the SDK's gdb has no Python, so no DAP. `pebble gdb` in the console behind an advanced setting |
 | Debugging Alloy | the app's JavaScript engine, over xsbug's protocol | the IDE's debugger listens where xsbug would, on `localhost:5002`, and `pebble install` bridges the watch to it |
 
 Nothing from the SDK is redistributed: the plugin finds what the user installed with pebble-tool
@@ -67,6 +67,8 @@ uitest/     UI test scenarios: the format, the runner (no IDE API), and the run 
 lang/       package.json's pebble section, calls in C to what a target platform stubs out
 debug/      Alloy in the IDE's debugger: xsbug's protocol (the Xsbug* files, no IDE API), the debug
             process, breakpoints, frames and values
+debug/gdb/  C in the IDE's debugger: gdb's machine interface (Mi, GdbCommands), attaching as
+            pebble gdb does (GdbSetup), the debug process, breakpoints, frames and values
 lsp/        clangd through LSP4IJ, outside CLion — loaded only where LSP4IJ is installed
 library/    SDK headers and Alloy typings under External Libraries
 ui/         settings, the platform selector, the missing SDK banner, the new project wizard

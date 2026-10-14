@@ -5,6 +5,10 @@ import com.github.dtretyakov.pebble.project.PebbleProjectInfo
 import com.github.dtretyakov.pebble.sdk.PebblePlatform
 import com.github.dtretyakov.pebble.debug.AlloyDebugProcess
 import com.github.dtretyakov.pebble.debug.XsbugServer
+import com.github.dtretyakov.pebble.debug.gdb.GdbDebugProcess
+import com.github.dtretyakov.pebble.debug.gdb.GdbSetup
+import com.github.dtretyakov.pebble.emulator.EmulatorState
+import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.RunProfile
 import com.intellij.execution.configurations.RunProfileState
@@ -21,11 +25,12 @@ import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebuggerManager
 
 /**
- * Debug. For an Alloy app, the IDE's debugger: a debug build installed the way Run installs it,
- * with the plugin listening where xsbug would, so pebble-tool bridges the app's JavaScript engine
- * to the IDE instead of launching xsbug ([AlloyDebugProcess]). For a C app in the emulator, a
- * debug build and `pebble gdb` in the console: the IDE's own debugger would need a GDB/MI debug
- * process, and the SDK's gdb has no DAP to borrow.
+ * Debug, in the IDE's debugger, with a debug build installed the way Run installs it.
+ *
+ * - An Alloy app: the plugin listens where xsbug would, so pebble-tool bridges the app's
+ *   JavaScript engine to the IDE instead of launching xsbug ([AlloyDebugProcess]).
+ * - A C app in the emulator: gdb, in MI mode, attached once the app is installed ([GdbDebugProcess]);
+ *   or, with the advanced setting for it, `pebble gdb` in the console ([GdbSession]).
  */
 class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
 
@@ -39,6 +44,7 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
     override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
         val configuration = environment.runProfile as? PebbleRunConfiguration
         if (configuration != null && debugsWithXsbug(configuration)) return debugAlloy(state, environment)
+        if (configuration != null && debugsWithGdb(configuration) && !GdbSession.inConsole()) return debugC(state, environment, configuration)
         val result = state.execute(environment.executor, this) ?: return null
         return RunContentBuilder(result, environment).showRunContent(environment.contentToReuse)
     }
@@ -70,6 +76,26 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
                     (result.processHandler as? PebbleLogProcessHandler)?.beforeDestroy = {
                         if (!process.logOut()) result.processHandler.notifyTextAvailable(AlloyDebugHint.TEXT, ProcessOutputTypes.SYSTEM)
                     }
+                    return process
+                }
+            },
+        )
+        return session.runContentDescriptor
+    }
+
+    /** The install first; gdb attaches when it is done, and detaches before pebble-tool is stopped. */
+    private fun debugC(state: RunProfileState, environment: ExecutionEnvironment, configuration: PebbleRunConfiguration): RunContentDescriptor {
+        val root = PebbleProject.getInstance(environment.project).primaryRoot() ?: throw ExecutionException("No Pebble project here.")
+        val platform = configuration.platform() ?: throw ExecutionException("The project targets no platform.")
+        val result = state.execute(environment.executor, this) ?: throw ExecutionException("Nothing to debug.")
+        val session = XDebuggerManager.getInstance(environment.project).startSession(
+            environment,
+            object : XDebugProcessStarter() {
+                override fun start(session: XDebugSession): XDebugProcess {
+                    val process = GdbDebugProcess(session, result, setup = {
+                        GdbSetup.prepare(PebbleSdkService.getInstance().sdks(), root, platform, EmulatorState.running())
+                    })
+                    (result.processHandler as? PebbleLogProcessHandler)?.beforeDestroy = { process.detach() }
                     return process
                 }
             },

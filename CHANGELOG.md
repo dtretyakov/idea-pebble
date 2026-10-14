@@ -7,6 +7,16 @@
   inline `backticks`.
 -->
 
+## 0.8.0
+
+### Running and debugging
+
+- C apps in the IDE's debugger: Debug installs the app and attaches gdb to the emulator as
+  `pebble gdb` does. Breakpoints from the gutter — CLion's own in CLion — with conditions and
+  logged expressions, stepping that keeps to the app's own sources, pause, the stack, variables,
+  Evaluate Expression and watches, and a stop where the app crashes. Stop detaches gdb, and the
+  app runs on. The gdb console is still there behind an advanced setting.
+
 ## 0.7.0
 
 ### Testing

@@ -141,7 +141,16 @@ data class EmulatorOutcome(
 )
 
 @Serializable
-data class Screenshot(val platform: String, val file: String, val width: Int, val height: Int, val round: Boolean)
+data class Screenshot(
+    val platform: String,
+    /** The screenshot, pixel for pixel. */
+    val file: String,
+    val width: Int,
+    val height: Int,
+    val round: Boolean,
+    /** The same, enlarged for reading: open this image to see the screen. */
+    val view: String? = null,
+)
 
 /**
  * What the MCP tools do, apart from MCP: everything an agent asks of the plugin, on the plugin's
@@ -303,7 +312,7 @@ class PebbleAgent(private val project: Project) {
         val execution = execute(settings, timeoutSeconds, onText = { synchronized(results) { results.feed(it) } }) { false }
         val outcome = synchronized(results) { results.outcome() }
         if (!execution.ended) throw AgentProblem("The UI tests did not finish in $timeoutSeconds seconds; ${outcome.tests.size} screens were checked by then.")
-        return outcome
+        return outcome.copy(tests = outcome.tests.map { withView(root, it) })
     }
 
     /** Makes the last run's screenshot of [screen] on [platform] the scenario's reference. */
@@ -391,7 +400,32 @@ class PebbleAgent(private val project: Project) {
 
     private fun describe(root: Path, platform: String, file: Path): Screenshot {
         val image = runCatching { ImageIO.read(file.toFile()) }.getOrNull()
-        return Screenshot(platform, relative(root, file), image?.width ?: 0, image?.height ?: 0, PebblePlatform.of(platform)?.round == true)
+        val view = image?.let { ScreenViews.write(ScreenViews.enlarge(it), views(root).resolve(file.fileName.toString())) }
+        return Screenshot(platform, relative(root, file), image?.width ?: 0, image?.height ?: 0, PebblePlatform.of(platform)?.round == true, view?.let { relative(root, it) })
+    }
+
+    /** Where the enlarged views go: under `build/`, which nobody commits. */
+    private fun views(root: Path): Path = root.resolve("build/pebble-agent")
+
+    /** A failed screen as one picture to look at; a recorded one enlarged, to check before committing it. */
+    private fun withView(root: Path, result: UiTestResult): UiTestResult {
+        fun read(path: String?) = path?.let { runCatching { ImageIO.read(root.resolve(it).toFile()) }.getOrNull() }
+        val name = "${Path.of(result.scenario).fileName.toString().removeSuffix(".pbtest")}-${result.platform}-${result.screen}.png"
+        val view = when (result.status) {
+            "failed" -> {
+                val reference = read(result.reference)
+                val actual = read(result.actual) ?: return result
+                val panels = listOfNotNull(reference?.let { "reference" to it }, "now" to actual, read(result.diff)?.let { "difference" to it })
+                ScreenViews.write(ScreenViews.sideBySide(panels), views(root).resolve("ui-tests").resolve(name))
+            }
+            "recorded" -> {
+                val paths = ScenarioPaths(root.resolve(result.scenario), root)
+                val recorded = runCatching { ImageIO.read(paths.reference(result.platform ?: return result, result.screen).toFile()) }.getOrNull() ?: return result
+                ScreenViews.write(ScreenViews.enlarge(recorded), views(root).resolve("ui-tests").resolve(name))
+            }
+            else -> return result
+        }
+        return result.copy(view = relative(root, view))
     }
 
     internal suspend fun root(): Path =

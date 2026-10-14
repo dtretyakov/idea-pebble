@@ -110,6 +110,10 @@ class AgentLiveTest : IdeTestCase() {
             val shot = pressed["screenshot"]!!.jsonObject
             assertTrue(Files.exists(root.resolve(shot["file"]!!.jsonPrimitive.content)))
             assertEquals(200, shot["width"]!!.jsonPrimitive.int)
+            // What the agent looks at: the same screen, three times the size.
+            val view = javax.imageio.ImageIO.read(root.resolve(shot["view"]!!.jsonPrimitive.content).toFile())
+            assertEquals(600, view.width)
+            assertEquals(684, view.height)
             val select = logs("select 1")
             assertNotNull("the press was not logged", select)
             assertEquals("WARNING", select!!["level"]!!.jsonPrimitive.content)
@@ -123,6 +127,8 @@ class AgentLiveTest : IdeTestCase() {
                 .let { Files.writeString(it, "platforms emery\ninstall\nwait 1500\nexpect hello\n") }
             val first = call("pebble_ui_tests")
             assertEquals(first.toString(), 1, first["recorded"]!!.jsonPrimitive.int)
+            val recordedView = first["tests"]!!.jsonArray.single().jsonObject["view"]!!.jsonPrimitive.content
+            assertTrue(recordedView, Files.exists(root.resolve(recordedView)))
             assertTrue(Files.exists(root.resolve("tests/ui/screenshots/emery/hello.png")))
             val second = call("pebble_ui_tests", "path" to "tests/ui/hello.pbtest")
             assertEquals(second.toString(), 1, second["passed"]!!.jsonPrimitive.int)

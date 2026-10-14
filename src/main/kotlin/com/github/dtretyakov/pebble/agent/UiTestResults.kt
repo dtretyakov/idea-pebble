@@ -29,6 +29,8 @@ data class UiTestResult(
     val actual: String? = null,
     /** The pixels that differ, in red. */
     val diff: String? = null,
+    /** To look at: a failure's reference, screen and difference side by side, or a recorded screen, enlarged. */
+    val view: String? = null,
 )
 
 /**

@@ -129,6 +129,14 @@ is nothing else to install. The agent connects to that server once:
 - One tool for the emulator rather than two. The UI test scenarios' language already covers
   buttons, touches and the emulator's settings, so `pebble_emulator` takes its steps: an agent
   that has learned one has learned the other.
+- An agent has to see the screen to check its work, and the IDE's server returns text only: it
+  turns a tool's result into MCP text content and nothing else, in 2026.1 and 2026.2. So the
+  tools give paths to images, which agents open with their own image tools (Claude Code's Read,
+  Codex's `view_image`). A watch's screen is 144 to 260 pixels across, too small for a model to
+  read its text, so each screenshot has a `view` beside it — the same pixels as square blocks,
+  about 600 pixels high, under `build/pebble-agent/` — and a failed UI test's `view` is the
+  reference, the screen now and their difference side by side. The skill says to look after
+  every visible change, and what to look for.
 - `pebble_screenshot` saves where Capture Every Platform does, `screenshots/<platform>_<sdk>_<time>.png`,
   so what an agent looked at is in the emulator tool window's Platforms tab too.
 - `pebble_run` uses a run configuration of its own (the user's are left alone), shows in the Run

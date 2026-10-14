@@ -74,6 +74,21 @@ press select
 expect menu
 ```
 
+## Seeing the screen
+
+Every screenshot comes with a `view`: the same pixels enlarged, since a watch's screen is too small
+to read at its own size. Open it as an image — the Read tool in Claude Code, `view_image` in
+Codex — after every change you can see. Do not assume a screen is right because the build passed.
+Check that:
+
+- every piece of text is there, whole and legible;
+- nothing is cut off by a round screen's edge (chalk, gabbro) or hidden under the status bar;
+- on black-and-white platforms (aplite, diorite, flint) everything still shows, with no colour
+  turned to black on black;
+- what changed after a step is what the step should have changed.
+
+A failed UI test's `view` puts the reference, the screen now and their difference side by side.
+
 ## Platforms
 
 | Platform | Watches | Screen | Alloy | App RAM |

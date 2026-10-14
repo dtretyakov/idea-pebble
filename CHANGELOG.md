@@ -21,6 +21,9 @@
 - The debugger as tools: start a debug session, set breakpoints with conditions or logged
   expressions, wait for a stop and read the stack and variables, step, evaluate, resume and stop
   — for C through gdb and for Alloy through the app's engine alike.
+- Screens an agent can see: every screenshot comes with an enlarged view to read the watch's
+  text from, and a failed UI test with the reference, the screen and their difference side by
+  side.
 - Build Project, and the MCP server's `build_project`, run `pebble build`.
 - A `pebble` skill for agents: in new projects, through Tools | Add Pebble Skill for Agents, and
   as a Claude Code plugin from the plugin's repository.

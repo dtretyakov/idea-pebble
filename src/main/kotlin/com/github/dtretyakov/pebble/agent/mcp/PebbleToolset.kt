@@ -89,8 +89,10 @@ class PebbleToolset : McpToolset {
     @McpTool(name = "pebble_screenshot")
     @McpDescription(
         """
-        |Saves what an emulator's screen shows now as a PNG in the project's `screenshots` directory and returns
-        |its path, to read as an image. With all = true, starts each target platform's emulator in turn
+        |Saves what an emulator's screen shows now as a PNG in the project's `screenshots` directory. Open the
+        |returned `view` — the same screen enlarged, pixel for pixel — as an image to see it: check that text is
+        |legible and whole, nothing is cut off by a round screen's edge, and it reads in black and white where the
+        |platform has no colour. With all = true, starts each target platform's emulator in turn
         |and screenshots it (slow: minutes), to compare layouts across round, rectangular, colour and
         |black-and-white screens.
         """,
@@ -107,7 +109,7 @@ class PebbleToolset : McpToolset {
         |`press select` (back, up, select, down; optionally milliseconds held: `press up 800`), `tap 100 120`
         |(screen pixels; emery and gabbro only), `wait 500`, `time 10:10`, `battery 20` or `battery 20 charging`,
         |`bluetooth off`, `quick-view on`, `motion tilt-left`, `shake`, `install`. Returns what each step did and,
-        |unless told not to, a screenshot after the last.
+        |unless told not to, a screenshot after the last: open its `view` image to see what the steps led to.
         """,
     )
     suspend fun pebble_emulator(
@@ -136,7 +138,9 @@ class PebbleToolset : McpToolset {
         |Runs UI test scenarios (.pbtest files: steps such as `install`, `press select`, `tap 100 120`, and
         |`expect <screen>` lines) on each of their platforms' emulators, in the IDE's test runner. Each expected
         |screen is compared with its reference screenshot: it passes, fails (with the reference, the actual
-        |screenshot and a diff image to read), or is recorded when it had no reference yet — look at it then.
+        |screenshot and a diff image), or is recorded when it had no reference yet. Each failed or recorded screen has
+        |a `view` image to open: the reference, the screen now and their difference side by side, or the recorded
+        |screen enlarged — look at it before accepting or committing anything.
         |Slow: minutes per platform.
         """,
     )

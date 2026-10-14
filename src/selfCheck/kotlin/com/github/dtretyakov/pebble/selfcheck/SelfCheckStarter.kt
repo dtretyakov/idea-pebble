@@ -99,6 +99,12 @@ class SelfCheckStarter : ModernApplicationStarter() {
         } else {
             println("[self-check] package.json inspection")
         }
+        val breakpointTypes = com.intellij.xdebugger.breakpoints.XBreakpointType.EXTENSION_POINT_NAME.extensionList.map { it.id }
+        if (!breakpointTypes.containsAll(listOf("pebble-alloy-line", "pebble-alloy-exceptions"))) {
+            problems += "the Alloy debugger's breakpoint types are not registered"
+        } else {
+            println("[self-check] Alloy breakpoint types")
+        }
         if (LocalInspectionEP.LOCAL_INSPECTION.extensionList.none { it.shortName == "PebblePlatformStubCall" }) {
             problems += "the platform stub inspection for C is not registered"
         } else {

@@ -114,10 +114,17 @@ data class XsbugFrame(val name: String, val id: String, val path: String?, val l
 /** A frame's variables. */
 data class XsbugScope(val frame: XsbugFrame, val properties: List<XsbugProperty>)
 
-/** Where the machine stopped, and why: `# Break: breakpoint!`, `# Break: step!`, an exception's message. */
+/**
+ * Where the machine stopped, and why: `# Break: breakpoint!`, `# Break: step!`, `# Break: debugger!`
+ * for a `debugger` statement, or — breaking on exceptions — the exception's message.
+ */
 data class XsbugBreak(val path: String?, val line: Int?, val text: String) {
-    val reason: String get() = text.trim().removePrefix("# Break:").removePrefix("# Exception:").trim().removeSuffix("!")
-    val isException: Boolean get() = !text.startsWith("# Break: ")
+    val reason: String get() = text.trim().removePrefix("# Break:").trim().removeSuffix("!")
+    val isException: Boolean get() = reason !in ORDINARY && !reason.startsWith("C: ")
+
+    private companion object {
+        val ORDINARY = setOf("breakpoint", "step", "debugger")
+    }
 }
 
 /** Output of `console.log` and the engine's own reports; an exception carries where it was thrown. */

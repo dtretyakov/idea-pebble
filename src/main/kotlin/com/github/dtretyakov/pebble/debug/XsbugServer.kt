@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
  * hears of it on the connection's reading thread and must answer the login there and then: the
  * engine gives up on a debugger that has not answered within two seconds.
  */
-class XsbugServer private constructor(private val socket: ServerSocket, private val listener: Listener) : AutoCloseable {
+class XsbugServer private constructor(private val socket: ServerSocket, listener: Listener) : AutoCloseable {
 
     interface Listener {
         /** A run of the app has logged in; answer with the breakpoints now. */
@@ -37,6 +37,10 @@ class XsbugServer private constructor(private val socket: ServerSocket, private 
     }
 
     val port: Int get() = socket.localPort
+
+    /** Who hears of runs; the debug process takes over once it exists. */
+    @Volatile
+    var listener: Listener = listener
 
     @Volatile
     var connection: XsbugConnection? = null

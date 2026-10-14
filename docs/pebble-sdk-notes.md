@@ -184,5 +184,10 @@ ordinary build of the same app included — and takes its button presses and tou
 watch remembers the debug app across an emulator restart. Back dismisses it; installing the
 ordinary build then leaves a working app. Neither has a debug adapter.
 
+`pebble gdb --emulator P --vnc` works on a pseudo-terminal with commands written to its input:
+it attaches to QEMU's gdb stub, adds the app's ELF at its load address, breaks on `app_crashed`,
+and starts the app if another is running — but does not install a newer build, so a client
+installs first. A breakpoint on a click handler stops when the button is pressed over VNC.
+
 The SDK's gdb (xPack GNU Arm Embedded 15.2) is built without Python, so `gdb -i=dap` — gdb's own
 debug adapter — is not available.

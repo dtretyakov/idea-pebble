@@ -66,8 +66,9 @@ emulator and a separate debugger.
 - [x] GIF recording from the frame stream (`javax.imageio`, no dependency), up to a minute.
 - [x] Battery, Bluetooth, clock, tap, tilt, compass, Timeline Quick View and content size from the
   emulator's tool window, over `pebble emu-*`.
-- Debugging C in the emulator. The SDK's gdb has no Python, so no DAP: CLion's Remote GDB
-  configuration in CLion, and a GDB/MI debug process of our own if one is worth its code.
+- [x] Debugging C in the emulator: Debug builds with `--debug`, installs, and runs `pebble gdb` in
+  the console — breakpoints, `bt` and `print` typed there. The IDE's own debugger needs a GDB/MI
+  debug process (the SDK's gdb has no Python, so no DAP), and that is Phase 3.
 - [x] Debugging Alloy: Debug builds with `--debug` and installs, and pebble-tool starts xsbug and
   bridges the watch to it.
 - Inspections: API not available on a target platform (from that platform's `pebble.h`), resources

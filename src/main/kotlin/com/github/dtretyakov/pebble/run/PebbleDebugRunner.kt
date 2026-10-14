@@ -13,12 +13,12 @@ import com.intellij.execution.runners.RunContentBuilder
 import com.intellij.execution.ui.RunContentDescriptor
 
 /**
- * Debug for an Alloy app: a debug build, installed the way Run installs, with pebble-tool starting
- * xsbug — Moddable's JavaScript debugger, in the SDK — and bridging the watch to it.
+ * Debug, the way pebble-tool debugs: for an Alloy app, a debug build installed the way Run installs,
+ * with pebble-tool starting xsbug — Moddable's JavaScript debugger, in the SDK — and bridging the
+ * watch to it; for a C app in the emulator, a debug build and `pebble gdb` in the console.
  *
- * The debugging itself happens in xsbug, not in the IDE's debugger: that needs a debug process
- * speaking xsbug's protocol, which is Phase 3. C is not offered Debug at all, since the SDK's gdb
- * has no debug adapter; `pebble gdb` in a terminal is what there is.
+ * Neither is the IDE's own debugger: that needs debug processes speaking xsbug's protocol and
+ * GDB/MI, which is Phase 3. The SDK's gdb has no DAP to borrow.
  */
 class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
 
@@ -26,11 +26,7 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
 
     override fun canRun(executorId: String, profile: RunProfile): Boolean {
         if (executorId != DefaultDebugExecutor.EXECUTOR_ID || profile !is PebbleRunConfiguration) return false
-        val model = PebbleProject.getInstance(profile.project)
-        val root = model.primaryRoot() ?: return false
-        if (model.infoAt(root)?.projectType != PebbleProjectInfo.ProjectType.ALLOY) return false
-        // A watch runs whatever platform it is; the emulator is the one asked for.
-        return profile.options.target != PebbleRunTarget.EMULATOR || PebblePlatform.of(profile.platform().orEmpty())?.alloy != false
+        return debugsWithXsbug(profile) || debugsWithGdb(profile)
     }
 
     override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
@@ -39,6 +35,22 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
     }
 
     companion object {
+        /** An Alloy app, where Alloy runs: a watch runs whatever it is, the emulator is the one asked for. */
+        fun debugsWithXsbug(configuration: PebbleRunConfiguration): Boolean =
+            projectType(configuration) == PebbleProjectInfo.ProjectType.ALLOY &&
+                (configuration.options.target != PebbleRunTarget.EMULATOR ||
+                    PebblePlatform.of(configuration.platform().orEmpty())?.alloy != false)
+
+        /** A C app in the emulator: `pebble gdb` needs QEMU's gdb stub, so a watch cannot be debugged. */
+        fun debugsWithGdb(configuration: PebbleRunConfiguration): Boolean =
+            projectType(configuration) == PebbleProjectInfo.ProjectType.NATIVE &&
+                configuration.options.target == PebbleRunTarget.EMULATOR
+
+        private fun projectType(configuration: PebbleRunConfiguration): PebbleProjectInfo.ProjectType? {
+            val model = PebbleProject.getInstance(configuration.project)
+            return model.primaryRoot()?.let { model.infoAt(it)?.projectType }
+        }
+
         /** Whether a launch builds with `--debug`: asked for on the configuration, or launched with Debug. */
         fun debugBuild(configuration: PebbleRunConfiguration, executorId: String?): Boolean =
             configuration.options.debugBuild || executorId == DefaultDebugExecutor.EXECUTOR_ID

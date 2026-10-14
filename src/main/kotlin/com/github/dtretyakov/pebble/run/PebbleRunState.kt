@@ -8,6 +8,7 @@ import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.configurations.PtyCommandLine
 import com.intellij.execution.executors.DefaultDebugExecutor
+import com.intellij.execution.process.KillableColoredProcessHandler
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
@@ -19,6 +20,9 @@ import java.nio.file.Path
  * On a pseudo-terminal, because pebble-tool shows a log line's level only as a colour and only
  * when it is writing to a terminal; the console renders the colours, so an error reads as one.
  * Stopping the run stops the logs and leaves the emulator up, so the next run starts in seconds.
+ *
+ * Debug is pebble-tool's too: for Alloy the same install, which brings up xsbug; for C a gdb
+ * session in the console ([GdbSession]).
  */
 class PebbleRunState(environment: ExecutionEnvironment, private val configuration: PebbleRunConfiguration) :
     CommandLineState(environment) {
@@ -40,9 +44,18 @@ class PebbleRunState(environment: ExecutionEnvironment, private val configuratio
         )
 
         consoleBuilder.addFilter(PebbleLogFilter(project, root))
+        val debug = environment.executor.id == DefaultDebugExecutor.EXECUTOR_ID
+        if (debug && PebbleDebugRunner.debugsWithGdb(configuration)) {
+            val platform = configuration.platform() ?: throw ExecutionException("The project targets no platform.")
+            val gdb = KillableColoredProcessHandler(GdbSession.commandLine(tool, platform, root))
+            ProcessTerminatedListener.attach(gdb)
+            GdbSession.attachHint(gdb)
+            EmulatorToolWindowFactory.reveal(project)
+            return gdb
+        }
         val handler = processHandler(tool, arguments, root, options.minimumLogLevel).also { ProcessTerminatedListener.attach(it) }
         ConnectionHint.attach(handler, options.target, options.phoneAddress)
-        if (environment.executor.id == DefaultDebugExecutor.EXECUTOR_ID) AlloyDebugHint.attach(handler)
+        if (debug) AlloyDebugHint.attach(handler)
         // The emulator's screen is in the IDE, not in a window of its own: bring it up.
         if (options.target == PebbleRunTarget.EMULATOR) EmulatorToolWindowFactory.reveal(project)
         return handler

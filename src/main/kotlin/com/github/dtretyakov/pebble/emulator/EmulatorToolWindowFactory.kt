@@ -19,6 +19,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ToolWindowManager
@@ -50,7 +51,19 @@ class EmulatorToolWindowFactory : ToolWindowFactory, DumbAware {
                 .also { it.targetComponent = panel }
                 .component
         }
-        toolWindow.contentManager.addContent(toolWindow.contentManager.factory.createContent(content, null, false))
+        val contents = toolWindow.contentManager
+        contents.addContent(contents.factory.createContent(content, SCREEN, false))
+
+        // Every platform side by side, from the last capture: the comparison the screen tab cannot make.
+        val platforms = PlatformsPanel(project)
+        val platformsTab = SimpleToolWindowPanel(true, true).apply {
+            setContent(platforms)
+            toolbar = ActionManager.getInstance()
+                .createActionToolbar("PebblePlatforms", DefaultActionGroup(CaptureAllPlatformsAction()), true)
+                .also { it.targetComponent = platforms }
+                .component
+        }
+        contents.addContent(contents.factory.createContent(platformsTab, PLATFORMS, false).also { it.putUserData(PLATFORMS_PANEL, platforms) })
 
         val session = EmulatorSession.getInstance(project)
         if (toolWindow.isVisible) session.startWatching()
@@ -168,6 +181,20 @@ class EmulatorToolWindowFactory : ToolWindowFactory, DumbAware {
         const val ID = "Pebble Emulator"
 
         /** Brings the window up without taking focus from the editor — after a run starts an emulator. */
+        private const val SCREEN = "Screen"
+        private const val PLATFORMS = "Platforms"
+        private val PLATFORMS_PANEL = Key.create<PlatformsPanel>("Pebble.PlatformsPanel")
+
+        /** The Platforms tab, read again: after a capture. */
+        fun showPlatforms(project: Project) {
+            val window = ToolWindowManager.getInstance(project).getToolWindow(ID) ?: return
+            window.show {
+                val content = window.contentManager.findContent(PLATFORMS) ?: return@show
+                content.getUserData(PLATFORMS_PANEL)?.reload()
+                window.contentManager.setSelectedContent(content)
+            }
+        }
+
         fun reveal(project: Project) {
             ToolWindowManager.getInstance(project).invokeLater {
                 ToolWindowManager.getInstance(project).getToolWindow(ID)?.show()

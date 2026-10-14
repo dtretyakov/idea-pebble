@@ -143,6 +143,15 @@ containers — it fails with `Address family not supported` and every `pebble in
 ends in `Connection refused`, while QEMU itself runs. An upstream fix to bind `0.0.0.0` is the
 remedy.
 
+`pebble screenshot --all-platforms --no-open` takes one screenshot per target platform: it starts
+each platform's emulator in turn — without `--vnc`, so an emulator started with it is stopped
+first — installs the built app, sets the clock to 10:10, and writes
+`screenshots/<platform>_<version>_<yyyyMMdd-HHmmss>.png` at the watch's own resolution, the
+framebuffer's padding cropped. Each line `=== Capturing <platform> ===` starts a platform; two
+platforms take about half a minute. It needs no display. `--gif-all-platforms` does the same as an
+animated GIF, but wipes each emulator's persistent state on the way, so the plugin does not offer
+it.
+
 ## Watches
 
 `--phone IP` connects to the Developer Connection of the Pebble phone app on `ws://IP:9000`;

@@ -106,6 +106,11 @@
                 text="Check Environment"
                 description="Shows whether pebble-tool, an SDK and its toolchain are installed"/>
             <action
+                id="Pebble.CaptureAllPlatforms"
+                class="com.github.dtretyakov.pebble.emulator.CaptureAllPlatformsAction"
+                text="Capture Every Platform"
+                description="Screenshots of the app on every platform it targets, side by side"/>
+            <action
                 id="Pebble.TakeScreenshot"
                 class="com.github.dtretyakov.pebble.ui.TakeScreenshotAction"
                 text="Take Screenshot"

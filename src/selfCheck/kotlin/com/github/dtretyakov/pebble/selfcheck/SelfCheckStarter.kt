@@ -202,7 +202,7 @@ class SelfCheckStarter : ModernApplicationStarter() {
             "ToolsMenu" to listOf("Pebble.Tools"),
             "RunToolbarMainActionGroup" to listOf("Pebble.SelectPlatform"),
             "BuildMenu" to listOf("Pebble.Build"),
-            "Pebble.Tools" to listOf("Pebble.CheckEnvironment", "Pebble.TakeScreenshot"),
+            "Pebble.Tools" to listOf("Pebble.CheckEnvironment", "Pebble.CaptureAllPlatforms", "Pebble.TakeScreenshot"),
         )
     }
 }

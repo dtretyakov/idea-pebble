@@ -62,7 +62,10 @@ Moved to Phase 2: Windows, which needs a machine with WSL to be verified on.
 Done when testing across watches and finding bugs is quicker here than with a terminal, an external
 emulator and a separate debugger.
 
-- Several emulators at once, one per platform, side by side; screenshot comparison across them.
+- [x] Every platform side by side: `pebble screenshot --all-platforms` behind Capture Every
+  Platform, and the newest screenshot of each in the emulator tool window's Platforms tab.
+- Several live emulators at once, one per platform — waits on a VNC display number per emulator
+  upstream.
 - [x] GIF recording from the frame stream (`javax.imageio`, no dependency), up to a minute.
 - [x] Battery, Bluetooth, clock, tap, tilt, compass, Timeline Quick View and content size from the
   emulator's tool window, over `pebble emu-*`.

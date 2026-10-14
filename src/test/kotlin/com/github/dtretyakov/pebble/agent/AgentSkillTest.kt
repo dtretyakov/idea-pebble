@@ -67,10 +67,11 @@ class AgentSkillTest {
     @Test
     fun `written into a project, and what a user changed there is noticed`(@TempDir root: Path) {
         val skill = AgentSkill.write(root)
-        assertEquals(root.resolve(".claude/skills/pebble/SKILL.md"), skill)
+        assertEquals(root.resolve(".agents/skills/pebble/SKILL.md"), skill)
+        assertTrue(Files.exists(root.resolve(".claude/skills/pebble/references/without-ide.md")))
         assertTrue(AgentSkill.isInstalled(root))
         assertTrue(AgentSkill.changes(root).isEmpty())
         root.resolve(".claude/skills/pebble/references/platforms.md").writeText("mine")
-        assertEquals(listOf("references/platforms.md"), AgentSkill.changes(root))
+        assertEquals(listOf(".claude/skills/pebble/references/platforms.md"), AgentSkill.changes(root))
     }
 }

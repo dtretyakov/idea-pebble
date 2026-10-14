@@ -60,7 +60,7 @@ internal object NewProjectOptionsUi {
         }.visibleIf(isC)
         panel.row {
             checkBox("Skill for coding agents").bindSelected(options::agentSkill)
-                .comment("${'$'}{com.github.dtretyakov.pebble.agent.AgentSkill.DIRECTORY}: how to build, run and check the app with the IDE's tools")
+                .comment("In ${'$'}{com.github.dtretyakov.pebble.agent.AgentSkill.WHERE}: how to build, run and check the app with the IDE's tools")
         }
     }
 }

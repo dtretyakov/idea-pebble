@@ -22,6 +22,8 @@ class NewProjectLiveTest : IdeTestCase() {
         assertTrue(info.watchface)
         assertEquals("my-face", info.name)
         assertEquals(0, LiveSdk.run(face, "build").exitCode)
+        // The agents' skill came with it, and the build did not mind it.
+        assertTrue(com.github.dtretyakov.pebble.agent.AgentSkill.isInstalled(face))
 
         val alloy = parent.resolve("alloy-app")
         NewPebbleProject.generate(tool, alloy, NewPebbleProject.Options(NewPebbleProject.Language.ALLOY, watchface = false))

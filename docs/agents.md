@@ -112,17 +112,28 @@ is nothing else to install. The agent connects to that server once:
 **The skill**, three ways, from most to least automatic:
 
 1. The plugin writes it: the new-project wizard adds it to new projects, and an action — "Add
-   Pebble Skill for Agents" — to existing ones, into `.claude/skills/pebble/` and, by its
-   format, wherever else the project's agents look. In version control, the whole team's agents
-   get it.
+   Pebble Skill for Agents" — to existing ones. It goes into two directories, which between them
+   every agent below reads (from each agent's own documentation, October 2026):
+
+   | Agent | Project skill directories it reads |
+   |-------|------------------------------------|
+   | Claude Code | `.claude/skills` |
+   | Codex | `.agents/skills` |
+   | Junie | `.junie/skills`, `.agents/skills` |
+   | Cursor | `.agents/skills`, `.cursor/skills`, `.claude/skills` |
+   | GitHub Copilot | `.github/skills`, `.claude/skills`, `.agents/skills` |
+
+   So: `.agents/skills/pebble` and `.claude/skills/pebble`. Cursor and Copilot see the same
+   skill twice, by the same name and with the same text. In version control, the whole team's
+   agents get it.
 2. A Claude Code plugin from this repository: a marketplace, `.claude-plugin/marketplace.json`,
    listing a plugin whose `skills/pebble/SKILL.md` is the same file.
    `/plugin install pebble --marketplace dtretyakov/idea-pebble` (Claude Code 2.1.275 and later),
    or `claude plugin marketplace add dtretyakov/idea-pebble`, then
    `claude plugin install pebble@idea-pebble`. Its version is the IDE plugin's. The plugin ships no `.mcp.json`: Auto-Configure
    already adds the IDE's server, and a second copy would only duplicate its tools.
-3. By hand: the directory copied to `~/.claude/skills/pebble/`, or another agent's skills
-   directory.
+3. By hand: the directory copied to `~/.agents/skills/pebble/` (Codex, Junie, Cursor, Copilot)
+   or `~/.claude/skills/pebble/` (Claude Code).
 
 ## What building them showed
 

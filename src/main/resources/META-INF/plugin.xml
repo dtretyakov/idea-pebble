@@ -151,7 +151,7 @@
             id="Pebble.AddAgentSkill"
             class="com.github.dtretyakov.pebble.ui.AddAgentSkillAction"
             text="Add Pebble Skill for Agents"
-            description="Writes the pebble Agent Skill into the project's .claude/skills, for coding agents">
+            description="Writes the pebble Agent Skill into the project's .agents/skills and .claude/skills, for coding agents">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action

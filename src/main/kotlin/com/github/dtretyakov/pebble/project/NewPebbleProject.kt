@@ -32,7 +32,7 @@ object NewPebbleProject {
         var worker: Boolean = false,
         /** A bare `main` rather than the template's windows and handlers. */
         var simple: Boolean = false,
-        /** The `pebble` Agent Skill in `.claude/skills`, for coding agents. */
+        /** The `pebble` Agent Skill in the project's skill directories, for coding agents. */
         var agentSkill: Boolean = true,
     )
 

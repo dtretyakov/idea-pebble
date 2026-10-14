@@ -14,7 +14,8 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
 
 /**
- * Tools | Add Pebble Skill for Agents: the `pebble` Agent Skill written into the project, so a
+ * Tools | Add Pebble Skill for Agents: the `pebble` Agent Skill written into the project's skill
+ * directories ([AgentSkill.DIRECTORIES]), so a
  * coding agent working in it knows the Pebble tools of the IDE's MCP server, the loop of build,
  * run, look and fix, and the platforms. In version control, every agent of the team gets it.
  */
@@ -35,7 +36,7 @@ class AddAgentSkillAction : DumbAwareAction() {
         if (changes.isNotEmpty()) {
             val answer = Messages.showYesNoDialog(
                 project,
-                "${AgentSkill.DIRECTORY} differs from the plugin's version in ${changes.joinToString()}. Replace it, losing those changes?",
+                "The project's copy of the skill differs from the plugin's in ${changes.joinToString()}. Replace it, losing those changes?",
                 "Add Pebble Skill for Agents",
                 "Replace",
                 "Cancel",
@@ -45,11 +46,11 @@ class AddAgentSkillAction : DumbAwareAction() {
         }
         val skill = AgentSkill.write(root)
         val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(skill)
-        LocalFileSystem.getInstance().refreshNioFiles(listOf(root.resolve(AgentSkill.DIRECTORY)), true, true, null)
+        LocalFileSystem.getInstance().refreshNioFiles(AgentSkill.DIRECTORIES.map { root.resolve(it) }, true, true, null)
         file?.let { FileEditorManager.getInstance(project).openFile(it, true) }
         NotificationGroupManager.getInstance().getNotificationGroup(PebbleCommands.NOTIFICATION_GROUP).createNotification(
             "Pebble skill added for agents",
-            "Claude Code finds it in ${AgentSkill.DIRECTORY}; for another agent, copy it to that agent's skills directory. " +
+            "In ${AgentSkill.WHERE}: Claude Code, Codex, Junie, Cursor and Copilot find it there. " +
                 "The tools it names come from the IDE's MCP server: Settings | Tools | MCP Server.",
             NotificationType.INFORMATION,
         ).notify(project)

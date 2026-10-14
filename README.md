@@ -33,8 +33,9 @@ look at its screen and check the SDK's API.
 1. Connect the agent to the IDE: **Settings | Tools | MCP Server**, enable the server, then
    **Auto-Configure** for your agent.
 2. Give the agent the `pebble` skill, which tells it how to use those tools. New projects have it
-   already. For an existing project, use **Tools | Add Pebble Skill for Agents**. For Claude Code
-   everywhere, install it from this repository:
+   already. For an existing project, use **Tools | Add Pebble Skill for Agents**, which writes it
+   to `.agents/skills` and `.claude/skills`, where Claude Code, Codex, Junie, Cursor and Copilot
+   look. For Claude Code in every project, install it from this repository:
 
    ```
    /plugin install pebble --marketplace dtretyakov/idea-pebble

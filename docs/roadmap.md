@@ -28,7 +28,9 @@ Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by 
 - [x] **New project.** `pebble new-project` behind IDEA's wizard (`newProjectWizard.generator`) and
   CLion's and WebStorm's (`directoryProjectGenerator`): C or Alloy, watchapp or watchface,
   PebbleKit JS, a worker.
-- [x] **SDKs.** Install the latest and activate the newest from Settings and from the editor banner.
+- [x] **SDKs.** The installed SDKs in Settings, to activate, remove, or add to from the versions
+  pebble-tool offers; the latest from the editor banner. Libraries, the compile database and the
+  banner follow every change.
 - [x] **Active platform.** A selector in the run widget, stored in the workspace, read by the build,
   the compile database, runs and the emulator.
 - [x] **C code insight.** `pebble compile-commands --platform <active>` on a switch and after a
@@ -55,8 +57,7 @@ Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by 
 
 Still to do:
 
-1. **SDKs.** Choosing among installed SDKs and removing one, beyond installing and activating.
-2. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
+1. **Windows.** Projects inside WSL, with pebble-tool run in the distribution.
 
 ## Phase 2 — Advanced development experience (P1)
 

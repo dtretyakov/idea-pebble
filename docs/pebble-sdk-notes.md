@@ -46,7 +46,9 @@ SDKs/current -> SDKs/<version>                    the active SDK, a symbolic lin
 
 pebble-tool lists SDKs exactly as `PebbleSdks.scan` does: every directory under `SDKs` with a
 readable `sdk-core/manifest.json`, skipping the `current` link. `pebble sdk list` prints the same
-thing as prose, so the plugin reads the files instead.
+thing as prose, so the plugin reads the files instead — and reads `pebble sdk list` only for what
+the files cannot say, the versions available to install: the lines under `Available SDKs:` (or
+`Available SDKs (<channel> channel):`), already without the installed ones.
 
 ## Projects
 

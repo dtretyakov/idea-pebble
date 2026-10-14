@@ -50,12 +50,17 @@ class PebbleLibraryProvider : AdditionalLibraryRootsProvider() {
     private fun library(name: String, directory: Path): PebbleLibrary? =
         LocalFileSystem.getInstance().findFileByNioFile(directory)?.let { PebbleLibrary(name, it) }
 
-    /**
-     * Tells the IDE the libraries changed when the platform did — the include directory is the
-     * platform's — so External Libraries and every index over it follow the switch.
-     */
+    /** The include directory is the platform's, so a switch changes the libraries. */
     class PlatformListener : PebbleSettings.Listener {
-        override fun activePlatformChanged(project: Project) {
+        override fun activePlatformChanged(project: Project) = refresh(project)
+    }
+
+    companion object {
+        /**
+         * Tells the IDE the libraries changed, when they have — the platform or the SDK moved — so
+         * External Libraries and every index over it follow.
+         */
+        fun refresh(project: Project) {
             val provider = EP_NAME.findExtension(PebbleLibraryProvider::class.java) ?: return
             val before = provider.lastRoots[project].orEmpty()
             val after = provider.libraries(project).flatMap { it.sourceRoots }

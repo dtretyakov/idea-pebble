@@ -13,6 +13,7 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
@@ -30,7 +31,6 @@ class PebbleConfigurable(private val project: Project) :
     override fun createPanel(): DialogPanel {
         val settings = PebbleAppSettings.getInstance()
         val items = PebbleEnvironment.check()
-        val sdks = PebbleSdkService.getInstance().sdks()
 
         return panel {
             group("pebble-tool") {
@@ -61,6 +61,15 @@ class PebbleConfigurable(private val project: Project) :
                 }
             }
 
+            if (PebbleSdkService.getInstance().tool() != null) {
+                group("SDKs") {
+                    row {
+                        // The page's own disposable: the list listens for SDK changes while it is shown.
+                        cell(SdkListPanel(project, disposable!!).component).align(Align.FILL)
+                    }.resizableRow()
+                }
+            }
+
             group("Environment") {
                 items.forEach { item ->
                     row(item.name) {
@@ -84,11 +93,6 @@ class PebbleConfigurable(private val project: Project) :
                             PebbleEnvironment.Fix.INSTALL_CLANGD -> browserLink("How to install", Clangd.INSTALL_URL)
                             null -> Unit
                         }
-                    }
-                }
-                if (sdks.installed.size > 1) {
-                    row("Installed:") {
-                        text(sdks.installed.joinToString(", ") { it.version })
                     }
                 }
                 row {

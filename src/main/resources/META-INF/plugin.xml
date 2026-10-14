@@ -57,6 +57,12 @@
         <additionalLibraryRootsProvider implementation="com.github.dtretyakov.pebble.library.PebbleLibraryProvider"/>
     </extensions>
 
+    <applicationListeners>
+        <listener
+            class="com.github.dtretyakov.pebble.project.SdkChanges"
+            topic="com.github.dtretyakov.pebble.project.PebbleSdkService$Listener"/>
+    </applicationListeners>
+
     <projectListeners>
         <listener
             class="com.github.dtretyakov.pebble.project.CompileDatabase$Listener"

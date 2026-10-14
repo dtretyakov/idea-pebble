@@ -7,8 +7,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
-import com.intellij.ui.EditorNotifications
+import com.intellij.openapi.application.ApplicationManager
 import java.nio.file.Path
 
 /**
@@ -28,9 +27,26 @@ object PebbleCommands {
 
     fun activateNewestSdk(project: Project?) {
         val newest = PebbleSdkService.getInstance().sdks().installed.firstOrNull() ?: return
-        run(project, "Activating Pebble SDK ${newest.version}", listOf("sdk", "activate", newest.version),
-            "Pebble SDK ${newest.version} is active.")
+        activateSdk(project, newest.version)
     }
+
+    fun activateSdk(project: Project?, version: String) =
+        run(project, "Activating Pebble SDK $version", listOf("sdk", "activate", version), "Pebble SDK $version is active.")
+
+    fun installSdk(project: Project?, version: String) =
+        run(project, "Installing Pebble SDK $version", listOf("sdk", "install", version), "Pebble SDK $version is installed.")
+
+    fun uninstallSdk(project: Project?, version: String) =
+        run(project, "Removing Pebble SDK $version", listOf("sdk", "uninstall", version), "Pebble SDK $version is removed.")
+
+    /** `pebble [arguments]`'s output, waited for; null when it could not run or failed. */
+    fun capture(arguments: List<String>): String? {
+        val tool = PebbleSdkService.getInstance().tool() ?: return null
+        val output = CapturingProcessHandler(command(tool, arguments)).runProcess(CAPTURE_TIMEOUT_MILLIS)
+        return output.stdout.takeIf { output.exitCode == 0 && !output.isTimeout }
+    }
+
+    private const val CAPTURE_TIMEOUT_MILLIS = 60_000
 
     /**
      * Runs `pebble [arguments]` in the background. False when there is no pebble-tool to run.
@@ -65,10 +81,9 @@ object PebbleCommands {
             }
 
             override fun onFinished() {
+                if (arguments.firstOrNull() != "sdk") return
                 // The SDK changed under every open project, not only the one that asked.
-                ProjectManager.getInstance().openProjects.forEach {
-                    EditorNotifications.getInstance(it).updateAllNotifications()
-                }
+                ApplicationManager.getApplication().messageBus.syncPublisher(PebbleSdkService.TOPIC).sdksChanged()
             }
         }.queue()
         return true

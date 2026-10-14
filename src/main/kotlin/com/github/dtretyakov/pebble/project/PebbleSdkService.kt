@@ -7,6 +7,7 @@ import com.github.dtretyakov.pebble.sdk.PebbleTool
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.util.EnvironmentUtil
+import com.intellij.util.messages.Topic
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -53,7 +54,15 @@ class PebbleSdkService {
         )
     }
 
+    /** Told when pebble-tool has installed, activated or removed an SDK at the plugin's request. */
+    fun interface Listener {
+        fun sdksChanged()
+    }
+
     companion object {
+        @Topic.AppLevel
+        val TOPIC: Topic<Listener> = Topic.create("Pebble SDKs", Listener::class.java)
+
         fun getInstance(): PebbleSdkService = service()
     }
 }

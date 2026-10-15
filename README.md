@@ -1,4 +1,4 @@
-# Pebble for JetBrains IDEs
+# Develop for Pebble
 
 Build, run and deploy apps and watchfaces for Pebble smartwatches — in C or in Alloy (JavaScript and
 TypeScript) — in IntelliJ IDEA, CLion and WebStorm.
@@ -15,11 +15,12 @@ checks for calls that platform only stubs out. What is still to come is in the
 
 ## Getting started
 
-1. Install pebble-tool: `uv tool install pebble-tool`.
-2. **New Project | Pebble**, or open a folder whose `package.json` has a `pebble` section.
-3. If anything is missing the editor says so and offers to fix it. **Tools | Pebble | Check
+1. Install **Develop for Pebble** from the JetBrains Marketplace: **Settings | Plugins**.
+2. Install pebble-tool: `uv tool install pebble-tool`.
+3. **New Project | Pebble**, or open a folder whose `package.json` has a `pebble` section.
+4. If anything is missing the editor says so and offers to fix it. **Tools | Pebble | Check
    Environment** shows the whole checklist.
-4. Pick a platform beside the Run button and press Run. The emulator appears in the **Pebble
+5. Pick a platform beside the Run button and press Run. The emulator appears in the **Pebble
    Emulator** tool window; the app's logs in the Run console.
 
 For C in IntelliJ IDEA or WebStorm, install the LSP4IJ plugin and clangd; CLion needs neither.
@@ -59,3 +60,8 @@ On Windows the Pebble SDK runs only inside WSL, which this version does not driv
 ## License
 
 [Apache 2.0](LICENSE).
+
+## Trademarks
+
+Pebble is a trademark of Core Devices LLC. Develop for Pebble is an independent, open-source
+project, not affiliated with or endorsed by Core Devices.

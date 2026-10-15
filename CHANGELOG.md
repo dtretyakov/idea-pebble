@@ -9,6 +9,11 @@
 
 ## 0.9.0
 
+### Name
+
+- The plugin is listed as Develop for Pebble. Pebble is a trademark of Core Devices LLC, which the
+  plugin is not affiliated with; its ID, its MCP tools and its skill are unchanged.
+
 ### Code insight
 
 - Alloy TypeScript sees the SDK's modules: after each build the plugin writes a `tsconfig.json`

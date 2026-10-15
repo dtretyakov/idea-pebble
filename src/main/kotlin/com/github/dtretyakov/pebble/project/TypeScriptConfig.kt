@@ -33,7 +33,7 @@ object TypeScriptConfig {
 
     const val FILE_NAME = "tsconfig.json"
     private const val MARKER = "//"
-    private const val NOTE = "Written by the Pebble plugin after each build, from the build's own TypeScript settings. Remove this line to keep the file as yours."
+    private const val NOTE = "Written by Develop for Pebble after each build, from the build's own TypeScript settings. Remove this line to keep the file as yours."
 
     /** The settings the last build for [platform] wrote, the most recent of its debug and release ones. */
     fun generated(root: Path, platform: String): Path? {
@@ -58,7 +58,9 @@ object TypeScriptConfig {
     fun isOurs(file: Path): Boolean {
         if (!file.isRegularFile()) return true
         val json = runCatching { Json.parseToJsonElement(file.readText()) as? JsonObject }.getOrNull() ?: return false
-        return json[MARKER]?.jsonPrimitive?.contentOrNull?.startsWith("Written by the Pebble plugin") == true
+        val note = json[MARKER]?.jsonPrimitive?.contentOrNull ?: return false
+        // The second is how the note read before the plugin had its name.
+        return note.startsWith("Written by Develop for Pebble") || note.startsWith("Written by the Pebble plugin")
     }
 
     /** Writes [root]'s `tsconfig.json` for [platform]; false when there is nothing to extend, or the file is the user's. */

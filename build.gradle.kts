@@ -163,9 +163,9 @@ intellijPlatform {
 
     pluginConfiguration {
         id = "com.github.dtretyakov.pebble"
-        // Provisional. The Marketplace will not list a name that leans on someone else's
-        // trademark, and Pebble is one; the final name is settled before the first upload.
-        name = "Pebble"
+        // Pebble is Core Devices' trademark, which a name may only refer to ("… for Pebble"); the
+        // Marketplace's "Pebble" is another plugin's, for Pebble Templates.
+        name = "Develop for Pebble"
         version = project.version.toString()
 
         // The top section of CHANGELOG.md, so the release notes are written once and in the place

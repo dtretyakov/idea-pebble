@@ -136,5 +136,7 @@ Each of these is a short experiment against a real SDK before the feature that d
 - **C highlighting outside CLion — open.** clangd checks a Pebble source clean from the compile
   database (a live test). Whether LSP4IJ carries its diagnostics into a TextMate C file's editor
   cannot be tested in a headless IDE, where LSP4IJ's annotator waits for answers that never come.
-- **The name.** Pebble is a trademark, and the Marketplace refuses names that lean on one. The
-  plugin's listed name is settled before the first upload.
+- **The name — settled: Develop for Pebble.** Core Devices' trademark rules allow "Pebble" in a
+  name only in reference ("… for Pebble"), and the Marketplace's "Pebble" is already another
+  plugin's, for Pebble Templates. The plugin ID, packages, MCP tools and skill keep `pebble`: they
+  name the platform, and renaming them would break what is installed.

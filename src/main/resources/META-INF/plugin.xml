@@ -31,6 +31,8 @@
             <li>Pick a platform beside the Run button and press Run.</li>
         </ol>
         <p>For C in IntelliJ IDEA or WebStorm, install the LSP4IJ plugin and clangd; CLion needs neither.</p>
+        <p><small>Pebble is a trademark of Core Devices LLC. Develop for Pebble is an independent, open-source
+            project, not affiliated with or endorsed by Core Devices.</small></p>
     ]]></description>
 
     <!--

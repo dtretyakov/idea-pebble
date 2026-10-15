@@ -34,6 +34,14 @@ class TypeScriptConfigTest {
     }
 
     @Test
+    fun `a tsconfig json written before the plugin had its name is still its own`(@TempDir root: Path) {
+        generated(root, "emery", "release", 1000)
+        root.resolve("tsconfig.json").writeText("""{"//": "Written by the Pebble plugin after each build.", "extends": "./old.json"}""")
+        assertTrue(TypeScriptConfig.update(root, "emery"))
+        assertTrue(root.resolve("tsconfig.json").readText().contains("Written by Develop for Pebble"))
+    }
+
+    @Test
     fun `a tsconfig json of the user's own is left alone`(@TempDir root: Path) {
         generated(root, "emery", "release", 1000)
         val mine = """{"compilerOptions": {"strict": true}}"""

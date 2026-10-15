@@ -282,7 +282,7 @@ class PebbleToolset : McpToolset {
         return try {
             block(debugger)
         } catch (e: AgentProblem) {
-            mcpFail(e.message ?: "The Pebble plugin could not do it.")
+            mcpFail(e.message ?: "Develop for Pebble could not do it.")
         }
     }
 
@@ -291,7 +291,7 @@ class PebbleToolset : McpToolset {
         return try {
             block(agent)
         } catch (e: AgentProblem) {
-            mcpFail(e.message ?: "The Pebble plugin could not do it.")
+            mcpFail(e.message ?: "Develop for Pebble could not do it.")
         }
     }
 }

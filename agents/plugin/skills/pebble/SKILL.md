@@ -10,7 +10,7 @@ limits. Check every change on more than one of them.
 
 ## Tools
 
-With the Pebble plugin in an IntelliJ IDE (IntelliJ IDEA, CLion, WebStorm), the IDE's MCP server
+With the Develop for Pebble plugin in an IntelliJ IDE (IntelliJ IDEA, CLion, WebStorm), the IDE's MCP server
 offers these tools. Prefer them to the command line: they keep the IDE's emulator, Build window
 and Run window in step with what you do.
 

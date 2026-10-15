@@ -2,7 +2,7 @@
   "name": "idea-pebble",
   "owner": { "name": "dtretyakov" },
   "metadata": {
-    "description": "Agent skills for developing Pebble smartwatch apps, from the Pebble plugin for JetBrains IDEs."
+    "description": "Agent skills for developing Pebble smartwatch apps, from Develop for Pebble, the JetBrains IDE plugin."
   },
   "plugins": [
     {

@@ -26,6 +26,9 @@ data class RunningEmulator(
     val vnc: Boolean,
     val gdbPort: Int?,
     val monitorPort: Int?,
+    /** pypkjs, the phone half `pebble install` talks to: up only some seconds after QEMU. */
+    val pypkjsPid: Long? = null,
+    val pypkjsPort: Int? = null,
 )
 
 object EmulatorState {
@@ -49,6 +52,7 @@ object EmulatorState {
         return root.flatMap { (platform, versions) ->
             (versions as? JsonObject).orEmpty().mapNotNull { (version, entry) ->
                 val qemu = (entry as? JsonObject)?.get("qemu") as? JsonObject ?: return@mapNotNull null
+                val pypkjs = entry["pypkjs"] as? JsonObject
                 RunningEmulator(
                     platform = platform,
                     sdkVersion = version,
@@ -56,6 +60,8 @@ object EmulatorState {
                     vnc = qemu["vnc"]?.jsonPrimitive?.booleanOrNull == true,
                     gdbPort = qemu["gdb"]?.jsonPrimitive?.intOrNull,
                     monitorPort = qemu["monitor"]?.jsonPrimitive?.intOrNull,
+                    pypkjsPid = pypkjs?.get("pid")?.jsonPrimitive?.longOrNull,
+                    pypkjsPort = pypkjs?.get("port")?.jsonPrimitive?.intOrNull,
                 )
             }
         }

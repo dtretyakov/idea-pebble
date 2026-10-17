@@ -204,10 +204,14 @@ x 96 on emery's 200 — and a client stretches the other way to touch where it m
  Key events are
 the watch's buttons, as in the SDL window: Left is Back, Up is Up, Right is Select, Down is Down.
 
-A first `pebble install --emulator` can fail with `[Errno 111] Connection refused` while the
-emulator is in fact starting: pebble-tool tries pypkjs's WebSocket ten times, half a second
-apart, and a cold start on a slow machine takes longer than that. The next run finds the emulator
-up. The plugin says so after the error; a longer wait upstream is the fix.
+A first `pebble install --emulator` can fail with `Connection refused` (`[Errno 61]` on macOS,
+111 on Linux) while the emulator is in fact starting: pebble-tool tries pypkjs's WebSocket ten
+times, half a second apart (`ManagedEmulatorTransport.connect`), and a cold start takes longer —
+the first after pebble-tool is installed most of all, while Python compiles pypkjs. The emulator
+stays up when the command gives up, so the next run finds it. The plugin starts the emulator in
+the before-launch task with `pebble ping --emulator P --vnc`, which spawns it the same way, and
+waits for pypkjs's port from `pb-emulator.json` before installing; the hint after the error is for
+a run without that task. Waiting while pypkjs is alive, upstream, is the fix.
 
 pypkjs listens on `("", port)`, which gevent opens as IPv6. On a host without IPv6 — some
 containers — it fails with `Address family not supported` and every `pebble install --emulator`

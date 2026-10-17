@@ -23,7 +23,10 @@ class EmulatorStateTest {
     @Test
     fun `every recorded emulator is read`() {
         val emulators = EmulatorState.parse(recorded).associateBy { it.platform }
-        assertEquals(RunningEmulator("emery", "4.33.1", 4227, vnc = true, gdbPort = 58439, monitorPort = 34721), emulators["emery"])
+        assertEquals(
+            RunningEmulator("emery", "4.33.1", 4227, vnc = true, gdbPort = 58439, monitorPort = 34721, pypkjsPid = 4233, pypkjsPort = 49225),
+            emulators["emery"],
+        )
         assertEquals(false, emulators["basalt"]?.vnc)
     }
 

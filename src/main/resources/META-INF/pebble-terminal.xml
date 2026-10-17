@@ -1,0 +1,5 @@
+<!--
+  Nothing to register: the dependency is declared so that TerminalSession can link against the
+  terminal plugin's classes where it is installed. TerminalCommand checks before loading it.
+-->
+<idea-plugin/>

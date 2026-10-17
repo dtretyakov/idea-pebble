@@ -14,8 +14,48 @@
 - The plugin is listed as Develop for Pebble. Pebble is a trademark of Core Devices LLC, which the
   plugin is not affiliated with; its ID, its MCP tools and its skill are unchanged.
 
+### Getting started
+
+- Set Up Pebble SDK: one button, on the balloon a project opens with, the editor banner, the
+  settings page and the New Project wizard, installs whatever is missing of uv, pebble-tool and the
+  latest SDK in one background task — no terminal, no `sudo`, nothing added to the PATH. A uv of
+  your own is used when there is one; otherwise the plugin downloads uv 0.13.1, checked against a
+  checksum it carries, into JetBrains' shared data directory. pebble-tool is installed on Python
+  3.13, since the SDK does not support 3.14.
+- A Pebble project that cannot be built says so as it opens, in a balloon, even with no file open;
+  the editor banner says it above each file. "Don't show again" silences both for that problem.
+- The emulator is checked before Set Up says the SDK is ready, and again when a project opens: a
+  missing system library — SDL and friends on Linux, Homebrew's libpng on a Mac — or a glibc older
+  than 2.38 is said in the project's balloon, and Run stops with the fix on its Fix button instead
+  of failing in the console. The button runs the exact command for the machine — apt, dnf or
+  Homebrew — in the IDE's terminal, where `sudo` can ask for the password, and everything updates
+  by itself once it has worked. On an Intel Mac, where the SDK's emulator looks for libpng where
+  only Apple silicon's Homebrew puts it, the plugin says so rather than offering a command that
+  would not help.
+- Node.js and clangd are mentioned where they matter: above PebbleKit JS files and C files, with the
+  command that installs them, rather than at every file.
+- Windows says what to do: Ubuntu 24.04 in WSL, or CloudPebble in the browser.
+- The Pebble settings page fits its dialog and says only what is wrong, under the control it is
+  about: pebble-tool and C code insight are named once, found tools are named in their fields'
+  placeholders, and the SDK list shows before pebble-tool is installed, disabled. The paths it no
+  longer lists are in Copy environment report, for a bug report.
+- The page and the banner keep up: statuses are re-read on Apply and after an install, the banner is
+  asked again whenever the IDE regains focus, and closing it silences that one problem rather than
+  every later one. A path to pebble-tool or clangd that holds no executable is refused on Apply.
+
 ### Code insight
 
+- `Pebble` resolves in PebbleKit JS: the typings are now a predefined JavaScript library, given to
+  Pebble projects only, rather than an ordinary library JavaScript did not resolve globals from.
+- A project that has never been built is loaded when it opens: one build in the background, as an
+  IDE loads a CMake or Gradle project, because only waf knows how its C is compiled — the SDK's
+  include directory, the platform's defines and the headers `pebble.h` includes. clangd starts once
+  the compile database exists, instead of greeting the project with "'pebble.h' file not found"; a C
+  file says it is loading meanwhile.
+- A Pebble project is laid out when it first opens: `src/` and `worker_src/` are source roots,
+  `resources/` a resource root, and waf's `build/`, its lock file and clangd's `.cache/` are
+  excluded from search and Go to File. Once, and
+  only in a module nobody has given source roots to.
 - Alloy TypeScript sees the SDK's modules: after each build the plugin writes a `tsconfig.json`
   that extends the TypeScript settings the build checks the app with, so `import Poco from
   "commodetto/Poco"` resolves. A `tsconfig.json` of your own is left alone.

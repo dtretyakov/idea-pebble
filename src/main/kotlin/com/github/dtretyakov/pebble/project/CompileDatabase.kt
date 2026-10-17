@@ -11,6 +11,7 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.util.messages.Topic
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.readText
@@ -51,6 +52,7 @@ class CompileDatabase(private val project: Project) {
                     LOG.info("pebble compile-commands failed: ${output.stderr.ifBlank { output.stdout }}")
                 }
                 LocalFileSystem.getInstance().refreshNioFiles(listOf(root.resolve(FILE_NAME)))
+                if (output.exitCode == 0 && !project.isDisposed) project.messageBus.syncPublisher(WRITTEN).written(project)
             }
 
             override fun onFinished() {
@@ -80,8 +82,20 @@ class CompileDatabase(private val project: Project) {
         override suspend fun execute(project: Project) = getInstance(project).refresh()
     }
 
+    /** Told when a database has been written: clangd waits for the first one before it starts. */
+    fun interface Written {
+        fun written(project: Project)
+    }
+
+    /** Whether there is a database for clangd to read at all, for any platform. */
+    fun exists(): Boolean =
+        PebbleProject.getInstance(project).primaryRoot()?.let { Files.isRegularFile(it.resolve(FILE_NAME)) } == true
+
     companion object {
         const val FILE_NAME = "compile_commands.json"
+
+        @Topic.ProjectLevel
+        val WRITTEN: Topic<Written> = Topic.create("Pebble compile database written", Written::class.java)
 
         private val PLATFORM_DEFINE = Regex("""-DPBL_PLATFORM_([A-Z]+)""")
         private val LOG = logger<CompileDatabase>()

@@ -14,8 +14,6 @@ import java.nio.file.Path
  */
 object PebbleTool {
 
-    const val INSTALL_URL = "https://developer.repebble.com/sdk/"
-
     /**
      * Where to find `pebble`, in order: what the user configured, the PATH, then uv's bin
      * directories. A configured path that is not there is not silently replaced by a found one —

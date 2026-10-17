@@ -1,5 +1,6 @@
 package com.github.dtretyakov.pebble.lsp
 
+import com.github.dtretyakov.pebble.project.CompileDatabase
 import com.github.dtretyakov.pebble.project.IdeCapabilities
 import com.github.dtretyakov.pebble.project.PebbleAppSettings
 import com.github.dtretyakov.pebble.project.PebbleProject
@@ -12,6 +13,8 @@ import com.intellij.util.EnvironmentUtil
 import com.redhat.devtools.lsp4ij.DocumentMatcher
 import com.redhat.devtools.lsp4ij.LanguageServerEnablementSupport
 import com.redhat.devtools.lsp4ij.LanguageServerFactory
+import com.redhat.devtools.lsp4ij.LanguageServerManager
+import com.redhat.devtools.lsp4ij.ServerStatus
 import com.redhat.devtools.lsp4ij.server.CannotStartProcessException
 import com.redhat.devtools.lsp4ij.server.OSProcessStreamConnectionProvider
 import com.redhat.devtools.lsp4ij.server.StreamConnectionProvider
@@ -26,8 +29,30 @@ class ClangdServerFactory : LanguageServerFactory, LanguageServerEnablementSuppo
 
     override fun createConnectionProvider(project: Project): StreamConnectionProvider = Connection(project)
 
-    override fun isEnabled(project: Project): Boolean =
-        !IdeCapabilities.hasNativeC() && PebbleProject.getInstance(project).isPebbleProject()
+    /**
+     * And only once there is a compile database. Without one clangd knows neither the SDK's
+     * include directory nor the headers waf generates, and answers a project never built with
+     * "'pebble.h' file not found" on every file — errors about the IDE, not the code. It is started
+     * when the first database is written ([DatabaseWritten]), while the project loads.
+     */
+    override fun isEnabled(project: Project): Boolean = runsFor(project)
+
+    /**
+     * Starts clangd once the first database is there; a running clangd reloads one by itself.
+     * Asks [runsFor] first: LSP4IJ's `start` does not, and in CLion it would start clangd beside
+     * CLion's own engine.
+     */
+    class DatabaseWritten : CompileDatabase.Written {
+        override fun written(project: Project) {
+            if (!runsFor(project)) return
+            val servers = LanguageServerManager.getInstance(project)
+            if (servers.getServerStatus(SERVER_ID) in STOPPED) servers.start(SERVER_ID)
+        }
+
+        private companion object {
+            val STOPPED = setOf(ServerStatus.none, ServerStatus.stopped)
+        }
+    }
 
     /** Turned off in LSP4IJ's own view; there is nothing of ours to remember about it. */
     override fun setEnabled(enabled: Boolean, project: Project) = Unit
@@ -66,5 +91,10 @@ class ClangdServerFactory : LanguageServerFactory, LanguageServerEnablementSuppo
 
     companion object {
         const val SERVER_ID = "pebble-clangd"
+
+        fun runsFor(project: Project): Boolean =
+            !IdeCapabilities.hasNativeC() &&
+                PebbleProject.getInstance(project).isPebbleProject() &&
+                CompileDatabase.getInstance(project).exists()
     }
 }

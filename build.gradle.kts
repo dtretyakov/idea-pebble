@@ -39,13 +39,17 @@ dependencies {
         plugin("com.redhat.devtools.lsp4ij:${libs.versions.lsp4ij.get()}")
         // JSON PSI for package.json support; an optional dependency in plugin.xml.
         bundledPlugin("com.intellij.modules.json")
+        // The IDE's JavaScript, for PebbleKit JS's typings; an optional dependency in plugin.xml.
+        bundledPlugin("JavaScript")
         // The IDE's test runner, for UI test scenarios.
         bundledModule("intellij.platform.testRunner")
         bundledModule("intellij.platform.smRunner")
         // The IDE's MCP server, for the tools agents call; an optional dependency in plugin.xml.
         bundledPlugin("com.intellij.mcpServer")
+        // The IDE's terminal, for the setup commands that need the user; an optional dependency in plugin.xml.
+        bundledPlugin("org.jetbrains.plugins.terminal")
         // In tests, the IDE as most users have it: package.json already has npm's schema.
-        testBundledPlugins("JavaScript", "NodeJS")
+        testBundledPlugins("NodeJS")
         pluginVerifier()
         // Gives the tests a real Project, so the parts that only exist inside an IDE can be
         // exercised rather than only compiled.
@@ -240,20 +244,39 @@ intellijPlatformTesting {
      *     ./gradlew runIdeWithFixture -Pfixture=/path/to/project
      */
     runIde.register("runIdeWithFixture") {
-        task {
-            // A fresh copy under `build`, not the fixture itself: the IDE writes `.idea/` into the
-            // project it opens, and the fixture lives in the repository.
-            val scratch = layout.buildDirectory.dir("fixture-c").get().asFile
-            val chosen = providers.gradleProperty("fixture").getOrElse(scratch.absolutePath)
-            if (chosen == scratch.absolutePath) {
-                doFirst {
-                    val source = layout.projectDirectory.dir("src/test/resources/fixture-c").asFile
-                    scratch.deleteRecursively()
-                    source.copyRecursively(scratch)
+        task { openFixture(this, "fixture-c") }
+    }
+
+    /**
+     * The same, with JetBrains' own C engine in place of clangd: CLion C and C++, with Native Build
+     * Tools and the compilation-database integration it needs to know a project with no CMake. A
+     * sandbox of its own, about 350 MB of plugins.
+     *
+     * Both need `com.intellij.modules.ultimate`, which IDEA enables only with a subscription or a
+     * trial: in a sandbox running free they are installed and not loaded, and C falls back to
+     * clangd. Start the trial in the sandbox to see the engine.
+     *
+     *     ./gradlew runIdeWithClionC
+     */
+    runIde.register("runIdeWithClionC") {
+        plugins {
+            // The build number of `ideaVersion`: these plugins are published for exact builds.
+            val build = "262.10315.125"
+            plugin("com.intellij.nativeDebug", build)
+            plugin("com.intellij.clion", build)
+            plugin("com.intellij.clion-compdb", "262.8665.176")
+            // Published per system: the engine is native code.
+            val os = System.getProperty("os.name").lowercase().let {
+                when {
+                    it.startsWith("mac") -> "mac"
+                    it.startsWith("windows") -> "windows"
+                    else -> "linux"
                 }
             }
-            args = listOf(chosen)
+            val arch = if (System.getProperty("os.arch") in setOf("aarch64", "arm64")) "arm64" else "x86_64"
+            plugin("org.jetbrains.plugins.clion.radler", "$build-$os-$arch")
         }
+        task { openFixture(this, "fixture-c-clion") }
     }
 }
 
@@ -263,6 +286,24 @@ intellijPlatformTesting {
  * Only what the plugin descriptor allows: headings, lists and inline code. A Markdown library for
  * four constructs would be a dependency for the sake of one string.
  */
+/**
+ * Has [task] open a fresh copy of the C fixture under `build/[copy]` — not the fixture itself: the
+ * IDE writes `.idea/` into the project it opens, and the fixture lives in the repository — or the
+ * project `-Pfixture=<path>` names.
+ */
+fun openFixture(task: org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask, copy: String) {
+    val scratch = layout.buildDirectory.dir(copy).get().asFile
+    val chosen = providers.gradleProperty("fixture").getOrElse(scratch.absolutePath)
+    if (chosen == scratch.absolutePath) {
+        val source = layout.projectDirectory.dir("src/test/resources/fixture-c").asFile
+        task.doFirst {
+            scratch.deleteRecursively()
+            source.copyRecursively(scratch)
+        }
+    }
+    task.args = listOf(chosen)
+}
+
 fun latestChangeNotes(changelog: File): String {
     if (!changelog.exists()) return ""
 

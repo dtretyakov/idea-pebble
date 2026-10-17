@@ -16,11 +16,13 @@ checks for calls that platform only stubs out. What is still to come is in the
 ## Getting started
 
 1. Install **Develop for Pebble** from the JetBrains Marketplace: **Settings | Plugins**.
-2. Install pebble-tool: `uv tool install pebble-tool`.
-3. **New Project | Pebble**, or open a folder whose `package.json` has a `pebble` section.
-4. If anything is missing the editor says so and offers to fix it. **Tools | Pebble | Check
-   Environment** shows the whole checklist.
-5. Pick a platform beside the Run button and press Run. The emulator appears in the **Pebble
+2. Open a folder whose `package.json` has a `pebble` section — or use **New Project | Pebble** once
+   the SDK is set up.
+3. Click **Set Up Pebble SDK** in the balloon the project opens with. It installs pebble-tool and the
+   latest SDK in the background, and uv if you have none; anything that needs `sudo` or Homebrew is
+   offered as a command to run in the terminal. **Tools | Pebble | Check Environment** shows the
+   whole checklist.
+4. Pick a platform beside the Run button and press Run. The emulator appears in the **Pebble
    Emulator** tool window; the app's logs in the Run console.
 
 For C in IntelliJ IDEA or WebStorm, install the LSP4IJ plugin and clangd; CLion needs neither.

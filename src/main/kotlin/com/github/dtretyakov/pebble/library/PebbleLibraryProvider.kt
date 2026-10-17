@@ -1,5 +1,6 @@
 package com.github.dtretyakov.pebble.library
 
+import com.github.dtretyakov.pebble.project.IdeCapabilities
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleProjectInfo
 import com.github.dtretyakov.pebble.project.PebbleSdkService
@@ -46,7 +47,10 @@ class PebbleLibraryProvider : AdditionalLibraryRootsProvider() {
             sdk.toolchain.resolve("moddable/typings")
                 .takeIf { model.infoAt(root)?.projectType == PebbleProjectInfo.ProjectType.ALLOY }
                 ?.let { library("Alloy typings", it) },
-            pebbleKitJs?.takeIf { Files.isDirectory(root.resolve("src/pkjs")) }?.let { PebbleLibrary("PebbleKit JS", it) },
+            // Where the IDE has JavaScript, the typings are its library instead (PebbleKitJsLibrary):
+            // only that one is resolved against, and two of the same name would be one too many.
+            pebbleKitJs?.takeIf { Files.isDirectory(root.resolve("src/pkjs")) && !IdeCapabilities.hasJavaScript() }
+                ?.let { PebbleLibrary("PebbleKit JS", it) },
         )
     }
 

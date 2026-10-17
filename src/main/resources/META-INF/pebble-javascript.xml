@@ -1,0 +1,12 @@
+<!--
+  PebbleKit JS's typings as a predefined JavaScript library for Pebble projects: loaded only where
+  the JavaScript plugin is. See PebbleKitJsLibrary for why an ordinary library is not enough.
+-->
+<idea-plugin>
+    <extensions defaultExtensionNs="JavaScript">
+        <predefinedLibraryProvider implementation="com.github.dtretyakov.pebble.lang.PebbleKitJsLibrary"/>
+    </extensions>
+    <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="com.github.dtretyakov.pebble.lang.PebbleKitJsLibrary$Startup"/>
+    </extensions>
+</idea-plugin>

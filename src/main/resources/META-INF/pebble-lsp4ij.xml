@@ -21,4 +21,10 @@
             languageId="c"
             documentMatcher="com.github.dtretyakov.pebble.lsp.ClangdServerFactory$Matcher"/>
     </extensions>
+    <projectListeners>
+        <!-- clangd starts with the first compile database; see ClangdServerFactory.isEnabled. -->
+        <listener
+            class="com.github.dtretyakov.pebble.lsp.ClangdServerFactory$DatabaseWritten"
+            topic="com.github.dtretyakov.pebble.project.CompileDatabase$Written"/>
+    </projectListeners>
 </idea-plugin>

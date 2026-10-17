@@ -26,6 +26,12 @@ class PebbleSettings : PersistentStateComponent<PebbleSettings> {
     /** The platform last chosen; empty means "the default for this project". */
     var activePlatform: String = ""
 
+    /**
+     * Whether [PebbleProjectSetup] has laid out this project's roots. Once: someone who then
+     * removes a source root meant to, and should not find it back on the next open.
+     */
+    var rootsConfigured: Boolean = false
+
     override fun getState(): PebbleSettings = this
 
     override fun loadState(state: PebbleSettings) = XmlSerializerUtil.copyBean(state, this)

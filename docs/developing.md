@@ -10,6 +10,7 @@ Building it, and the kinds of test that catch different failures.
 ./gradlew runIde         # sandbox IDE
 ./gradlew runIdeWithFixture                       # ...with a Pebble project open
 ./gradlew runIdeWithFixture -Pfixture=/path/to/project
+./gradlew runIdeWithClionC                        # ...with JetBrains' C engine instead of clangd
 ./gradlew verifyPlugin   # compatibility check against the IDE the plugin is built on
 ./gradlew verifyPlugin -PverifySince              # ...and the oldest IDE sinceBuild promises
 ./gradlew verifyPlugin -PverifyClion              # ...and the newest CLion
@@ -31,6 +32,11 @@ plugin is compiled against neither.
 
 `runIdeWithFixture` copies `src/test/resources/fixture-c` under `build/` and opens the copy, so a
 run never leaves the working tree dirty.
+
+`runIdeWithClionC` adds CLion C and C++, Native Build Tools and Compilation Database to its own
+sandbox. In IDEA they need `com.intellij.modules.ultimate`, which a subscription or a trial
+enables: in a sandbox running free they are installed but not loaded, and C stays with clangd —
+as it does for everyone using IDEA without a subscription, whatever the IDE's own banner offers.
 
 ### Verifying against the real SDK
 

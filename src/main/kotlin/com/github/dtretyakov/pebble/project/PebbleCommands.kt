@@ -22,9 +22,6 @@ object PebbleCommands {
 
     const val NOTIFICATION_GROUP = "Pebble"
 
-    fun installLatestSdk(project: Project?) =
-        run(project, "Installing the Pebble SDK", listOf("sdk", "install", "latest"), "The Pebble SDK is installed.")
-
     fun activateNewestSdk(project: Project?) {
         val newest = PebbleSdkService.getInstance().sdks().installed.firstOrNull() ?: return
         activateSdk(project, newest.version)

@@ -1,10 +1,10 @@
 package com.github.dtretyakov.pebble.ui.wizard
 
+import com.github.dtretyakov.pebble.agent.AgentSkill
 import com.github.dtretyakov.pebble.project.NewPebbleProject
 import com.github.dtretyakov.pebble.project.PebbleSdkService
-import com.github.dtretyakov.pebble.sdk.PebbleTool
+import com.github.dtretyakov.pebble.project.PebbleSdkSetup
 import com.intellij.ui.components.ActionLink
-import com.intellij.ide.BrowserUtil
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bind
 import com.intellij.ui.dsl.builder.toMutableProperty
@@ -22,10 +22,12 @@ internal object NewProjectOptionsUi {
     fun build(panel: Panel, options: NewPebbleProject.Options) {
         if (PebbleSdkService.getInstance().tool() == null) {
             panel.row {
-                text("pebble-tool is not installed, and the templates come from it.")
+                // The wizard is built once, so it cannot change under the user when the install
+                // finishes; it says so instead of leaving them waiting for it to.
+                text("The Pebble SDK is not set up, and the templates come from it. Set it up, then open this wizard again.")
             }
             panel.row {
-                cell(ActionLink("How to install pebble-tool") { BrowserUtil.browse(PebbleTool.INSTALL_URL) })
+                cell(ActionLink(PebbleSdkSetup.LABEL) { PebbleSdkSetup.start(null) })
                     .validationOnApply { error("Install pebble-tool before creating a project.") }
             }
             return
@@ -60,7 +62,7 @@ internal object NewProjectOptionsUi {
         }.visibleIf(isC)
         panel.row {
             checkBox("Skill for coding agents").bindSelected(options::agentSkill)
-                .comment("In ${'$'}{com.github.dtretyakov.pebble.agent.AgentSkill.WHERE}: how to build, run and check the app with the IDE's tools")
+                .comment("In ${AgentSkill.WHERE}: how to build, run and check the app with the IDE's tools")
         }
     }
 }

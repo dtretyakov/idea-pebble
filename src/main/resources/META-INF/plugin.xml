@@ -23,11 +23,10 @@
         </ul>
         <h3>Getting started</h3>
         <ol>
-            <li>Install pebble-tool: <code>uv tool install pebble-tool</code>.</li>
             <li><b>New Project | Pebble</b>, or open a folder whose <code>package.json</code> has a
                 <code>pebble</code> section.</li>
-            <li>If the SDK is missing, the editor says so and offers to install it.
-                <b>Tools | Pebble | Check Environment</b> shows everything at once.</li>
+            <li>Click <b>Set Up Pebble SDK</b>: it installs pebble-tool and the latest SDK, and uv if
+                you have none. <b>Tools | Pebble | Check Environment</b> shows everything at once.</li>
             <li>Pick a platform beside the Run button and press Run.</li>
         </ol>
         <p>For C in IntelliJ IDEA or WebStorm, install the LSP4IJ plugin and clangd; CLion needs neither.</p>
@@ -52,11 +51,18 @@
     <depends optional="true" config-file="pebble-lsp4ij.xml">com.redhat.devtools.lsp4ij</depends>
     <!-- Completion and checks for package.json's pebble section. -->
     <depends optional="true" config-file="pebble-json.xml">com.intellij.modules.json</depends>
+    <!-- PebbleKit JS's Pebble object in src/pkjs, where the IDE has JavaScript. -->
+    <depends optional="true" config-file="pebble-javascript.xml">JavaScript</depends>
     <!-- Tools for coding agents, in the IDE's own MCP server. -->
     <depends optional="true" config-file="pebble-mcp.xml">com.intellij.mcpServer</depends>
+    <!-- Setup commands that need sudo or Homebrew run in the IDE's terminal; without it, they are copied. -->
+    <depends optional="true" config-file="pebble-terminal.xml">org.jetbrains.plugins.terminal</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Pebble" displayType="BALLOON"/>
+        <!-- Sticky: it is about something nothing in the project works without. A group of its own
+             so it can be turned down in Settings | Notifications without silencing the rest. -->
+        <notificationGroup id="Pebble Setup" displayType="STICKY_BALLOON"/>
         <projectConfigurable
             parentId="language"
             id="settings.pebble"
@@ -73,8 +79,11 @@
         <programRunner implementation="com.github.dtretyakov.pebble.run.PebbleDebugRunner"/>
         <projectTaskRunner implementation="com.github.dtretyakov.pebble.build.PebbleProjectTaskRunner"/>
         <stepsBeforeRunProvider implementation="com.github.dtretyakov.pebble.run.PebbleBuildBeforeRunTaskProvider"/>
+        <postStartupActivity implementation="com.github.dtretyakov.pebble.project.PebbleProjectSetup"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.run.PebbleRunConfigurations"/>
+        <postStartupActivity implementation="com.github.dtretyakov.pebble.ui.PebbleSetupNotice$Startup"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.project.CompileDatabase$Startup"/>
+        <postStartupActivity implementation="com.github.dtretyakov.pebble.project.PebbleProjectLoad$Startup"/>
         <postStartupActivity implementation="com.github.dtretyakov.pebble.project.TypeScriptConfig$Startup"/>
         <toolWindow
             id="Pebble Emulator"
@@ -116,9 +125,18 @@
         <listener
             class="com.github.dtretyakov.pebble.project.SdkChanges"
             topic="com.github.dtretyakov.pebble.project.PebbleSdkService$Listener"/>
+        <listener
+            class="com.github.dtretyakov.pebble.ui.EnvironmentChanged"
+            topic="com.github.dtretyakov.pebble.project.PebbleEnvironment$Listener"/>
+        <listener
+            class="com.github.dtretyakov.pebble.ui.EnvironmentRecheck"
+            topic="com.intellij.openapi.application.ApplicationActivationListener"/>
     </applicationListeners>
 
     <projectListeners>
+        <listener
+            class="com.github.dtretyakov.pebble.ui.MissingSdkNotification$DatabaseWritten"
+            topic="com.github.dtretyakov.pebble.project.CompileDatabase$Written"/>
         <listener
             class="com.github.dtretyakov.pebble.project.CompileDatabase$Listener"
             topic="com.github.dtretyakov.pebble.project.PebbleSettings$Listener"/>

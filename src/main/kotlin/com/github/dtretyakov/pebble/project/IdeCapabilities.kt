@@ -25,8 +25,12 @@ object IdeCapabilities {
     /** LSP4IJ, which runs clangd. An optional dependency, so it may well not be there. */
     fun hasLsp4ij(): Boolean = ApplicationManager.getApplication().extensionArea.hasExtensionPoint(LSP4IJ_SERVERS)
 
+    /** The IDE's JavaScript, which takes PebbleKit JS's typings as a library of its own. */
+    fun hasJavaScript(): Boolean = ApplicationManager.getApplication().extensionArea.hasExtensionPoint(JS_PREDEFINED_LIBRARIES)
+
     /** TextMate's highlighting and plain text: a file type for `.c`, but no understanding of C. */
     private val NOT_A_C_ENGINE = setOf("textmate", "TEXT")
 
     private const val LSP4IJ_SERVERS = "com.redhat.devtools.lsp4ij.server"
+    private const val JS_PREDEFINED_LIBRARIES = "JavaScript.predefinedLibraryProvider"
 }

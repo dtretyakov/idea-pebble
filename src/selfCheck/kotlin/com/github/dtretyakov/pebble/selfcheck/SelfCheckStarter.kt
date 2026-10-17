@@ -1,5 +1,7 @@
 package com.github.dtretyakov.pebble.selfcheck
 
+import com.intellij.notification.NotificationGroupManager
+import com.github.dtretyakov.pebble.ui.PebbleSetupNotice
 import com.github.dtretyakov.pebble.emulator.EmulatorToolWindowFactory
 import com.github.dtretyakov.pebble.library.PebbleLibraryProvider
 import com.intellij.openapi.wm.ToolWindowEP
@@ -179,6 +181,12 @@ class SelfCheckStarter : ModernApplicationStarter() {
             problems += "the missing SDK banner is not registered"
         } else {
             println("[self-check] missing SDK banner")
+        }
+
+        if (NotificationGroupManager.getInstance().getNotificationGroup(PebbleSetupNotice.NOTIFICATION_GROUP) == null) {
+            problems += "the setup balloon's notification group is not registered"
+        } else {
+            println("[self-check] setup balloon")
         }
 
         // The machine's state is reported rather than failed: the plugin has to install and behave

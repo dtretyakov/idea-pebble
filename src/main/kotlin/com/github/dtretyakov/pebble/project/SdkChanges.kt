@@ -1,5 +1,6 @@
 package com.github.dtretyakov.pebble.project
 
+import com.github.dtretyakov.pebble.ui.PebbleSetupNotice
 import com.github.dtretyakov.pebble.library.PebbleLibraryProvider
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.ProjectManager
@@ -9,7 +10,7 @@ import com.intellij.ui.EditorNotifications
 /**
  * What follows an SDK being installed, activated or removed, in every open project: the SDK's
  * headers and typings under External Libraries, the compile database (the compiler path in it is
- * the SDK's), and the editor banner, which may no longer have anything to say.
+ * the SDK's), and the editor banner and setup balloon, which may no longer have anything to say.
  */
 class SdkChanges : PebbleSdkService.Listener {
 
@@ -27,7 +28,11 @@ class SdkChanges : PebbleSdkService.Listener {
                 }
                 PebbleLibraryProvider.refresh(project)
                 CompileDatabase.getInstance(project).refresh(force = true)
+                // An SDK that has just arrived — Set Up, typically — is what a project never built
+                // was waiting for.
+                PebbleProjectLoad.getInstance(project).loadIfNeeded()
                 EditorNotifications.getInstance(project).updateAllNotifications()
+                PebbleSetupNotice.reconsider(project)
             }
         }
     }

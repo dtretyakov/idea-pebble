@@ -11,8 +11,19 @@ uv tool install pebble-tool      # puts `pebble` in ~/.local/bin, or $UV_TOOL_BI
 pebble sdk install latest
 ```
 
-pebble-tool needs Python 3.10–3.13. Builds that use PebbleKit JS or npm dependencies need Node.js.
+pebble-tool needs Python 3.10–3.13, but its package says only `>=3.10`, so a plain `uv tool install`
+picks 3.14 where that is the newest Python; the plugin passes `--python 3.13`. Builds that use PebbleKit JS or npm dependencies need Node.js.
 The emulator on Linux needs glibc 2.38 or later. Windows is supported only inside WSL.
+
+The emulator, `toolchain/bin/qemu-pebble`, is the one part of the SDK that links against system
+libraries: SDL2, GLib, pixman, zlib and sndio on Linux (the SDK's `apt`/`dnf` list), and on macOS
+Homebrew's libpng by the fixed path `/opt/homebrew/opt/libpng/lib/libpng16.16.dylib` (`otool -L`;
+its SDL2, GLib and pixman are bundled in `toolchain/lib`). That path is Homebrew's prefix on Apple
+silicon only: on an Intel Mac, where Homebrew installs into `/usr/local`, `brew install libpng`
+succeeds and the emulator still cannot find it. `qemu-pebble --version` makes the loader report a
+missing library without starting an emulator — `Library not loaded: …` on macOS, `error while
+loading shared libraries: …` (the first one only) or `` version `GLIBC_2.38' not found `` on Linux —
+which is how the plugin checks it.
 
 `pebble` asks no questions on the way: the analytics prompt of the original SDK is disabled, so
 every command the plugin runs can run without a terminal.

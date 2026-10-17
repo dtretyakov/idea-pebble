@@ -1,10 +1,15 @@
 package com.github.dtretyakov.pebble.run
 
+import com.github.dtretyakov.pebble.project.EmulatorCheck
+import com.github.dtretyakov.pebble.project.PebbleEnvironment
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleProjectInfo
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.sdk.EmulatorStart
 import com.github.dtretyakov.pebble.sdk.PebblePlatform
+import com.github.dtretyakov.pebble.ui.EnvironmentFixes
 import com.github.dtretyakov.pebble.ui.PebbleConfigurable
+import com.intellij.diagnostic.logging.LogConfigurationPanel
 import com.intellij.execution.Executor
 import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.RunConfiguration
@@ -14,7 +19,6 @@ import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationError
 import com.intellij.execution.configurations.RuntimeConfigurationWarning
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.intellij.diagnostic.logging.LogConfigurationPanel
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.options.SettingsEditorGroup
 import com.intellij.openapi.options.ShowSettingsUtil
@@ -55,6 +59,30 @@ class PebbleRunConfiguration(project: Project, factory: ConfigurationFactory, na
      * Everything that would stop this run, said before the Run button is pressed, each with the
      * fix the platform shows beside it.
      */
+    /**
+     * Stops a run the emulator is known to fail, with the fix on the dialog's Fix button.
+     *
+     * Read from what the emulator already said — this runs on the UI thread, and asking it starts
+     * a process — and asked again in the background while the answer is a failure, so a library
+     * installed a moment ago does not keep the run stopped. Only the causes the loader names stop
+     * it: an unrecognised failure is a warning, since the check could itself be what is wrong.
+     */
+    private fun checkEmulator() {
+        val sdk = PebbleSdkService.getInstance().currentSdk()
+        val verdict = EmulatorCheck.getInstance().cached(sdk)
+        if (verdict != null && verdict != EmulatorStart.Verdict.Starts) EmulatorCheck.getInstance().refresh(sdk)
+        val item = PebbleEnvironment.of(PebbleEnvironment.check(), PebbleEnvironment.Concern.EMULATOR)
+            ?.takeIf { it.status == PebbleEnvironment.Status.MISSING } ?: return
+        val message = item.detail.replace("`", "")
+        when (verdict) {
+            is EmulatorStart.Verdict.MissingLibrary, is EmulatorStart.Verdict.OldGlibc -> throw RuntimeConfigurationError(
+                message,
+                item.fix?.let { Runnable { EnvironmentFixes.run(project, item) } },
+            )
+            else -> throw RuntimeConfigurationWarning(message)
+        }
+    }
+
     override fun checkConfiguration() {
         val model = PebbleProject.getInstance(project)
         val root = model.primaryRoot()
@@ -82,6 +110,7 @@ class PebbleRunConfiguration(project: Project, factory: ConfigurationFactory, na
                 if (info?.projectType == PebbleProjectInfo.ProjectType.ALLOY && PebblePlatform.of(platform)?.alloy == false) {
                     throw RuntimeConfigurationWarning("Alloy runs on emery and gabbro only, not on $platform.")
                 }
+                checkEmulator()
             }
             PebbleRunTarget.PHONE -> if (options.phoneAddress.isBlank()) {
                 throw RuntimeConfigurationError(

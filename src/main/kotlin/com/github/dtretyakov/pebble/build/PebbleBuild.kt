@@ -26,6 +26,9 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.messages.Topic
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.io.path.extension
 import kotlin.io.path.listDirectoryEntries
 
@@ -62,6 +65,24 @@ object PebbleBuild {
      * [indicator] cancels the build when the user stops it.
      */
     fun run(project: Project, root: Path, debug: Boolean, indicator: ProgressIndicator?): BuildResult {
+        // One build of a project at a time. waf shares `build/` between them, and builds now start
+        // without being asked — the one that loads a project as it opens — so a Run pressed at
+        // once would otherwise build the same directory twice, concurrently. The second waits,
+        // and then has little left to do.
+        val lock = locks.computeIfAbsent(root.toAbsolutePath().normalize()) { ReentrantLock() }
+        while (!lock.tryLock(CANCEL_POLL_MILLIS, TimeUnit.MILLISECONDS)) {
+            if (indicator?.isCanceled == true) return BuildResult(-1, emptyList(), null, problem = "Cancelled.")
+        }
+        try {
+            return runAlone(project, root, debug, indicator)
+        } finally {
+            lock.unlock()
+        }
+    }
+
+    private val locks = ConcurrentHashMap<Path, ReentrantLock>()
+
+    private fun runAlone(project: Project, root: Path, debug: Boolean, indicator: ProgressIndicator?): BuildResult {
         val view = project.getService(BuildViewManager::class.java)
         val id = Any()
         val title = if (debug) "Pebble debug build" else "Pebble build"

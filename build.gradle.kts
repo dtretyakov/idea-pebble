@@ -136,12 +136,18 @@ intellijPlatform {
             //     ./gradlew verifyPlugin -PverifyClion        the newest CLion
             //     ./gradlew verifyPlugin -PverifyWebStorm     the newest WebStorm
             //     ./gradlew verifyPlugin -PverifyEap          the next IDEA, before it ships
+            //     ./gradlew verifyPlugin -PverifyAndroidStudio  the newest Android Studio
             //     ./gradlew verifyPlugin -PverifyRecommended  every IDE JetBrains recommends
             //     ./gradlew verifyPlugin -PverifyAgainst=<unpacked IDE>
             //
             // CLion and WebStorm are named targets of this plugin rather than IDEs it happens to
             // load in, and it is compiled against neither: the plugin asks only for the platform,
             // and these two checks are what make that claim more than a hope.
+            //
+            // Android Studio is not in the recommended sweep at any price: `recommended()` only
+            // picks the product the plugin is built against. It is on a release train of its own,
+            // months behind the platform under it, and a plugin that asks only for
+            // `com.intellij.modules.platform` is offered to it whether or not anybody checked.
             val unpacked = providers.gradleProperty("verifyAgainst").orNull?.takeIf { it.isNotBlank() }
             when {
                 unpacked != null -> local(file(unpacked))
@@ -159,6 +165,10 @@ intellijPlatform {
                 providers.gradleProperty("verifyEap").isPresent -> latest {
                     types = listOf(IntelliJPlatformType.IntellijIdeaUltimate)
                     channels = listOf(ProductRelease.Channel.EAP)
+                }
+                providers.gradleProperty("verifyAndroidStudio").isPresent -> latest {
+                    types = listOf(IntelliJPlatformType.AndroidStudio)
+                    channels = listOf(ProductRelease.Channel.RELEASE)
                 }
                 else -> current()
             }

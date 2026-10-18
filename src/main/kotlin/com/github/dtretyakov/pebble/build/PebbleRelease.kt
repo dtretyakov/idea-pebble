@@ -8,7 +8,7 @@ import com.intellij.build.events.MessageEvent
 import com.intellij.build.events.StartBuildEvent
 import com.intellij.build.events.impl.FailureResultImpl
 import com.intellij.build.events.impl.SuccessResultImpl
-import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import java.nio.file.Path
@@ -24,7 +24,7 @@ object PebbleRelease {
 
     fun check(project: Project, root: Path, indicator: ProgressIndicator?): List<ReleaseCheck.Item> {
         val build = PebbleBuild.run(project, root, debug = false, indicator = indicator)
-        val targets = runReadAction { PebbleProject.getInstance(project).infoAt(root)?.targetPlatforms.orEmpty() }
+        val targets = runReadActionBlocking { PebbleProject.getInstance(project).infoAt(root)?.targetPlatforms.orEmpty() }
         val items = buildList {
             if (!build.succeeded) add(ReleaseCheck.Item("error", "build", build.problem ?: "The release build failed: see the build above."))
             val packageJson = root.resolve("package.json")

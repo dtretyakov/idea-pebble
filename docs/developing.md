@@ -16,6 +16,7 @@ Building it, and the kinds of test that catch different failures.
 ./gradlew verifyPlugin -PverifyClion              # ...and the newest CLion
 ./gradlew verifyPlugin -PverifyWebStorm           # ...and the newest WebStorm
 ./gradlew verifyPlugin -PverifyEap                # ...and the next IDEA, before it ships
+./gradlew verifyPlugin -PverifyAndroidStudio      # ...and the newest Android Studio
 ./gradlew verifyPlugin -PverifyRecommended        # ...and every IDE JetBrains recommends
 ./gradlew verifyPlugin -PverifyAgainst=<unpacked> # ...against an IDE already on disk
 ./gradlew buildPlugin    # distributable zip
@@ -24,6 +25,8 @@ Building it, and the kinds of test that catch different failures.
 
 The JDK is 21; use Temurin rather than the Microsoft build of OpenJDK, which Ant mistakes for the
 Microsoft JVM of the 1990s and `instrumentCode` then fails on Windows.
+
+Releasing, and what the verifier's warnings mean, is in [Publishing](../PUBLISHING.md).
 
 `-PverifySince` is the one worth remembering. The code compiles against the newest IDE, so nothing
 else can tell you whether the promise `sinceBuild` makes to users on an older one is still true.

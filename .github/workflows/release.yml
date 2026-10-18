@@ -22,8 +22,65 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # First and on its own, so that a tag naming the wrong version stops the release before anything
+  # spends ten minutes downloading IDEs for it.
+  version:
+    name: The tag and the version agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The tag and the version have to agree
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          tagged="${GITHUB_REF_NAME#v}"
+          declared=$(grep -E '^pluginVersion=' gradle.properties | cut -d= -f2)
+          if [ "$tagged" != "$declared" ]; then
+            echo "Tag $GITHUB_REF_NAME says $tagged, gradle.properties says $declared." >&2
+            exit 1
+          fi
+
+  # Every IDE the plugin claims, as the build workflow checks them. The Marketplace runs the
+  # verifier itself and holds the upload until it passes, so failing here costs minutes instead of a
+  # review cycle. A runner each: two whole IDEs do not fit on one runner's disk, which is how a
+  # release that verified both ends of the range in one job would have failed, at the end.
+  verify:
+    name: Verify against ${{ matrix.name }}
+    needs: version
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: the newest supported IDE
+            flag: ""
+          - name: the oldest supported IDE
+            flag: -PverifySince
+          - name: CLion
+            flag: -PverifyClion
+          - name: WebStorm
+            flag: -PverifyWebStorm
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Free the disk the IDE needs
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          df -h /
+
+      - name: Verify plugin
+        run: ./gradlew verifyPlugin ${{ matrix.flag }}
+
   release:
     name: Build, sign and publish
+    needs: verify
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -37,29 +94,11 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: The tag and the version have to agree
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          tagged="${GITHUB_REF_NAME#v}"
-          declared=$(grep -E '^pluginVersion=' gradle.properties | cut -d= -f2)
-          if [ "$tagged" != "$declared" ]; then
-            echo "Tag $GITHUB_REF_NAME says $tagged, gradle.properties says $declared." >&2
-            exit 1
-          fi
-
       - name: Build and test
         run: ./gradlew build
 
       - name: Self-check
         run: ./gradlew runSelfCheck
-
-      # Both ends of the range the plugin claims to support. The Marketplace runs this itself and
-      # holds the upload until it passes, so failing here costs minutes instead of a review cycle.
-      - name: Verify against the newest supported IDE
-        run: ./gradlew verifyPlugin
-
-      - name: Verify against the oldest supported IDE
-        run: ./gradlew verifyPlugin -PverifySince
 
       - name: Sign
         env:

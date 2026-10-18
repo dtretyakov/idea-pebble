@@ -47,10 +47,37 @@ class PebbleKitJsTypingsTest : IdeTestCase() {
     fun `test Pebble resolves from the predefined library in a Pebble project, and only there`() {
         assertEmpty(targetsOfPebble("src/pkjs/before.js"))
 
-        PebbleKitJsLibrary.treatAsPebbleProject(project, testRootDisposable)
-        PebbleKitJsLibrary.refresh(project)
+        PebbleJsLibraries.treatAsPebbleProject(project, testRootDisposable)
+        PebbleJsLibraries.refresh(project)
         IndexingTestUtil.waitUntilIndexesAreReady(project)
         assertEquals(listOf("pebblekit-js.d.ts"), targetsOfPebble("src/pkjs/index.js"))
+    }
+
+    /**
+     * An Alloy app's `watch`, from typings outside the project as an SDK's are, and declared as
+     * the SDK declares it: an interface and a constant of the same name.
+     */
+    fun `test an Alloy app's watch global resolves from the build's global typings`() {
+        val dir = java.nio.file.Files.createTempDirectory("typings")
+        java.nio.file.Files.writeString(
+            dir.resolve("global.d.ts"),
+            "interface watch { addEventListener(event: string, callback: () => void): void; }\ndeclare const watch: watch;\n",
+        )
+        val typings = com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByNioFile(dir.resolve("global.d.ts"))!!
+        val file = myFixture.addFileToProject("src/embeddedjs/main.js", "watch.addEventListener('secondchange', () => {});")
+        myFixture.configureFromExistingVirtualFile(file.virtualFile)
+        assertEmpty(targets())
+
+        PebbleJsLibraries.treatAsAlloyProject(project, listOf(typings), testRootDisposable)
+        PebbleJsLibraries.refresh(project)
+        IndexingTestUtil.waitUntilIndexesAreReady(project)
+        assertEquals(listOf("global.d.ts"), targets())
+    }
+
+    private fun targets(): List<String> {
+        val reference = myFixture.file.findReferenceAt(1)
+        val results = (reference as? PsiPolyVariantReference)?.multiResolve(false).orEmpty()
+        return results.filter { it.isValidResult }.mapNotNull { it.element?.containingFile?.name }.distinct()
     }
 
     private fun targetsOfPebble(path: String): List<String> {

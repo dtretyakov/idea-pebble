@@ -32,6 +32,13 @@
   by itself once it has worked. On an Intel Mac, where the SDK's emulator looks for libpng where
   only Apple silicon's Homebrew puts it, the plugin says so rather than offering a command that
   would not help.
+- An Alloy app's `watch` resolves, with `console`, `Resource` and the engine's own globals: the
+  typings the build names in its TypeScript settings are given to the IDE's JavaScript as a
+  library of their own, as PebbleKit JS's are.
+- Debugging Alloy, the runtime's frames between a handler and the firmware —
+  `Pebble.prototype.do`, which hands `watch` events to their listeners — open the SDK's copy of the
+  runtime, on the line calling into the next frame. Objects read `{…}` until opened, rather than
+  nothing.
 - Debug for C stops at breakpoints in the app's start — `main`, `init`, the first window's load:
   once gdb is attached, the app is installed again and starts over under it, at the same address.
   Only with breakpoints set; the log goes on through the restart.
@@ -62,7 +69,8 @@
   file says it is loading meanwhile.
 - A Pebble project is laid out when it first opens: `src/` and `worker_src/` are source roots,
   `resources/` a resource root, and waf's `build/`, its lock file and clangd's `.cache/` are
-  excluded from search and Go to File. Once, and
+  excluded from search and Go to File. The JDK IDEA gives any folder it opens is taken off: nothing
+  in a Pebble project is Java, and its javadoc's jQuery turned up in JavaScript completion. Once, and
   only in a module nobody has given source roots to.
 - Alloy TypeScript sees the SDK's modules: after each build the plugin writes a `tsconfig.json`
   that extends the TypeScript settings the build checks the app with, so `import Poco from

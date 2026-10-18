@@ -23,7 +23,8 @@ import org.jetbrains.jps.model.module.JpsModuleSourceRootType
  * a project opened as a folder was just a folder: `src/` and `worker_src/` plain directories, and
  * `build/`, where waf puts everything it generates, indexed and searched like the code, so Go to
  * File offered the build's copies beside the files the user wrote. clangd's index and waf's lock
- * file are left out of the tree for the same reason.
+ * file are left out of the tree for the same reason, and the JDK IDEA gives any folder it opens
+ * is taken away again.
  */
 class PebbleProjectSetup : ProjectActivity {
 
@@ -62,6 +63,11 @@ class PebbleProjectSetup : ProjectActivity {
                 .forEach(entry::addExcludeFolder)
             // waf's lock file is a file beside the sources, so a pattern rather than a folder.
             if (WAF_LOCK !in entry.excludePatterns) entry.addExcludePattern(WAF_LOCK)
+            // No JDK. IDEA opens a folder as a Java module and gives it whichever JDK it finds, and
+            // nothing in a Pebble project is Java: all it brought was the JDK under External
+            // Libraries, to index, and the jQuery of the JDK's own javadoc pages, offered by
+            // completion in the app's JavaScript.
+            if (model.isSdkInherited) model.sdk = null
         }
     }
 

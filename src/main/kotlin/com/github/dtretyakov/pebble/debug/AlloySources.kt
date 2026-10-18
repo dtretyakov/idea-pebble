@@ -66,15 +66,20 @@ object XsbugValues {
     fun of(property: XsbugProperty): Shown {
         val value = property.value ?: return Shown(Kind.UNINITIALIZED, "not initialized")
         return when {
-            property.sourcePath != null || value == "(host function)" || value == "(XS code)" || value == "(C code)" ->
+            property.sourcePath != null || value == "(host function)" || value == "(XS code)" || value == "(C code)" ||
+                (property.name == FUNCTION_PROPERTY && property.objectId != null) ->
                 Shown(Kind.FUNCTION, "function")
             value.length >= 2 && value.startsWith("'") && value.endsWith("'") -> Shown(Kind.STRING, value.substring(1, value.length - 1))
             value in KEYWORDS -> Shown(Kind.KEYWORD, value)
             NUMBER.matches(value) -> Shown(Kind.NUMBER, value)
-            property.objectId != null -> Shown(Kind.OBJECT, "")
+            // The engine sends an object as its address alone; what it holds is one expansion away.
+            property.objectId != null -> Shown(Kind.OBJECT, "{…}")
             else -> Shown(Kind.OTHER, value)
         }
     }
+
+    /** The frame's own function, as the engine lists it among the frame's variables. */
+    private const val FUNCTION_PROPERTY = "(function)"
 
     private val KEYWORDS = setOf("undefined", "null", "true", "false", "NaN", "Infinity", "-Infinity")
     private val NUMBER = Regex("""-?\d+(\.\d+)?([eE][+-]?\d+)?n?""")

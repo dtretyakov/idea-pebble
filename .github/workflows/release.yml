@@ -68,7 +68,12 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # No Gradle cache in a release: what the build workflow's jobs saved holds whole IDEs, which
+      # filled a runner's disk on restore, and the one build nobody re-runs is better built from
+      # nothing anyway.
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true
 
       - name: Free the disk the IDE needs
         run: |
@@ -92,7 +97,12 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # No Gradle cache in a release: what the build workflow's jobs saved holds whole IDEs, which
+      # filled a runner's disk on restore, and the one build nobody re-runs is better built from
+      # nothing anyway.
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true
 
       - name: Build and test
         run: ./gradlew build

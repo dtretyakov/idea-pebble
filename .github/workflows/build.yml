@@ -147,7 +147,12 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # No Gradle cache: the cache a job like this saves holds the IDEs it downloaded, unpacked —
+      # over 6 GiB once the legs' IDEs are in it — and restoring it filled the runner's disk before
+      # the next step could free any. A fresh download of one IDE is a minute.
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true
 
       - name: Free the disk the IDE needs
         run: |
@@ -201,7 +206,12 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # No Gradle cache: the cache a job like this saves holds the IDEs it downloaded, unpacked —
+      # over 6 GiB once the legs' IDEs are in it — and restoring it filled the runner's disk before
+      # the next step could free any. A fresh download of one IDE is a minute.
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true
 
       - name: Free the disk the IDEs need
         run: |

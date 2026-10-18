@@ -4,6 +4,7 @@ import com.github.dtretyakov.pebble.build.BuildMessage
 import com.github.dtretyakov.pebble.build.BuildResult
 import com.github.dtretyakov.pebble.build.PebbleBuild
 import com.github.dtretyakov.pebble.emulator.EmulatorState
+import com.github.dtretyakov.pebble.emulator.PlatformPreview
 import com.github.dtretyakov.pebble.emulator.PlatformScreenshots
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleSdkService
@@ -51,8 +52,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import java.nio.file.Path
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import javax.imageio.ImageIO
 import kotlin.io.path.createDirectories
 import kotlin.io.path.invariantSeparatorsPathString
@@ -371,11 +370,12 @@ class PebbleAgent(private val project: Project) {
         return EmulatorOutcome(chosen, report.filter { it.isNotBlank() }, failed, shot)
     }
 
-    /** The emulator's screen now, saved where Capture Every Platform saves it; or every platform's, one after another. */
+    /** The emulator's screen now, saved to the All Platforms tab's preview; or every platform's, one after another. */
     suspend fun screenshot(platform: String?, all: Boolean): List<Screenshot> {
         val root = root()
         if (!all) return listOf(take(root, runningPlatform(root, platform)))
         saveDocuments()
+        val before = PlatformPreview.before(root)
         val (code, text) = withContext(Dispatchers.IO) {
             val output = com.intellij.execution.process.CapturingProcessHandler(
                 com.github.dtretyakov.pebble.project.PebbleCommands.command(tool(), listOf("screenshot", "--all-platforms", "--no-open"), root),
@@ -383,8 +383,10 @@ class PebbleAgent(private val project: Project) {
             output.exitCode to (output.stdout + output.stderr)
         }
         if (code != 0) throw AgentProblem("pebble screenshot --all-platforms failed: ${text.lines().lastOrNull { it.isNotBlank() }.orEmpty()}")
+        withContext(Dispatchers.IO) { PlatformPreview.collect(root, before) }
         refresh(root.resolve(PlatformScreenshots.DIRECTORY))
-        return PlatformScreenshots.latest(root.resolve(PlatformScreenshots.DIRECTORY), readAction { PebbleProject.getInstance(project).infoAt(root)?.targetPlatforms.orEmpty() })
+        refresh(PlatformPreview.directory(root))
+        return PlatformPreview.latest(root, readAction { PebbleProject.getInstance(project).infoAt(root)?.targetPlatforms.orEmpty() })
             .map { describe(root, it.platform, it.file) }
     }
 
@@ -468,11 +470,12 @@ class PebbleAgent(private val project: Project) {
     }
 
     private suspend fun take(root: Path, platform: String): Screenshot {
-        val version = EmulatorState.running().firstOrNull { it.platform == platform }?.sdkVersion ?: "unknown"
-        val directory = root.resolve(PlatformScreenshots.DIRECTORY).createDirectories()
-        val file = directory.resolve("${platform}_${version}_${LocalDateTime.now().format(STAMP)}.png")
+        val version = readAction { PebbleProject.getInstance(project).infoAt(root)?.version }
+        val directory = PlatformPreview.directory(root).createDirectories()
+        val file = directory.resolve(PlatformScreenshots.fileName(platform, version))
         val (code, text) = withContext(Dispatchers.IO) { PebbleToolEmulator(tool(), root).screenshot(platform, file) }
         if (code != 0 || !Files.exists(file)) throw AgentProblem("The screenshot failed: ${text.lines().lastOrNull { it.isNotBlank() }.orEmpty()}")
+        PlatformPreview.prune(file)
         refresh(directory)
         return describe(root, platform, file)
     }
@@ -571,7 +574,6 @@ class PebbleAgent(private val project: Project) {
 
         /** The UI thread, where writing — saving documents — is safe: not inside some dialog's modality. */
         internal val ui = Dispatchers.EDT + ModalityState.nonModal().asContextElement()
-        private val STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")
         private val ANSI = Regex("\u001b\\[[0-9;?]*[A-Za-z]")
 
         fun getInstance(project: Project): PebbleAgent = project.service()

@@ -24,6 +24,8 @@ data class PebbleProjectInfo(
     /** As written; empty means the field is absent, which pebble-tool reads as every platform. */
     val targetPlatforms: List<String>,
     val watchface: Boolean,
+    /** The app's own version, `version` in `package.json`: what pebble-tool names screenshots with. */
+    val version: String? = null,
 ) {
 
     enum class ProjectType(val id: String) {
@@ -67,6 +69,7 @@ data class PebbleProjectInfo(
                 targetPlatforms = (pebble["targetPlatforms"] as? JsonArray).orEmpty().mapNotNull { it.string() },
                 watchface = ((pebble["watchapp"] as? JsonObject)?.get("watchface") as? JsonPrimitive)?.booleanOrNull
                     ?: false,
+                version = root["version"].string(),
             )
         }
 

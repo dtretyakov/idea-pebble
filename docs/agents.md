@@ -149,8 +149,9 @@ is nothing else to install. The agent connects to that server once:
   about 600 pixels high, under `build/pebble-agent/` — and a failed UI test's `view` is the
   reference, the screen now and their difference side by side. The skill says to look after
   every visible change, and what to look for.
-- `pebble_screenshot` saves where Capture Every Platform does, `screenshots/<platform>_<sdk>_<time>.png`,
-  so what an agent looked at is in the emulator tool window's Platforms tab too.
+- `pebble_screenshot` saves where Capture Every Platform does, `build/preview/<platform>_<app
+  version>_<time>.png`, so what an agent looked at is in the emulator tool window's All Platforms
+  tab too; the project's `screenshots/`, the store's, is left alone.
 - `pebble_run` uses a run configuration of its own (the user's are left alone), shows in the Run
   window like any run, and returns when pebble-tool prints `App install succeeded.`; a cold
   emulator that refuses the first install is tried once more, as the live tests do.

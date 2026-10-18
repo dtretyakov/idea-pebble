@@ -4,13 +4,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import java.awt.image.BufferedImage
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-import javax.imageio.ImageIO
-import kotlin.io.path.createDirectories
 import kotlin.io.path.outputStream
 
 class ReleaseCheckTest {
@@ -66,22 +62,5 @@ class ReleaseCheckTest {
         val tight = MemoryUsage("basalt", "app", 60000, 65536, 1000, 100, 262_144)
         val fine = MemoryUsage("emery", "app", 1000, 131072, 120000, 100, 262_144)
         assertEquals(listOf("error" to "aplite", "warning" to "basalt"), ReleaseCheck.memory(listOf(over, tight, fine)).map { it.severity to it.message.substringBefore(':') })
-    }
-
-    private fun png(file: Path, width: Int, height: Int) = file.also { ImageIO.write(BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), "png", it.toFile()) }
-
-    @Test
-    fun `screenshots at each platform's own size, and at least one`(@TempDir root: Path) {
-        assertEquals("error", ReleaseCheck.screenshots(root.resolve("screenshots"), listOf("basalt")).last().severity)
-        val directory = root.resolve("screenshots").createDirectories()
-        png(directory.resolve("basalt_4.33.1_20261014-120000.png"), 144, 168)
-        png(directory.resolve("chalk_4.33.1_20261014-120000.png"), 144, 168)
-        val items = ReleaseCheck.screenshots(directory, listOf("basalt", "chalk", "emery"))
-        assertEquals(listOf("ok", "error", "warning"), items.map { it.severity }, items.toString())
-        assertTrue(items[1].message.contains("180×180"))
-        assertTrue(items[2].message.contains("emery"))
-        repeat(6) { png(directory.resolve("basalt_4.33.1_20261014-12000$it.png"), 144, 168) }
-        assertEquals("warning", ReleaseCheck.screenshots(directory, listOf("basalt")).single().severity)
-        assertTrue(Files.exists(directory))
     }
 }

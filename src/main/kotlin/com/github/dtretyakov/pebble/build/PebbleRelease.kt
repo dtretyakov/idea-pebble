@@ -1,6 +1,5 @@
 package com.github.dtretyakov.pebble.build
 
-import com.github.dtretyakov.pebble.emulator.PlatformScreenshots
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.intellij.build.BuildViewManager
 import com.intellij.build.DefaultBuildDescriptor
@@ -34,7 +33,6 @@ object PebbleRelease {
                 addAll(ReleaseCheck.bundle(build.bundle, targets))
                 addAll(ReleaseCheck.memory(build.memory))
             }
-            addAll(ReleaseCheck.screenshots(root.resolve(PlatformScreenshots.DIRECTORY), targets))
         }
         report(project, root, items)
         return items

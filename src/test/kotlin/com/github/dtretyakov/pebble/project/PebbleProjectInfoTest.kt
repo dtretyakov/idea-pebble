@@ -15,6 +15,7 @@ class PebbleProjectInfoTest {
         val info = fixture("fixture-c")
         assertEquals("fixture-c", info.name)
         assertEquals("Fixture C", info.displayName)
+        assertEquals("1.0.0", info.version)
         assertEquals(ProjectType.NATIVE, info.projectType)
         assertEquals(listOf("aplite", "basalt", "chalk", "diorite", "emery", "flint", "gabbro"), info.targetPlatforms)
         assertFalse(info.watchface)
@@ -46,6 +47,7 @@ class PebbleProjectInfoTest {
         assertEquals(ProjectType.NATIVE, info!!.projectType)
         assertEquals(emptyList<String>(), info.targetPlatforms)
         assertFalse(info.watchface)
+        assertNull(info.version)
     }
 
     @Test

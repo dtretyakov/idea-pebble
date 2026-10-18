@@ -91,7 +91,7 @@ class PebbleToolset : McpToolset {
     @McpTool(name = "pebble_screenshot")
     @McpDescription(
         """
-        |Saves what an emulator's screen shows now as a PNG in the project's `screenshots` directory. Open the
+        |Saves what an emulator's screen shows now as a PNG in the project's `build/preview` directory. Open the
         |returned `view` — the same screen enlarged, pixel for pixel — as an image to see it: check that text is
         |legible and whole, nothing is cut off by a round screen's edge, and it reads in black and white where the
         |platform has no colour. With all = true, starts each target platform's emulator in turn

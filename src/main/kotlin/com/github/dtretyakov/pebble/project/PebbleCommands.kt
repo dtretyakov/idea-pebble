@@ -22,6 +22,13 @@ object PebbleCommands {
 
     const val NOTIFICATION_GROUP = "Pebble"
 
+    /** A line from the plugin in the IDE's notifications, under its own group. */
+    fun notify(project: Project?, text: String, type: NotificationType) {
+        NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP)
+            .createNotification(text, type)
+            .notify(project)
+    }
+
     fun activateNewestSdk(project: Project?) {
         val newest = PebbleSdkService.getInstance().sdks().installed.firstOrNull() ?: return
         activateSdk(project, newest.version)

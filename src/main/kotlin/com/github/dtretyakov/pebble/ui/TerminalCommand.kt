@@ -9,6 +9,7 @@ import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import java.awt.datatransfer.StringSelection
+import java.nio.file.Path
 
 /**
  * Runs a command that needs the user — `sudo apt install …`, `brew install …` — in the IDE's
@@ -20,10 +21,10 @@ import java.awt.datatransfer.StringSelection
  */
 internal object TerminalCommand {
 
-    fun run(project: Project?, command: String) {
+    fun run(project: Project?, command: String, directory: Path? = null, title: String = "Pebble setup") {
         if (project != null && hasTerminal()) {
             // In a class of its own: it is loaded only when the terminal plugin is there to link to.
-            TerminalSession.run(project, command)
+            TerminalSession.run(project, command, directory?.toString() ?: project.basePath, title)
             return
         }
         CopyPasteManager.getInstance().setContents(StringSelection(command))

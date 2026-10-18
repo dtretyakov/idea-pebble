@@ -82,8 +82,23 @@
 ### Releasing
 
 - Build | Check Pebble Release: a release build, checked against what the Pebble appstore takes —
-  the version's form, the UUID, the `.pbw`'s size and platforms, resources within the limit, and
-  each platform's screenshots at its exact size — in the Build window. For agents too.
+  the version's form, the UUID, the `.pbw`'s size and platforms, resources within the limit — in
+  the Build window. For agents too.
+- Build | Publish to Pebble Appstore: the release check, then `pebble publish` in the IDE's
+  terminal — after `pebble login` when there is no login yet. pebble-tool creates the developer
+  account, asks for a new app's listing and where its screenshots come from — captured from the
+  emulators, or files of your own — and uploads. Nothing starts while the check finds a problem
+  the appstore would refuse.
+- The emulator window's Platforms tab is now All Platforms, and says what it is for: the app on
+  each watch it targets, side by side, to catch a layout that breaks on a round or a smaller
+  screen. Empty, it lists those watches and offers Capture Every Platform with what that costs;
+  filled, each target platform has its last capture with when it was taken, or a Capture link —
+  at one scale, wrapped to the window's width, so it scrolls down, not across. The captures are
+  kept in `build/preview/`, out of the project's `screenshots/`. The capture no longer asks first,
+  and starts the emulator that was on the Screen tab again once it is done.
+- Save Screenshot on the Screen tab writes to `screenshots/` under pebble-tool's own name — the
+  platform, the app's version and the time — without a dialog: a screen picked for the store, for
+  `pebble publish --screenshots`.
 
 ### Coding agents
 

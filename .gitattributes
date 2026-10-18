@@ -1,0 +1,6 @@
+# Text is LF everywhere, Windows checkouts too: the plugin ships some of it as resources (the agent
+# skill, recorded gdb sessions) and tests read it byte for byte, so a CRLF checkout built a plugin
+# whose SKILL.md no longer started with "---\n". Windows' own scripts keep CRLF.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf

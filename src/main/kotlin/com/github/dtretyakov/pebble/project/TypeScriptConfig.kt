@@ -63,7 +63,10 @@ object TypeScriptConfig {
         return note.startsWith("Written by Develop for Pebble") || note.startsWith("Written by the Pebble plugin")
     }
 
-    /** Writes [root]'s `tsconfig.json` for [platform]; false when there is nothing to extend, or the file is the user's. */
+    /**
+     * Writes [root]'s `tsconfig.json` for [platform]; false when there is nothing to extend, or the
+     * file is the user's. The disk only: the IDE is told by [write], which its listeners call.
+     */
     fun update(root: Path, platform: String): Boolean {
         val file = root.resolve(FILE_NAME)
         val generated = generated(root, platform) ?: return false
@@ -71,8 +74,12 @@ object TypeScriptConfig {
         val text = text(root, generated)
         if (file.isRegularFile() && file.readText() == text) return true
         file.writeText(text)
-        LocalFileSystem.getInstance().refreshNioFiles(listOf(file))
         return true
+    }
+
+    /** [update], and the IDE told of the file, so its JavaScript reads the new settings. */
+    private fun write(root: Path, platform: String) {
+        if (update(root, platform)) LocalFileSystem.getInstance().refreshNioFiles(listOf(root.resolve(FILE_NAME)))
     }
 
     private suspend fun refresh(project: Project) {
@@ -81,7 +88,7 @@ object TypeScriptConfig {
             val root = model.primaryRoot()
             Triple(root, root?.let { model.infoAt(it)?.projectType == PebbleProjectInfo.ProjectType.ALLOY } == true, root?.let(model::activePlatform))
         }
-        if (root != null && alloy && platform != null) update(root, platform)
+        if (root != null && alloy && platform != null) write(root, platform)
     }
 
     /** After each build, and on a switch of platform. */
@@ -89,14 +96,14 @@ object TypeScriptConfig {
         override fun buildFinished(project: Project, root: Path, result: BuildResult) {
             val model = PebbleProject.getInstance(project)
             if (model.infoAt(root)?.projectType != PebbleProjectInfo.ProjectType.ALLOY) return
-            model.activePlatform(root)?.let { update(root, it) }
+            model.activePlatform(root)?.let { write(root, it) }
         }
 
         override fun activePlatformChanged(project: Project) {
             val model = PebbleProject.getInstance(project)
             val root = model.primaryRoot() ?: return
             if (model.infoAt(root)?.projectType != PebbleProjectInfo.ProjectType.ALLOY) return
-            model.activePlatform(root)?.let { update(root, it) }
+            model.activePlatform(root)?.let { write(root, it) }
         }
     }
 

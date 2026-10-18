@@ -28,6 +28,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
+import kotlin.io.path.invariantSeparatorsPathString
 
 /**
  * The debug process in a real debug session, against a stand-in for gdb that answers with what
@@ -63,7 +64,8 @@ class GdbDebugProcessTest : IdeTestCase() {
             }
             """.trimIndent(),
         )
-        path = file.toString()
+        // As gdb is given it: with forward slashes, which every gdb reads, Windows's too.
+        path = file.invariantSeparatorsPathString
         val rootFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root)!!
         PsiTestUtil.addContentRoot(module, rootFile)
         Disposer.register(testRootDisposable) { PsiTestUtil.removeContentEntry(module, rootFile) }

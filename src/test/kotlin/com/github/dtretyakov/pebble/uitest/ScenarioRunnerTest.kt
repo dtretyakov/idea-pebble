@@ -7,6 +7,7 @@ import java.awt.image.BufferedImage
 import java.nio.file.Files
 import java.nio.file.Path
 import javax.imageio.ImageIO
+import kotlin.io.path.invariantSeparatorsPathString
 
 /** The runner against a stand-in emulator whose screen is whatever colour the test says. */
 class ScenarioRunnerTest {
@@ -47,7 +48,7 @@ class ScenarioRunnerTest {
         override fun testStarted(name: String, line: Int) { events += "test $name:$line" }
         override fun output(text: String) = Unit
         override fun testFailed(name: String, message: String, expected: Path?, actual: Path?) {
-            events += "failed $name: $message" + (if (expected != null) " [${references.relativize(expected)} vs ${results.relativize(actual!!)}]" else "")
+            events += "failed $name: $message" + (if (expected != null) " [${references.relativize(expected).invariantSeparatorsPathString} vs ${results.relativize(actual!!).invariantSeparatorsPathString}]" else "")
         }
         override fun testFinished(name: String) { events += "/test $name" }
     }

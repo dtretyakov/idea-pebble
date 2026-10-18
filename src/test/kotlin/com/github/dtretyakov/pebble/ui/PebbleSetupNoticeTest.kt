@@ -4,6 +4,7 @@ import com.github.dtretyakov.pebble.project.PebbleAppSettings
 import com.github.dtretyakov.pebble.project.PebbleEnvironment.Concern
 import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.github.dtretyakov.pebble.project.PebbleSdkSetup
+import com.github.dtretyakov.pebble.sdk.HostOs
 import com.github.dtretyakov.pebble.testing.IdeTestCase
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.Notification
@@ -11,6 +12,10 @@ import com.intellij.notification.NotificationsManager
 
 /** The balloon a project opens with when nothing in it can be built. */
 class PebbleSetupNoticeTest : IdeTestCase() {
+
+    // On Windows the one problem said is that Pebble needs WSL (PebbleEnvironmentTest checks it): the
+    // balloons for a missing SDK, which these tests follow, are a Mac's and Linux's.
+    override fun shouldRunTest(): Boolean = super.shouldRunTest() && HostOs.current() != HostOs.WINDOWS
 
     private var savedToolPath = ""
 

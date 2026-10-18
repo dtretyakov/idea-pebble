@@ -25,6 +25,7 @@ import com.intellij.psi.PsiFile
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.relativeTo
 
 /** Run a scenario from its file: the context menu, and the gutter on its first line. */
@@ -39,7 +40,7 @@ class PebbleUiTestConfigurationProducer : LazyRunConfigurationProducer<PebbleUiT
         sourceElement: Ref<PsiElement>,
     ): Boolean {
         val (root, file) = scenario(context) ?: return false
-        configuration.options.scenario = file.relativeTo(root).toString()
+        configuration.options.scenario = file.relativeTo(root).invariantSeparatorsPathString
         configuration.name = "UI test ${file.fileName.toString().removeSuffix(".$SCENARIO_EXTENSION")}"
         return true
     }

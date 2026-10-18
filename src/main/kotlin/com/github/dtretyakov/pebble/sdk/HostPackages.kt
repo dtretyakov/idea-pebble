@@ -3,6 +3,7 @@ package com.github.dtretyakov.pebble.sdk
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.invariantSeparatorsPathString
 
 /**
  * How this machine installs system software, for the steps the plugin cannot take itself.
@@ -32,7 +33,7 @@ class HostPackages(
      * would be offering a command that succeeds and changes nothing.
      */
     fun homebrewServes(path: String): Boolean {
-        val prefix = brew?.parent?.parent?.toString() ?: if (appleSilicon) "/opt/homebrew" else "/usr/local"
+        val prefix = brew?.parent?.parent?.invariantSeparatorsPathString ?: if (appleSilicon) "/opt/homebrew" else "/usr/local"
         return path.startsWith("$prefix/")
     }
 
@@ -40,7 +41,7 @@ class HostPackages(
 
     /** What installs Node.js and npm here, or null when there is no command to give. */
     fun node(): String? = when {
-        os == HostOs.MAC && brew != null -> "$brew install node"
+        os == HostOs.MAC && brew != null -> "${brew.invariantSeparatorsPathString} install node"
         os == HostOs.LINUX && distro == Distro.DEBIAN -> "sudo apt install nodejs npm"
         os == HostOs.LINUX && distro == Distro.FEDORA -> "sudo dnf install nodejs"
         else -> null
@@ -48,7 +49,7 @@ class HostPackages(
 
     /** What installs clangd here. Homebrew's is in its `llvm` formula, which [Clangd] looks in. */
     fun clangd(): String? = when {
-        os == HostOs.MAC && brew != null -> "$brew install llvm"
+        os == HostOs.MAC && brew != null -> "${brew.invariantSeparatorsPathString} install llvm"
         os == HostOs.LINUX && distro == Distro.DEBIAN -> "sudo apt install clangd"
         os == HostOs.LINUX && distro == Distro.FEDORA -> "sudo dnf install clang-tools-extra"
         else -> null
@@ -60,7 +61,7 @@ class HostPackages(
      * package managers skip what is already there.
      */
     fun emulatorLibraries(homebrewFormula: String?): String? = when {
-        os == HostOs.MAC && homebrewFormula != null && brew != null -> "$brew install $homebrewFormula"
+        os == HostOs.MAC && homebrewFormula != null && brew != null -> "${brew.invariantSeparatorsPathString} install $homebrewFormula"
         os == HostOs.MAC && homebrewFormula != null ->
             // Homebrew itself, then the formula: its installer asks for the password, in the
             // terminal, and puts brew where a new shell would not yet find it.

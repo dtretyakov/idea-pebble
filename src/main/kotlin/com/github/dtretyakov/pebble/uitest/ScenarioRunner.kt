@@ -4,6 +4,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import javax.imageio.ImageIO
 import kotlin.io.path.createDirectories
+import kotlin.io.path.invariantSeparatorsPathString
 
 /**
  * Runs a scenario on each platform in turn: a suite per platform, a test per `expect`, the steps
@@ -99,7 +100,7 @@ class ScenarioRunner(
         if (!Files.exists(reference)) {
             reference.parent.createDirectories()
             Files.copy(actual, reference)
-            reporter.output("Recorded ${references.relativize(reference)} as the reference: check it, and commit it.\n")
+            reporter.output("Recorded ${references.relativize(reference).invariantSeparatorsPathString} as the reference: check it, and commit it.\n")
             return
         }
         val difference = ScreenComparison.compare(ImageIO.read(reference.toFile()), ImageIO.read(actual.toFile()))
@@ -107,7 +108,7 @@ class ScenarioRunner(
         val diff = results.resolve(platform).resolve("${step.name}.diff.png")
         difference.diff?.let { ImageIO.write(it, "png", diff.toFile()) }
         val message = if (difference.diff == null) "The screen is not the reference's size" else
-            "${difference.pixels} of ${difference.total} pixels differ from ${references.relativize(reference)}; the difference is in $diff"
+            "${difference.pixels} of ${difference.total} pixels differ from ${references.relativize(reference).invariantSeparatorsPathString}; the difference is in $diff"
         reporter.testFailed(step.name, message, reference, actual)
     }
 

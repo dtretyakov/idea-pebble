@@ -1,5 +1,6 @@
 package com.github.dtretyakov.pebble.run
 
+import com.github.dtretyakov.pebble.sdk.HostOs
 import com.github.dtretyakov.pebble.testing.IdeTestCase
 import com.intellij.execution.filters.OpenFileHyperlinkInfo
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -41,6 +42,9 @@ class PebbleLogFilterTest : IdeTestCase() {
     }
 
     fun `test an Alloy exception links its source`() {
+        // The engine names its sources with POSIX paths: Alloy runs in the emulator, which runs on a Mac,
+        // Linux or WSL. A Windows path, drive colon and all, is not a line it writes.
+        if (HostOs.current() == HostOs.WINDOWS) return
         val main = root.resolve("src/embeddedjs/main.js").toString()
         val line = "$main:2: # Exception: Error!\n"
         val item = PebbleLogFilter(project, root).applyFilter(line, line.length)!!.resultItems.single()

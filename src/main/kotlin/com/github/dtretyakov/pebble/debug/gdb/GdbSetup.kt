@@ -8,6 +8,7 @@ import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.util.SystemInfo
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.invariantSeparatorsPathString
 
 /**
  * gdb attached to the emulator the way `pebble gdb` attaches it (pebble-tool's
@@ -93,7 +94,7 @@ class GdbSetup(val gdb: Path, val firmwareElf: Path, val port: Int, val symbolCo
         fun symbolCommand(elf: Path, base: String, offsets: Map<String, Long>): String {
             val text = offsets[".text"] ?: throw Problem("$elf has no .text section.")
             return buildString {
-                append("add-symbol-file \"").append(elf).append("\" ").append(base).append("+0x").append(text.toString(16))
+                append("add-symbol-file \"").append(elf.invariantSeparatorsPathString).append("\" ").append(base).append("+0x").append(text.toString(16))
                 for ((section, offset) in offsets) {
                     if (section != ".text") append(" -s ").append(section).append(' ').append(base).append("+0x").append(offset.toString(16))
                 }

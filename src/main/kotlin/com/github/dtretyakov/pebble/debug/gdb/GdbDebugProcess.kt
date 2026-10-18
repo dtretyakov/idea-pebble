@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.io.path.invariantSeparatorsPathString
 
 /**
  * A C app in the IDE's debugger: gdb in MI mode, attached to the emulator as `pebble gdb` attaches
@@ -195,7 +196,7 @@ class GdbDebugProcess(
     private fun insert(gdb: GdbConnection, breakpoint: XLineBreakpoint<XBreakpointProperties<*>>) {
         if (breakpoint !in registered || numbers.containsKey(breakpoint)) return
         val path = breakpoint.sourcePosition?.file?.toNioPathOrNull() ?: return
-        val command = GdbCommands.breakInsert(path.toString(), breakpoint.line + 1, breakpoint.conditionExpression?.expression)
+        val command = GdbCommands.breakInsert(path.invariantSeparatorsPathString, breakpoint.line + 1, breakpoint.conditionExpression?.expression)
         val answer = try {
             whileStopped(gdb) { gdb.call(command) }
         } catch (e: GdbError) {

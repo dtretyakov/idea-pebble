@@ -30,8 +30,9 @@ class SdkLiveTest {
 
     @Test
     fun `the SDK ships a pebble h for every platform it reports`() {
-        val sdk = PebbleSdks.scan(PebbleDataDir.locate()).current ?: error("no active SDK")
+        // First: it is what skips the test where live tests are off, as on CI.
         LiveSdk.tool()
+        val sdk = PebbleSdks.scan(PebbleDataDir.locate()).current ?: error("no active SDK")
         assertTrue(sdk.platforms().containsAll(listOf("emery", "gabbro", "flint")), sdk.platforms().toString())
         assertTrue(sdk.hasCompiler)
         assertTrue(sdk.hasAlloyTools)

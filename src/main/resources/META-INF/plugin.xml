@@ -193,8 +193,15 @@
             id="Pebble.CheckRelease"
             class="com.github.dtretyakov.pebble.ui.CheckReleaseAction"
             text="Check Pebble Release"
-            description="Builds for release and checks it against what the Pebble appstore takes: version, UUID, the .pbw, resources, screenshots">
+            description="Builds for release and checks it against what the Pebble appstore takes: version, UUID, the .pbw, resources">
             <add-to-group group-id="BuildMenu" relative-to-action="Pebble.Build" anchor="after"/>
+        </action>
+        <action
+            id="Pebble.Publish"
+            class="com.github.dtretyakov.pebble.ui.PublishAction"
+            text="Publish to Pebble Appstore…"
+            description="Checks the release, then runs pebble publish in the terminal: login, the listing, screenshots and the upload">
+            <add-to-group group-id="BuildMenu" relative-to-action="Pebble.CheckRelease" anchor="after"/>
         </action>
         <group id="Pebble.Tools" text="Pebble" popup="true" icon="/icons/pebble.svg">
             <action

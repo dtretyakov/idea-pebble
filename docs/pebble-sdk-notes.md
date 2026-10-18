@@ -235,10 +235,11 @@ remedy.
 each platform's emulator in turn — without `--vnc`, so an emulator started with it is stopped
 first — installs the built app, sets the clock to 10:10, and writes
 `screenshots/<platform>_<version>_<yyyyMMdd-HHmmss>.png` at the watch's own resolution, the
-framebuffer's padding cropped. Each line `=== Capturing <platform> ===` starts a platform; two
-platforms take about half a minute. It needs no display. `--gif-all-platforms` does the same as an
-animated GIF, but wipes each emulator's persistent state on the way, so the plugin does not offer
-it.
+framebuffer's padding cropped — the app's version, from `package.json`, not the SDK's. Each run
+adds files; it never removes an earlier run's. Each line `=== Capturing <platform> ===` starts a
+platform; two platforms take about half a minute. It needs no display. `--gif-all-platforms` does
+the same as an animated GIF, but wipes each emulator's persistent state on the way, so the plugin
+does not offer it.
 
 Each emulator input is a command of its own, so a test scenario can be written in them:
 `emu-button click|push|release <back|up|select|down> --duration <ms>` presses the buttons through

@@ -63,7 +63,7 @@ Done when testing across watches and finding bugs is quicker here than with a te
 emulator and a separate debugger.
 
 - [x] Every platform side by side: `pebble screenshot --all-platforms` behind Capture Every
-  Platform, and the newest screenshot of each in the emulator tool window's Platforms tab.
+  Platform, and the last capture of each in the emulator tool window's All Platforms tab.
 - Several live emulators at once, one per platform — waits on a VNC display number per emulator
   upstream.
 - [x] GIF recording from the frame stream (`javax.imageio`, no dependency), up to a minute.
@@ -106,8 +106,10 @@ emulator and a separate debugger.
   the app crashes; Stop detaches, and the app runs on.
 - [x] Release preparation: Build | Check Pebble Release — a release build checked against what the
   appstore's submission guide asks that can be checked here: the version's form, the UUID, the
-  `.pbw`'s size and platforms, resources within the limit, and each platform's screenshots at its
-  exact size. The listing's text and images beyond screenshots are the store's to ask for.
+  `.pbw`'s size and platforms, resources within the limit.
+- [x] Publishing: Build | Publish to Pebble Appstore — the release check, then `pebble publish` in
+  the IDE's terminal, after `pebble login` when there is no login yet. pebble-tool asks for the
+  listing and the screenshots, and uploads.
 - [x] Coding agents, part one: Pebble tools in the IDE's MCP server — the project, build, run,
   logs, screenshots, the emulator's buttons and settings, API lookup in the SDK — Build Project
   as `pebble build`, and a `pebble` Agent Skill the plugin adds to projects, also installable in

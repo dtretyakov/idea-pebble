@@ -10,8 +10,8 @@ insight comes from the IDE's own engines fed with the SDK's headers and typings.
 **Status: early, and working.** New projects, building, running in the emulator — whose screen
 and buttons are in the IDE — or on a watch, logs, debugging Alloy and C in the IDE's debugger,
 screenshots of every platform side by side, and C code insight for the platform you choose, with
-checks for calls that platform only stubs out. What is still to come is in the
-[roadmap](docs/roadmap.md).
+checks for calls that platform only stubs out; and a release checked, then published to the Pebble
+appstore with `pebble publish`. What is still to come is in the [roadmap](docs/roadmap.md).
 
 ## Getting started
 

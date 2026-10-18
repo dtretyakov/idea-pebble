@@ -4,9 +4,14 @@ import com.github.dtretyakov.pebble.project.PebbleCommands
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
+import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.vfs.LocalFileSystem
+import kotlin.io.path.createDirectories
+import kotlin.io.path.exists
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
@@ -14,6 +19,7 @@ import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -56,10 +62,14 @@ class EmulatorToolWindowFactory : ToolWindowFactory, DumbAware {
 
         // Every platform side by side, from the last capture: the comparison the screen tab cannot make.
         val platforms = PlatformsPanel(project)
+        val capture = CaptureAllPlatformsAction().apply {
+            // Said, not only drawn: an icon alone did not say what the tab's one action was.
+            templatePresentation.putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true)
+        }
         val platformsTab = SimpleToolWindowPanel(true, true).apply {
             setContent(platforms)
             toolbar = ActionManager.getInstance()
-                .createActionToolbar("PebblePlatforms", DefaultActionGroup(CaptureAllPlatformsAction()), true)
+                .createActionToolbar("PebblePlatforms", DefaultActionGroup(capture), true)
                 .also { it.targetComponent = platforms }
                 .component
         }
@@ -77,25 +87,38 @@ class EmulatorToolWindowFactory : ToolWindowFactory, DumbAware {
         )
     }
 
-    /** The watch's own pixels, as a PNG named for the platform and the moment. */
+    /**
+     * The watch's own pixels, as a PNG in `screenshots/` named as pebble-tool names its own: a
+     * screen picked for the app store, for `pebble publish --screenshots`, which takes files whose
+     * names start with the platform. It used to ask where, and to name it otherwise.
+     */
     private class SaveScreenshot(private val project: Project, private val panel: EmulatorPanel) :
-        DumbAwareAction("Save Screenshot", "Saves the emulator's screen as a PNG", AllIcons.Actions.MenuSaveall) {
+        DumbAwareAction("Save Screenshot", "Saves the emulator's screen to the project's screenshots folder", AllIcons.Actions.MenuSaveall) {
 
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 
         override fun update(e: AnActionEvent) {
-            e.presentation.isEnabled = EmulatorSession.getInstance(project).lastFrame != null
+            // The last frame stays on screen after the emulator stops; there is nothing to name it for then.
+            val session = EmulatorSession.getInstance(project)
+            e.presentation.isEnabled = session.lastFrame != null && session.emulator != null
         }
 
         override fun actionPerformed(e: AnActionEvent) {
             val image = panel.screenshot() ?: return
-            val platform = EmulatorSession.getInstance(project).emulator?.platform ?: "pebble"
-            val name = "$platform-${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))}.png"
-            val target = FileChooserFactory.getInstance()
-                .createSaveFileDialog(FileSaverDescriptor("Save Screenshot", "", "png"), project)
-                .save(project.guessProjectDir(), name)
-                ?: return
-            ImageIO.write(image, "png", target.file)
+            val emulator = EmulatorSession.getInstance(project).emulator ?: return
+            val root = PebbleProject.getInstance(project).primaryRoot() ?: return
+            val directory = root.resolve(PlatformScreenshots.DIRECTORY).createDirectories()
+            val version = PebbleProject.getInstance(project).infoAt(root)?.version
+            // Named to the second: a second save within it takes the next free second rather than the first's file.
+            val file = generateSequence(LocalDateTime.now()) { it.plusSeconds(1) }
+                .map { directory.resolve(PlatformScreenshots.fileName(emulator.platform, version, it)) }
+                .first { !it.exists() }
+            ImageIO.write(image, "png", file.toFile())
+            val saved = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(file)
+            NotificationGroupManager.getInstance().getNotificationGroup(PebbleCommands.NOTIFICATION_GROUP)
+                .createNotification("Saved ${PlatformScreenshots.DIRECTORY}/${file.fileName}.", NotificationType.INFORMATION)
+                .apply { if (saved != null) addAction(NotificationAction.createSimpleExpiring("Open") { FileEditorManager.getInstance(project).openFile(saved, true) }) }
+                .notify(project)
         }
     }
 
@@ -182,11 +205,12 @@ class EmulatorToolWindowFactory : ToolWindowFactory, DumbAware {
 
         /** Brings the window up without taking focus from the editor — after a run starts an emulator. */
         private const val SCREEN = "Screen"
-        private const val PLATFORMS = "Platforms"
+        /** The app on every platform side by side, where the Screen tab shows one. */
+        private const val PLATFORMS = "All Platforms"
         private val PLATFORMS_PANEL = Key.create<PlatformsPanel>("Pebble.PlatformsPanel")
 
-        /** The Platforms tab, read again: after a capture. */
-        fun showPlatforms(project: Project) {
+        /** The All Platforms tab, read again and shown: after a capture. */
+        fun showPreview(project: Project) {
             val window = ToolWindowManager.getInstance(project).getToolWindow(ID) ?: return
             window.show {
                 val content = window.contentManager.findContent(PLATFORMS) ?: return@show

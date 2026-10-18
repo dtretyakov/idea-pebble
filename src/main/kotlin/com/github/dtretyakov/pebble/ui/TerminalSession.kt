@@ -12,9 +12,9 @@ internal object TerminalSession {
      * where `sinceBuild` promises it runs. Move when that API settles.
      */
     @Suppress("DEPRECATION")
-    fun run(project: Project, command: String) {
+    fun run(project: Project, command: String, directory: String?, title: String) {
         TerminalToolWindowManager.getInstance(project)
-            .createShellWidget(project.basePath, "Pebble setup", true, true)
+            .createShellWidget(directory, title, true, true)
             .sendCommandToExecute(command)
     }
 }

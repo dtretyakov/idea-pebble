@@ -120,7 +120,7 @@ class AgentLiveTest : IdeTestCase() {
 
             val screen = call("pebble_screenshot")["screenshots"]!!.jsonArray.single().jsonObject
             assertEquals("emery", screen["platform"]!!.jsonPrimitive.content)
-            assertTrue(screen["file"]!!.jsonPrimitive.content.startsWith("screenshots/emery_"))
+            assertTrue(screen["file"]!!.jsonPrimitive.content.startsWith("build/preview/emery_"))
 
             // A scenario: recorded the first time, passed the next, and its screen accepted.
             root.resolve("tests/ui").also { Files.createDirectories(it) }.resolve("hello.pbtest")
@@ -136,15 +136,13 @@ class AgentLiveTest : IdeTestCase() {
             assertEquals("tests/ui/screenshots/emery/hello.png", accepted["reference"]!!.jsonPrimitive.content)
 
             // The release check of the same app: a release build, every target platform in it, and
-            // screenshots only of emery, where this test took them.
+            // nothing about screenshots, which are pebble publish's.
             val release = call("pebble_release_check")["items"]!!.jsonArray.map { it.jsonObject }
             fun item(check: String) = release.filter { it["check"]!!.jsonPrimitive.content == check }
             assertEquals(release.toString(), "ok", item("platforms").single()["severity"]!!.jsonPrimitive.content)
             assertEquals("ok", item("bundle size").single()["severity"]!!.jsonPrimitive.content)
             assertEquals("ok", item("uuid").single()["severity"]!!.jsonPrimitive.content)
-            val screenshots = item("screenshots")
-            assertTrue(screenshots.toString(), screenshots.any { it["severity"]!!.jsonPrimitive.content == "ok" && "emery" in it["message"]!!.jsonPrimitive.content })
-            assertTrue(screenshots.any { it["severity"]!!.jsonPrimitive.content == "warning" && "No screenshot of aplite" in it["message"]!!.jsonPrimitive.content })
+            assertTrue(release.toString(), item("screenshots").isEmpty())
 
             val sdk = call("pebble_sdk")
             assertTrue(sdk.toString(), sdk["current"]!!.jsonPrimitive.content in sdk["installed"]!!.jsonArray.map { it.jsonPrimitive.content })

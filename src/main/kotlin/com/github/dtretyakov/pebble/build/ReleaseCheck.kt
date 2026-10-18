@@ -1,7 +1,5 @@
 package com.github.dtretyakov.pebble.build
 
-import com.github.dtretyakov.pebble.emulator.PlatformScreenshots
-import com.github.dtretyakov.pebble.sdk.PebblePlatform
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -10,10 +8,6 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.zip.ZipFile
-import javax.imageio.ImageIO
-import kotlin.io.path.extension
-import kotlin.io.path.isDirectory
-import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
 
 /**
@@ -22,12 +16,11 @@ import kotlin.io.path.name
  *
  * - `version` of numbers and dots only, each part 255 or less, and new with each release;
  * - a `uuid` that stays the same from release to release, and is the app's own;
- * - a `.pbw` of at most 4.4 MB, with a binary for each platform it targets;
- * - screenshots exactly the platform's screen size — 144×168, 180×180, 200×228 or 260×260 —
- *   PNG, JPEG or GIF, up to five per platform, at least one in all.
+ * - a `.pbw` of at most 4.4 MB, with a binary for each platform it targets.
  *
  * And what the build itself reports: resources over the limit the store enforces. Whether the
- * version is new, the description, category and banner are the store's to see.
+ * version is new, the description, category and banner are the store's to see. Screenshots are
+ * `pebble publish`'s: it captures them, or takes the files it is given, and uploads them.
  */
 object ReleaseCheck {
 
@@ -42,10 +35,8 @@ object ReleaseCheck {
 
     /** "about 4.4 MB", read as the smaller of its two meanings. */
     const val MAX_BUNDLE_BYTES = 4_400_000L
-    const val MAX_SCREENSHOTS = 5
 
     private val UUID = Regex("""[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}""")
-    private val IMAGE = setOf("png", "jpg", "jpeg", "gif")
 
     fun packageJson(text: String): List<Item> {
         val json = runCatching { Json.parseToJsonElement(text) as JsonObject }.getOrNull()
@@ -97,30 +88,4 @@ object ReleaseCheck {
         }
     }
 
-    /** The screenshots in [directory] — where Capture Every Platform puts them — by target platform. */
-    fun screenshots(directory: Path, targets: List<String>): List<Item> {
-        val files = if (directory.isDirectory()) directory.listDirectoryEntries().filter { it.extension.lowercase() in IMAGE } else emptyList()
-        val byPlatform = files.groupBy { PlatformScreenshots.parse(it)?.platform ?: it.name.substringBefore('_') }
-        val items = mutableListOf<Item>()
-        for (target in targets) {
-            val platform = PebblePlatform.of(target) ?: continue
-            val shots = byPlatform[target].orEmpty()
-            if (shots.isEmpty()) {
-                items += Item("warning", "screenshots", "No screenshot of $target: the store shows the listing with none for it. Capture Every Platform takes them.")
-                continue
-            }
-            val wrong = shots.filter { shot ->
-                val image = runCatching { ImageIO.read(shot.toFile()) }.getOrNull()
-                image == null || image.width != platform.width || image.height != platform.height
-            }
-            wrong.forEach { items += Item("error", "screenshots", "${it.name} is not $target's ${platform.width}×${platform.height}: the store takes the screen's own size, unframed.", it.toString()) }
-            if (shots.size - wrong.size > MAX_SCREENSHOTS) {
-                items += Item("warning", "screenshots", "${shots.size - wrong.size} screenshots of $target; the store takes $MAX_SCREENSHOTS — choose.")
-            } else if (wrong.size < shots.size) {
-                items += Item("ok", "screenshots", "${shots.size - wrong.size} screenshot(s) of $target at ${platform.width}×${platform.height}.")
-            }
-        }
-        if (files.isEmpty()) items += Item("error", "screenshots", "No screenshots at all: the store needs at least one.")
-        return items
-    }
 }

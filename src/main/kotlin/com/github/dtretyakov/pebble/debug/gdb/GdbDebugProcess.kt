@@ -39,6 +39,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  * pebble-tool says the app is installed — and so started, at the address gdb is told to find it
  * at — gdb attaches, is given the breakpoints, and lets the app run on.
  *
+ * By then the app's start — `main`, `init`, the first window's load — has run, and a breakpoint
+ * there would never be reached. So when there are breakpoints, the app is installed once more
+ * ([relaunch]) with gdb attached: the firmware loads it at the same address every time, gdb's
+ * breakpoints still stand, and the start runs under the debugger.
+ *
  * Everything sent to gdb goes through one queue, so a command never interleaves with another. gdb
  * cannot change breakpoints while the app runs, so a breakpoint set then interrupts the app, is
  * set, and lets it go on; that stop is the debugger's own and not shown.
@@ -47,6 +52,8 @@ class GdbDebugProcess(
     session: XDebugSession,
     private val result: ExecutionResult,
     private val setup: () -> GdbSetup,
+    /** Starts the app again, blocking; what went wrong, or null. None: the start is not rerun. */
+    private val relaunch: (() -> String?)? = null,
     private val connect: (GdbSetup, GdbConnection.Listener) -> GdbConnection = GdbConnection::launch,
 ) : XDebugProcess(session), GdbConnection.Listener {
 
@@ -135,6 +142,7 @@ class GdbDebugProcess(
                 registered.forEach { insert(gdb, it) }
                 gdb.call(GdbCommands.CONTINUE)
                 print("gdb is attached to the app in the emulator.\n", ProcessOutputTypes.SYSTEM)
+                if (numbers.isNotEmpty()) startAgain()
             } catch (e: GdbError) {
                 print("gdb could not attach to the emulator: ${e.message}\n", ProcessOutputTypes.STDERR)
                 connection = null
@@ -142,6 +150,20 @@ class GdbDebugProcess(
             } finally {
                 attaching = false
             }
+        }
+    }
+
+    /**
+     * Runs the app's start again under gdb. Off the command queue: the install takes seconds,
+     * and a breakpoint it reaches is shown, and stepped from, through that queue meanwhile. Only
+     * with breakpoints set — without one the second start would only show up twice in the log.
+     */
+    private fun startAgain() {
+        val relaunch = relaunch ?: return
+        print("Starting the app again, so its start runs under the debugger.\n", ProcessOutputTypes.SYSTEM)
+        AppExecutorUtil.getAppExecutorService().execute {
+            if (stopping) return@execute
+            relaunch()?.let { print("The app could not be started again: $it\n", ProcessOutputTypes.STDERR) }
         }
     }
 

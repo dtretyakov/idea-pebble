@@ -3,6 +3,7 @@ package com.github.dtretyakov.pebble.live
 import com.github.dtretyakov.pebble.debug.gdb.GdbDebugProcess
 import com.github.dtretyakov.pebble.debug.gdb.GdbSetup
 import com.github.dtretyakov.pebble.emulator.EmulatorState
+import com.github.dtretyakov.pebble.run.PebbleDebugRunner
 import com.github.dtretyakov.pebble.run.PebbleInstallCommand
 import com.github.dtretyakov.pebble.run.PebbleLogProcessHandler
 import com.github.dtretyakov.pebble.run.PebbleRunState
@@ -182,6 +183,85 @@ class GdbDebugLiveTest : IdeTestCase() {
         } finally {
             logs.destroyProcess()
             logs.waitFor(10_000)
+        }
+    }
+
+    /**
+     * A breakpoint in the app's start: reached only because, once gdb is attached, the app is
+     * installed again and starts over — at the same address, so gdb's breakpoints still stand.
+     */
+    fun `test a breakpoint in main stops, the app having been started again under gdb`() {
+        if (System.getProperty("pebble.liveTests") != "true") return
+        val tool = LiveSdk.tool()
+        val root = LiveSdk.fixture("fixture-c").toRealPath()
+        val source = root.resolve("src/c/fixture-c.c")
+        Files.writeString(
+            source,
+            """
+            #include <pebble.h>
+            static Window *s_window;
+            int main(void) {
+              s_window = window_create();
+              window_stack_push(s_window, false);
+              app_event_loop();
+            }
+            """.trimIndent(),
+        )
+        assertEquals(0, LiveSdk.run(root, "build", "--debug").exitCode)
+        LiveSdk.install(root, "--emulator", "emery", "--vnc")
+
+        VfsRootAccess.allowRootAccess(testRootDisposable, root.parent.toString())
+        val rootFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root)!!
+        PsiTestUtil.addContentRoot(module, rootFile)
+        Disposer.register(testRootDisposable) { PsiTestUtil.removeContentEntry(module, rootFile) }
+        val main = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(source)!!
+        // Line 4: `s_window = window_create();`, run once per start and never again.
+        assertNotNull(XDebuggerTestUtil.toggleBreakpoint(project, main, 3))
+
+        val handler = PebbleRunState.processHandler(
+            tool, PebbleInstallCommand.arguments(PebbleRunTarget.EMULATOR, "emery", "", "", logs = true), root,
+        ) as PebbleLogProcessHandler
+        val output = StringBuffer()
+        handler.addProcessListener(
+            object : ProcessListener {
+                override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+                    output.append(event.text)
+                }
+            },
+        )
+        val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
+        console.attachToProcess(handler)
+        val session = XDebuggerManager.getInstance(project).startSessionAndShowTab(
+            "C",
+            null as RunContentDescriptor?,
+            object : XDebugProcessStarter() {
+                override fun start(session: XDebugSession): XDebugProcess {
+                    val process = GdbDebugProcess(
+                        session, DefaultExecutionResult(console, handler),
+                        setup = { GdbSetup.prepare(PebbleSdks.scan(PebbleDataDir.locate()), root, "emery", EmulatorState.running()) },
+                        relaunch = { PebbleDebugRunner.installAgain(tool, root, "emery") },
+                    )
+                    handler.beforeDestroy = { process.detach() }
+                    return process
+                }
+            },
+        )
+        if (!handler.isStartNotified) handler.startNotify()
+        try {
+            waitUntil(240, output) { "gdb is attached" in output }
+            waitUntil(60, output) { session.isSuspended }
+            assertEquals(main, session.currentPosition!!.file)
+            assertEquals(3, session.currentPosition!!.line)
+            session.resume()
+            settle()
+            assertFalse(session.isSuspended)
+        } finally {
+            handler.destroyProcess()
+            handler.waitFor(20_000)
+            session.stop()
+            UIUtil.dispatchAllInvocationEvents()
+            Disposer.dispose(session.runContentDescriptor)
+            Disposer.dispose(console)
         }
     }
 

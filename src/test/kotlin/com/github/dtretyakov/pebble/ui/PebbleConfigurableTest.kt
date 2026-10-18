@@ -1,5 +1,6 @@
 package com.github.dtretyakov.pebble.ui
 
+import com.github.dtretyakov.pebble.project.PebbleAppSettings
 import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.github.dtretyakov.pebble.testing.IdeTestCase
 import com.intellij.ui.table.TableView
@@ -21,6 +22,21 @@ class PebbleConfigurableTest : IdeTestCase() {
             val widths = (0 until table.columnCount).map { table.columnModel.getColumn(it).maxWidth }
             assertTrue(widths.toString(), widths[0] <= JBUI.scale(28) && widths[1] < 150 && widths[2] < 150 && widths[3] > 1000)
             assertEquals(PebbleSdkService.getInstance().tool() != null, table.isEnabled)
+        }
+    }
+
+    fun `test without pebble-tool the SDK table is there, disabled`() {
+        val settings = PebbleAppSettings.getInstance()
+        val saved = settings.pebbleToolPath
+        // As on a machine without it, CI's among them: a path to nothing finds no pebble-tool.
+        settings.pebbleToolPath = "/nonexistent/pebble"
+        try {
+            withPage { component ->
+                assertNull(PebbleSdkService.getInstance().tool())
+                assertFalse(UIUtil.findComponentsOfType(component, TableView::class.java).single().isEnabled)
+            }
+        } finally {
+            settings.pebbleToolPath = saved
         }
     }
 

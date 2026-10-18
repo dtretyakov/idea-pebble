@@ -134,7 +134,14 @@ internal class SdkListPanel(private val project: Project?, parent: Disposable) {
         border = JBUI.Borders.emptyTop(6)
     }
 
-    val component: JComponent = JPanel(BorderLayout()).apply {
+    val component: JComponent = object : JPanel(BorderLayout()) {
+        // Disabled with the page's row when there is no pebble-tool: the table and its toolbar too,
+        // as the decorator's own panel passes it on, which this one around it does not by itself.
+        override fun setEnabled(enabled: Boolean) {
+            super.setEnabled(enabled)
+            components.forEach { it.isEnabled = enabled }
+        }
+    }.apply {
         add(
             ToolbarDecorator.createDecorator(table)
                 .setAddAction { button -> chooseVersionToInstall(button.preferredPopupPoint) }

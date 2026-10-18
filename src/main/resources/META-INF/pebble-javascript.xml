@@ -1,12 +1,18 @@
 <!--
-  PebbleKit JS's typings as a predefined JavaScript library for Pebble projects: loaded only where
-  the JavaScript plugin is. See PebbleKitJsLibrary for why an ordinary library is not enough.
+  A Pebble project's JavaScript globals as predefined JavaScript libraries — PebbleKit JS's Pebble,
+  an Alloy app's watch and the rest: loaded only where the JavaScript plugin is. See
+  PebbleJsLibraries for why an ordinary library is not enough.
 -->
 <idea-plugin>
     <extensions defaultExtensionNs="JavaScript">
-        <predefinedLibraryProvider implementation="com.github.dtretyakov.pebble.lang.PebbleKitJsLibrary"/>
+        <predefinedLibraryProvider implementation="com.github.dtretyakov.pebble.lang.PebbleJsLibraries"/>
     </extensions>
     <extensions defaultExtensionNs="com.intellij">
-        <postStartupActivity implementation="com.github.dtretyakov.pebble.lang.PebbleKitJsLibrary$Startup"/>
+        <postStartupActivity implementation="com.github.dtretyakov.pebble.lang.PebbleJsLibraries$Startup"/>
     </extensions>
+    <projectListeners>
+        <listener
+            class="com.github.dtretyakov.pebble.lang.PebbleJsLibraries$BuildListener"
+            topic="com.github.dtretyakov.pebble.build.PebbleBuild$Listener"/>
+    </projectListeners>
 </idea-plugin>

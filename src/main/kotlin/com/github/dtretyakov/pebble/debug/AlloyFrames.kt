@@ -1,5 +1,6 @@
 package com.github.dtretyakov.pebble.debug
 
+import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.ColoredTextContainer
@@ -36,7 +37,10 @@ internal class AlloySuspendContext(process: AlloyDebugProcess, suspension: Alloy
 
 internal class AlloyExecutionStack(process: AlloyDebugProcess, suspension: AlloyDebugProcess.Suspension) : XExecutionStack("JavaScript") {
 
-    private val frames = suspension.frames.map { AlloyStackFrame(process, suspension, it) }
+    // Each with the frame it called, which is where in a runtime function the stop came from.
+    private val frames = suspension.frames.mapIndexed { index, frame ->
+        AlloyStackFrame(process, suspension, frame, callee = suspension.frames.getOrNull(index - 1)?.name)
+    }
 
     override fun getTopFrame(): XStackFrame? = frames.firstOrNull()
 
@@ -45,14 +49,25 @@ internal class AlloyExecutionStack(process: AlloyDebugProcess, suspension: Alloy
     }
 }
 
-/** A frame; the engine's own (`(host)`) have no source. */
+/**
+ * A frame. The app's carry their file and line; the runtime's are found in the SDK's copy of the
+ * runtime by name ([AlloyRuntime]); the engine's own — `(host)`, `forEach` — have no source.
+ */
 internal class AlloyStackFrame(
     private val process: AlloyDebugProcess,
     private val suspension: AlloyDebugProcess.Suspension,
     private val frame: XsbugFrame,
+    private val callee: String? = null,
 ) : XStackFrame() {
 
-    private val position: XSourcePosition? by lazy { position(frame.path, frame.line) }
+    // Found as the frame is made, on the debugger's thread: it may read the SDK's runtime sources,
+    // which is not for the UI thread that draws the frame.
+    private val runtime: AlloyRuntime.Location? =
+        if (frame.path != null) null else AlloyRuntime.locate(PebbleSdkService.getInstance().currentSdk(), frame.name, callee)
+
+    private val position: XSourcePosition? by lazy {
+        position(frame.path, frame.line) ?: runtime?.let { position(it.file.toString(), it.line + 1) }
+    }
 
     override fun getSourcePosition(): XSourcePosition? = position
 
@@ -60,9 +75,10 @@ internal class AlloyStackFrame(
 
     override fun customizePresentation(component: ColoredTextContainer) {
         component.append(frame.name, if (position != null) SimpleTextAttributes.REGULAR_ATTRIBUTES else SimpleTextAttributes.GRAYED_ATTRIBUTES)
-        val path = frame.path ?: return
-        component.append(" ${Path.of(path).fileName}:${frame.line}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
         component.setIcon(AllIcons.Debugger.Frame)
+        frame.path?.let { return component.append(" ${Path.of(it).fileName}:${frame.line}", SimpleTextAttributes.GRAYED_ATTRIBUTES) }
+        // The line is the source's best guess, not the engine's: said as the runtime's, not as the app's.
+        runtime?.let { component.append(" ${it.file.fileName}:${it.line + 1} (Alloy runtime)", SimpleTextAttributes.GRAYED_ATTRIBUTES) }
     }
 
     override fun computeChildren(node: XCompositeNode) = process.computeFrameChildren(suspension, frame, node)

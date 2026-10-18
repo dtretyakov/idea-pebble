@@ -47,7 +47,9 @@ class AlloyDebugModelTest {
         assertEquals(Kind.NUMBER, shown("255").kind)
         assertEquals(Kind.NUMBER, shown("-1.5e3").kind)
         assertEquals(Kind.KEYWORD, shown("undefined").kind)
-        assertEquals(Kind.OBJECT, shown("@20028504", flags = "+cEw_").kind)
+        // An object is its address alone, shown as one to open; the frame's function, as a function.
+        assertEquals(XsbugValues.Shown(Kind.OBJECT, "{…}"), shown("@20028504", flags = "+cEw_"))
+        assertEquals(Kind.FUNCTION, XsbugValues.of(XsbugProperty("(function)", "+cew_", "@20028184", null, emptyList())).kind)
         assertEquals(Kind.FUNCTION, shown("/work/w/src/embeddedjs/main.js", line = 11).kind)
         assertEquals(Kind.FUNCTION, shown("(host function)").kind)
         assertEquals(Kind.UNINITIALIZED, shown(null).kind)

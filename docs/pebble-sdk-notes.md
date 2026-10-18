@@ -406,3 +406,17 @@ platform and variant, to `build/mods/<platform>/mcrun/tmp/pebble/<debug|release>
 `target` and `lib` es2025, `allowJs` and `checkJs`. The settings come from Moddable's
 `examples/manifest_typings.json`, which the template's manifest includes. A `tsconfig.json` at
 the project's root does not change the build.
+
+The global `types` are absolute paths without an extension to script `.d.ts` files —
+`typings/pebble/global.d.ts` declares `watch` (an interface and a constant of that name),
+`console` and `Resource`; `xs/includes/xs.d.ts` and `typings/global.d.ts` the engine's own. No
+module imports them, so an editor learns these globals from `types` or not at all; IntelliJ's
+JavaScript resolves global names in a `.js` file neither through a `tsconfig.json` nor from an
+ordinary library, only from its own predefined libraries.
+
+The runtime between an app's handlers and the firmware is JavaScript too, shipped in the SDK as
+`toolchain/moddable/build/devices/pebble/modules/global/global.js`: `class Pebble`, whose
+`do(event, arg)` hands each `watch` event to its listeners with `forEach`. The engine runs it
+compiled without debugging information: its frames come with a name — `Pebble.prototype.do`,
+`(anonymous-0)` for the timer callback — and no `path` or `line`; `forEach` and `(host)` are
+native.

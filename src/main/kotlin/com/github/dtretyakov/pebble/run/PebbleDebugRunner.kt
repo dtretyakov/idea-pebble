@@ -8,8 +8,11 @@ import com.github.dtretyakov.pebble.debug.XsbugServer
 import com.github.dtretyakov.pebble.debug.gdb.GdbDebugProcess
 import com.github.dtretyakov.pebble.debug.gdb.GdbSetup
 import com.github.dtretyakov.pebble.emulator.EmulatorState
+import com.github.dtretyakov.pebble.project.PebbleCommands
 import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.intellij.execution.ExecutionException
+import com.intellij.execution.process.CapturingProcessHandler
+import java.nio.file.Path
 import com.intellij.execution.configurations.RunProfile
 import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RunnerSettings
@@ -53,7 +56,7 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
      * The server first, so pebble-tool finds it and does not launch xsbug; then the install; then
      * the session, whose process logs out before pebble-tool is stopped.
      */
-    private fun debugAlloy(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor {
+    private fun debugAlloy(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
         val server = try {
             XsbugServer.bind(listener = XsbugServer.UNATTENDED)
         } catch (_: XsbugServer.PortInUse) {
@@ -68,7 +71,7 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
             server.close()
             throw e
         }
-        val session = XDebuggerManager.getInstance(environment.project).startSession(
+        return startSession(
             environment,
             object : XDebugProcessStarter() {
                 override fun start(session: XDebugSession): XDebugProcess {
@@ -80,30 +83,57 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
                 }
             },
         )
-        return session.runContentDescriptor
     }
 
+    /**
+     * The session and its tab, from the session builder: since the debugger's frontend and backend
+     * were split, a session no longer hands out its run content, and asking it is logged as an
+     * error on every launch.
+     */
+    private fun startSession(environment: ExecutionEnvironment, starter: XDebugProcessStarter): RunContentDescriptor? =
+        XDebuggerManager.getInstance(environment.project).newSessionBuilder(starter)
+            .environment(environment)
+            .startSession()
+            .runContentDescriptor
+
     /** The install first; gdb attaches when it is done, and detaches before pebble-tool is stopped. */
-    private fun debugC(state: RunProfileState, environment: ExecutionEnvironment, configuration: PebbleRunConfiguration): RunContentDescriptor {
+    private fun debugC(state: RunProfileState, environment: ExecutionEnvironment, configuration: PebbleRunConfiguration): RunContentDescriptor? {
         val root = PebbleProject.getInstance(environment.project).primaryRoot() ?: throw ExecutionException("No Pebble project here.")
         val platform = configuration.platform() ?: throw ExecutionException("The project targets no platform.")
         val result = state.execute(environment.executor, this) ?: throw ExecutionException("Nothing to debug.")
-        val session = XDebuggerManager.getInstance(environment.project).startSession(
+        return startSession(
             environment,
             object : XDebugProcessStarter() {
                 override fun start(session: XDebugSession): XDebugProcess {
-                    val process = GdbDebugProcess(session, result, setup = {
-                        GdbSetup.prepare(PebbleSdkService.getInstance().sdks(), root, platform, EmulatorState.running())
-                    })
+                    val process = GdbDebugProcess(
+                        session, result,
+                        setup = { GdbSetup.prepare(PebbleSdkService.getInstance().sdks(), root, platform, EmulatorState.running()) },
+                        relaunch = {
+                            PebbleSdkService.getInstance().tool()?.let { installAgain(it, root, platform) } ?: "pebble-tool is not installed."
+                        },
+                    )
                     (result.processHandler as? PebbleLogProcessHandler)?.beforeDestroy = { process.detach() }
                     return process
                 }
             },
         )
-        return session.runContentDescriptor
     }
 
     companion object {
+        private const val INSTALL_TIMEOUT_MILLIS = 60_000
+
+        /**
+         * `pebble install` once more, beside the run's own, which goes on showing the logs: the
+         * firmware stops the app and starts it afresh, which is the start gdb is now attached for.
+         * What went wrong, or null.
+         */
+        fun installAgain(tool: Path, root: Path, platform: String): String? {
+            val arguments = PebbleInstallCommand.arguments(PebbleRunTarget.EMULATOR, platform, "", "", logs = false)
+            val output = CapturingProcessHandler(PebbleCommands.command(tool, arguments, root)).runProcess(INSTALL_TIMEOUT_MILLIS)
+            if (output.exitCode == 0 && !output.isTimeout) return null
+            return (output.stderrLines + output.stdoutLines).lastOrNull { it.isNotBlank() } ?: "pebble install timed out."
+        }
+
         /** An Alloy app, where Alloy runs: a watch runs whatever it is, the emulator is the one asked for. */
         fun debugsWithXsbug(configuration: PebbleRunConfiguration): Boolean =
             projectType(configuration) == PebbleProjectInfo.ProjectType.ALLOY &&

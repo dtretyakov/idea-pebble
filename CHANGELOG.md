@@ -32,6 +32,11 @@
   by itself once it has worked. On an Intel Mac, where the SDK's emulator looks for libpng where
   only Apple silicon's Homebrew puts it, the plugin says so rather than offering a command that
   would not help.
+- Debug for C stops at breakpoints in the app's start — `main`, `init`, the first window's load:
+  once gdb is attached, the app is installed again and starts over under it, at the same address.
+  Only with breakpoints set; the log goes on through the restart.
+- Debug no longer logs an error on every launch about a debugger session's run content, which the
+  split debugger does not hand out.
 - The first Run on a cold emulator no longer ends in `Connection refused`: pebble-tool gives a
   starting emulator five seconds, so the plugin starts it in the before-launch task and waits
   until it can take the app.

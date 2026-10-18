@@ -231,6 +231,60 @@ class GdbDebugProcessTest : IdeTestCase() {
         assertTrue("detached while running: interrupted first", gdb.heard().takeLast(3).first() == "-exec-interrupt")
     }
 
+    fun `test with a breakpoint set, the app is started again once gdb is attached, so its start is debugged`() {
+        assertNotNull(XDebuggerTestUtil.toggleBreakpoint(project, main, 3))
+        assertEquals(1, attachAndCountRelaunches())
+        assertTrue(output.toString(), "Starting the app again" in output)
+    }
+
+    fun `test without breakpoints the app is left to run as it was started`() {
+        assertEquals(0, attachAndCountRelaunches())
+    }
+
+    /** Attaches as the run would, and counts how often the app is started again. */
+    private fun attachAndCountRelaunches(): Int {
+        val relaunches = java.util.concurrent.atomic.AtomicInteger()
+        val gdb = gdb()
+        val setup = GdbSetup(Path.of("arm-none-eabi-gdb"), Path.of("emery_sdk_debug.elf"), 1234, listOf("add-symbol-file \"app.elf\" x+0xa8"))
+        val handler = NopProcessHandler()
+        handler.addProcessListener(
+            object : ProcessListener {
+                override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+                    output.append(event.text)
+                }
+            },
+        )
+        val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
+        val session = XDebuggerManager.getInstance(project).startSessionAndShowTab(
+            "C",
+            null as RunContentDescriptor?,
+            object : XDebugProcessStarter() {
+                override fun start(session: XDebugSession): XDebugProcess =
+                    GdbDebugProcess(
+                        session, DefaultExecutionResult(console, handler), { setup },
+                        relaunch = { relaunches.incrementAndGet(); null },
+                    ) { _, listener -> GdbConnection(gdb.input, gdb.output, listener).start() }
+            },
+        )
+        val pump = { UIUtil.dispatchAllInvocationEvents() }
+        try {
+            handler.notifyTextAvailable("App install succeeded.\n", ProcessOutputTypes.STDOUT)
+            gdb.next("-exec-continue", pump)
+            waitUntil { "gdb is attached" in output }
+            // The relaunch is off the command queue: give it the time it would take to start.
+            Thread.sleep(300)
+            pump()
+        } finally {
+            session.stop()
+            gdb.next("-target-detach", pump)
+            gdb.next("-gdb-exit", pump)
+            UIUtil.dispatchAllInvocationEvents()
+            Disposer.dispose(session.runContentDescriptor)
+            Disposer.dispose(console)
+        }
+        return relaunches.get()
+    }
+
     fun `test the gutter offers one kind of breakpoint on a C source`() {
         val offered = XLineBreakpointType.EXTENSION_POINT_NAME.extensionList
             .filterIsInstance<XLineBreakpointType<*>>()

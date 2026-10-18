@@ -352,6 +352,15 @@ pebble-tool's `commands/sdk/project/debug.py` is the recipe, and gdb does the sa
   install` says `App install succeeded.`
 - `-break-insert app_crashed`, as `pebble gdb` does.
 
+The app has started by the time gdb can attach, so a breakpoint in its start — `main`, `init`,
+the first window's load — is never reached by itself. The firmware loads a third-party app at the
+same address every time (`g_app_load_address` = `0x20050400` on emery, across installs), so the
+symbols and breakpoints gdb was given stay true across a restart: a second `pebble install`, beside
+the first's `--logs` — which goes on logging through it — stops the app and starts it afresh, and
+its start runs under gdb. pebble-tool can also start an installed app by UUID
+(`AppRunStateStart`, which `pebble gdb` sends when another app is running), but no command offers
+that alone.
+
 Then, against emery with SDK 4.33.1:
 
 - `-exec-interrupt` is ignored unless `-gdb-set mi-async on` came first; with it, the watch stops

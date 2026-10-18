@@ -47,6 +47,9 @@
 - The first Run on a cold emulator no longer ends in `Connection refused`: pebble-tool gives a
   starting emulator five seconds, so the plugin starts it in the before-launch task and waits
   until it can take the app.
+- Nor does a Run on an emulator whose watch has stopped answering end in `App install failed.`:
+  the emulator is asked while the app builds, and restarted when it is silent — unless a debug
+  session is on, whose watch may be stopped at a breakpoint.
 - Node.js and clangd are mentioned where they matter: above PebbleKit JS files and C files, with the
   command that installs them, rather than at every file.
 - Windows says what to do: Ubuntu 24.04 in WSL, or CloudPebble in the browser.

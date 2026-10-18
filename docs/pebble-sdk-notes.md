@@ -61,6 +61,14 @@ thing as prose, so the plugin reads the files instead — and reads `pebble sdk 
 the files cannot say, the versions available to install: the lines under `Available SDKs:` (or
 `Available SDKs (<channel> channel):`), already without the installed ones.
 
+What changed in a version is on pebble-tool's download server alone:
+`https://sdk.repebble.com/v1/files/sdk-core/<version>?channel=` describes it as JSON — its
+download `url`, its `requirements` on pebble-tool (empty for 4.33.1, whose own `manifest.json`
+says `pebble-tool>=5.0.38`) and `release_notes`, a sentence with the address in it: "Check out the
+release notes at https://developer.repebble.com/sdk/changelogs/4.17/index.html". Older versions
+point at Rebble's site, and 4.4's at 4.3's notes. The index, `/v1/files/sdk-core?channel=`, gives
+versions and channels only; nothing gives a date.
+
 ## Projects
 
 A directory is a project when its `package.json` has a `pebble` key, and it must also have a

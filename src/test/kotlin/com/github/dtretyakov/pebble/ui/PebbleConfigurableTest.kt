@@ -2,7 +2,8 @@ package com.github.dtretyakov.pebble.ui
 
 import com.github.dtretyakov.pebble.project.PebbleSdkService
 import com.github.dtretyakov.pebble.testing.IdeTestCase
-import com.intellij.ui.components.JBList
+import com.intellij.ui.table.TableView
+import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import java.awt.Container
 import javax.swing.JComponent
@@ -13,9 +14,13 @@ class PebbleConfigurableTest : IdeTestCase() {
 
     fun `test the page builds, with the SDK list enabled only when pebble-tool is here`() {
         withPage { component ->
-            val list = UIUtil.findComponentsOfType(component, JBList::class.java).single()
-            assertEquals(PebbleSdkService.getInstance().sdks().installed.size, list.model.size)
-            assertEquals(PebbleSdkService.getInstance().tool() != null, list.isEnabled)
+            val table = UIUtil.findComponentsOfType(component, TableView::class.java).single()
+            assertEquals(PebbleSdkService.getInstance().sdks().installed.size, table.rowCount)
+            assertEquals(listOf("", "Version", "Size", "Platforms"), (0 until table.columnCount).map(table::getColumnName))
+            // The mark, the version and the size as narrow as they need: the rest of the width is the platforms'.
+            val widths = (0 until table.columnCount).map { table.columnModel.getColumn(it).maxWidth }
+            assertTrue(widths.toString(), widths[0] <= JBUI.scale(28) && widths[1] < 150 && widths[2] < 150 && widths[3] > 1000)
+            assertEquals(PebbleSdkService.getInstance().tool() != null, table.isEnabled)
         }
     }
 

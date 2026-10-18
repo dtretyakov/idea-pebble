@@ -209,9 +209,22 @@ A first `pebble install --emulator` can fail with `Connection refused` (`[Errno 
 times, half a second apart (`ManagedEmulatorTransport.connect`), and a cold start takes longer —
 the first after pebble-tool is installed most of all, while Python compiles pypkjs. The emulator
 stays up when the command gives up, so the next run finds it. The plugin starts the emulator in
-the before-launch task with `pebble ping --emulator P --vnc`, which spawns it the same way, and
-waits for pypkjs's port from `pb-emulator.json` before installing; the hint after the error is for
-a run without that task. Waiting while pypkjs is alive, upstream, is the fix.
+the before-launch task with `pebble data-logging get-sends-enabled --emulator P --vnc`, which
+spawns it the same way and changes nothing on the watch, and waits for pypkjs's port from
+`pb-emulator.json` before installing; the hint after the error is for a run without that task.
+Waiting while pypkjs is alive, upstream, is the fix.
+
+An emulator can also be up and silent: QEMU running (`info status` on its monitor says so),
+pypkjs listening and connected to the watch's serial, and the firmware answering nothing — after a
+debug session cut short, for one. `pebble install` then ends in `App install failed.`: pypkjs
+installs through libpebble2 and answers failure on any exception, with its own output sent to
+`/dev/null`. Any other command times out on the watch's version (`WatchVersion`, about 17 s for
+`pebble ping`), and an answered one takes a second and a half. `pebble ping` is answered on the
+watch too, by a window saying "Ping" over whatever app is running; `data-logging
+get-sends-enabled` reads a setting and shows nothing. `stop` on QEMU's monitor makes a silent
+watch at will; `pebble kill` and a new start clear one. The plugin asks a running emulator so
+before each run on it, beside the build, and restarts one that does not answer — unless a debug
+session is on, whose watch may be stopped at a breakpoint.
 
 pypkjs listens on `("", port)`, which gevent opens as IPv6. On a host without IPv6 — some
 containers — it fails with `Address family not supported` and every `pebble install --emulator`

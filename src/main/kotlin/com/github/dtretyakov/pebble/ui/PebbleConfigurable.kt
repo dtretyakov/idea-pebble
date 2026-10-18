@@ -104,10 +104,15 @@ class PebbleConfigurable(private val project: Project) :
             group("SDKs") {
                 // Shown without pebble-tool too, disabled: a list that appears from nowhere once
                 // pebble-tool is installed does not say it was the next step.
+                // The page's own disposable: the list listens for SDK changes while it is shown.
+                val sdks = SdkListPanel(project, disposable!!)
                 sdkList = row {
-                    // The page's own disposable: the list listens for SDK changes while it is shown.
-                    cell(SdkListPanel(project, disposable!!).component).align(Align.FILL)
+                    cell(sdks.component).align(Align.FILL)
                 }.resizableRow().enabled(PebbleSdkService.getInstance().tool() != null)
+                // Which SDK is active is chosen in the list and made so by Apply, as the page's other settings.
+                onIsModified { sdks.isModified() }
+                onApply { sdks.apply() }
+                onReset { sdks.reset() }
                 status(items, Concern.SDK, Concern.TOOLCHAIN, Concern.EMULATOR)
             }
 

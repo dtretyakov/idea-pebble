@@ -53,6 +53,13 @@
 - Node.js and clangd are mentioned where they matter: above PebbleKit JS files and C files, with the
   command that installs them, rather than at every file.
 - Windows says what to do: Ubuntu 24.04 in WSL, or CloudPebble in the browser.
+- The settings page's SDKs are a table: a check mark on the active SDK and nothing on the others,
+  the version, the room it takes, and the platforms it builds for — in red, one the project
+  targets that it does not. Under the table, one line says the SDKs are up to date, or which
+  newer one is out, with Install and What's new. Which SDK is active is chosen — double-click,
+  Set Active, or the row's menu — and made so by Apply, like the page's other settings; Cancel
+  leaves it. Install's list opens under its button, newest first; Remove says how much room it
+  frees; the row's menu has Release Notes.
 - The Pebble settings page fits its dialog and says only what is wrong, under the control it is
   about: pebble-tool and C code insight are named once, found tools are named in their fields'
   placeholders, and the SDK list shows before pebble-tool is installed, disabled. The paths it no

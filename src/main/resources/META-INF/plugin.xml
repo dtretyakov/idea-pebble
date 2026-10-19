@@ -30,8 +30,17 @@
             <li>Pick a platform beside the Run button and press Run.</li>
         </ol>
         <p>For C in IntelliJ IDEA or WebStorm, install the LSP4IJ plugin and clangd; CLion needs neither.</p>
-        <p><small>Pebble is a trademark of Core Devices LLC. Develop for Pebble is an independent, open-source
-            project, not affiliated with or endorsed by Core Devices.</small></p>
+        <h3>Trademarks</h3>
+        <p>
+            Pebble is a trademark of Core Devices LLC. It is used here only to name the watches this
+            plugin builds for and the SDK it drives, which is a statement of compatibility and
+            nothing more.
+        </p>
+        <p>
+            Develop for Pebble is an independent, open-source project. It is not affiliated with,
+            endorsed by, or supported by Core Devices, and it redistributes nothing of theirs: it
+            installs pebble-tool from PyPI, pebble-tool installs the SDK, and the plugin runs them.
+        </p>
     ]]></description>
 
     <!--

@@ -37,8 +37,8 @@ class MemoryReportTest {
         assertEquals(MemoryUsage("gabbro", "app", 220, 128 * 1024, 130852, 4092, 256 * 1024), app)
         assertEquals(MemoryUsage("flint", "worker", 1100, 10 * 1024, 9140, null, null), worker)
         assertFalse(app.isTight)
-        assertEquals("Memory: 220 bytes in RAM of 128.0 KB, 127.8 KB free for the heap; resources 4.0 KB of the store's 256.0 KB", app.summary)
-        assertTrue(worker.summary.startsWith("Worker memory: "))
+        assertEquals("Memory on gabbro: 220 bytes in RAM of 128.0 KB, 127.8 KB free for the heap; resources 4.0 KB of the store's 256.0 KB", app.summary)
+        assertTrue(worker.summary.startsWith("Worker memory on flint: "))
     }
 
     @Test

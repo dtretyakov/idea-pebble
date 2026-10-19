@@ -11,6 +11,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProgressIndicator
@@ -65,8 +66,13 @@ class CaptureAllPlatformsAction : DumbAwareAction(TEXT, DESCRIPTION, AllIcons.Fi
             val root = PebbleProject.getInstance(project).primaryRoot() ?: return
             val tool = PebbleSdkService.getInstance().tool() ?: return PebbleCommands.notify(project, "pebble-tool is not installed.", NotificationType.ERROR)
             if (!running.compareAndSet(false, true)) return
-            FileDocumentManager.getInstance().saveAllDocuments()
-            capture(project, tool, root, shown = EmulatorSession.getInstance(project).emulator)
+            // The tab's links call this from a mouse listener, where saving documents is not
+            // write-safe and throws — leaving the flag above set, and the action dead until restart.
+            ApplicationManager.getApplication().invokeLater {
+                if (project.isDisposed) return@invokeLater running.set(false)
+                FileDocumentManager.getInstance().saveAllDocuments()
+                capture(project, tool, root, shown = EmulatorSession.getInstance(project).emulator)
+            }
         }
 
         private fun capture(project: Project, tool: Path, root: Path, shown: RunningEmulator?) {

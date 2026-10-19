@@ -94,11 +94,17 @@ Then, on the listing page:
   |---|---|
   | `01-emulator.png` | the app running in the Pebble Emulator tool window beside its code, the platform chosen beside Run |
   | `02-all-platforms.png` | Capture Every Platform: the app on every platform it targets, side by side |
-  | `03-alloy-debugger.png` | an Alloy app stopped on a breakpoint: frames, variables, the value inline in the editor |
-  | `04-c-completion.png` | C completion over the SDK's headers, with a platform-stub warning in the same editor |
+  | `03-alloy-debugger.png` | an Alloy watchface stopped on a breakpoint: frames, and the locals with their real values |
+  | `04-alloy-completion.png` | Alloy completion from the SDK's typings: the events a watchface can listen to |
   | `05-build-memory.png` | the Build window after a build: each platform's memory |
   | `06-ui-tests.png` | UI test scenarios in the test runner, a screen compared with its reference |
-  | `07-new-project.png` | New Project | Pebble |
+  | `07-new-project.png` | New Project \| Pebble, with Alloy chosen |
+  | `08-c-completion.png` | C completion over the SDK's headers, with a platform-stub warning in the same editor |
+
+  Alloy leads where the two languages differ, the debugger and completion, because it is where new
+  Pebble apps are being written; C, which every platform runs, carries the shots that span all
+  seven. They are taken on two demo projects written for the purpose: Focus, a C timer for every
+  platform with three UI test scenarios, and Orbit, an Alloy watchface for emery and gabbro.
 
 - **What's new** — read the rendered release notes on the listing before publishing. They are
   generated from `CHANGELOG.md`, and the Marketplace sanitises HTML more strictly than the plugin

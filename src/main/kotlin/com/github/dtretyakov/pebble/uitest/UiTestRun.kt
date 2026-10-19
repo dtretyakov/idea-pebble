@@ -204,7 +204,13 @@ class TeamCityReporter(private val file: Path, private val write: (String) -> Un
 
     override fun suiteFinished(name: String) = write(ServiceMessageBuilder.testSuiteFinished(name).toString() + "\n")
 
-    override fun testStarted(name: String, line: Int) = write(ServiceMessageBuilder.testStarted(name).addAttribute("locationHint", ScenarioLocator.url(file, line)).toString() + "\n")
+    /** When each running test started: the test runner shows 0 ms for a test finished without a duration. */
+    private val started = mutableMapOf<String, Long>()
+
+    override fun testStarted(name: String, line: Int) {
+        started[name] = System.nanoTime()
+        write(ServiceMessageBuilder.testStarted(name).addAttribute("locationHint", ScenarioLocator.url(file, line)).toString() + "\n")
+    }
 
     override fun output(text: String) = write(text)
 
@@ -218,7 +224,11 @@ class TeamCityReporter(private val file: Path, private val write: (String) -> Un
         write(failure.toString() + "\n")
     }
 
-    override fun testFinished(name: String) = write(ServiceMessageBuilder.testFinished(name).toString() + "\n")
+    override fun testFinished(name: String) {
+        val finished = ServiceMessageBuilder.testFinished(name)
+        started.remove(name)?.let { finished.addAttribute("duration", ((System.nanoTime() - it) / 1_000_000).toString()) }
+        write(finished.toString() + "\n")
+    }
 }
 
 /** `pebble-ui://<file>:<line>`: a test is the `expect` line that names it, a suite the scenario. */

@@ -36,7 +36,10 @@ data class MemoryUsage(
 
     val summary: String
         get() = buildString {
+            // The Build window files each under its platform's group, but its tree does not show
+            // groups: without the name, seven platforms read as seven identical lines.
             append(if (binary == "app") "Memory" else "${binary.replaceFirstChar { it.uppercase() }} memory")
+            append(" on ").append(platform)
             append(": ").append(size(ram)).append(" in RAM")
             ramLimit?.let { append(" of ").append(size(it)) }
             heapFree?.let { append(", ").append(size(it)).append(" free for the heap") }

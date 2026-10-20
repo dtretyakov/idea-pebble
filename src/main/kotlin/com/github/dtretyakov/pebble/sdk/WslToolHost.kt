@@ -113,7 +113,8 @@ class WslToolHost(
 
     /** `wsl.exe` as far as the shell's script: `--cd` takes a Linux path, and `~` for the home directory. */
     private fun prefix(workDirectory: Path?): List<String> {
-        val directory = workDirectory?.toAbsolutePath()?.let { toolPath(it) ?: throw IllegalArgumentException(unreachable(it)) } ?: "~"
+        // As given first: a relative one — "." — made absolute, but a Windows path stays one off Windows too.
+        val directory = workDirectory?.let { toolPath(it) ?: toolPath(it.toAbsolutePath()) ?: throw IllegalArgumentException(unreachable(it)) } ?: "~"
         return listOf(wslExe, "--distribution", distribution, "--cd", directory, "--exec", "/bin/sh", "-lc")
     }
 

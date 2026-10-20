@@ -5,6 +5,7 @@ import com.github.dtretyakov.pebble.sdk.PebbleSdk
 import com.github.dtretyakov.pebble.sdk.PebbleSdks
 import com.github.dtretyakov.pebble.sdk.HostTool
 import com.github.dtretyakov.pebble.sdk.ToolHost
+import com.github.dtretyakov.pebble.sdk.WslToolHost
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -53,7 +54,7 @@ class PebbleSdkService {
         val dataDir = dataDir()
         val host = if (dataDirForTests != null) null else host()
         val resolveLink: (Path) -> Path? = host?.let { it::resolveLink } ?: { link -> runCatching { link.toRealPath() }.getOrNull() }
-        val stamp = stampOf(dataDir, resolveLink)
+        val stamp = stampOf(dataDir, host, resolveLink)
         snapshot?.let { if (it.stamp == stamp) return it.sdks }
         return PebbleSdks.scan(dataDir, resolveLink).also { snapshot = Snapshot(stamp, it) }
     }
@@ -61,8 +62,12 @@ class PebbleSdkService {
     /** The active SDK — the one `pebble build` would use. */
     fun currentSdk(): PebbleSdk? = sdks().current
 
-    private fun stampOf(dataDir: Path?, resolveLink: (Path) -> Path?): List<Any?> {
+    private fun stampOf(dataDir: Path?, host: ToolHost?, resolveLink: (Path) -> Path?): List<Any?> {
         val sdks = dataDir?.resolve("SDKs") ?: return listOf(null)
+        // A distribution is asked nothing on the way: what it said last is the stamp, and the SDK
+        // commands, Set Up and the checklist have it asked again. Its share is a request per stat,
+        // and this runs on the UI thread as often as not.
+        if (host is WslToolHost) return listOf(sdks, host.probe)
         return listOf(
             sdks,
             runCatching { Files.getLastModifiedTime(sdks) }.getOrNull(),

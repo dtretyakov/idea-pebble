@@ -3,6 +3,7 @@ package com.github.dtretyakov.pebble.project
 import com.github.dtretyakov.pebble.build.BuildResult
 import com.github.dtretyakov.pebble.build.PebbleBuild
 import com.intellij.execution.process.CapturingProcessHandler
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -14,6 +15,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.messages.Topic
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.readText
 
 /**
@@ -29,19 +31,23 @@ import kotlin.io.path.readText
 @Service(Service.Level.PROJECT)
 class CompileDatabase(private val project: Project) {
 
-    @Volatile
-    private var running = false
+    private val running = AtomicBoolean(false)
 
     /** Writes the database for the active platform unless it already describes it. */
     fun refresh(force: Boolean = false) {
+        val application = ApplicationManager.getApplication()
+        // It reads the disk to decide, which for a project in WSL is a request to the distribution.
+        if (application.isDispatchThread) {
+            application.executeOnPooledThread { if (!project.isDisposed) refresh(force) }
+            return
+        }
         val model = PebbleProject.getInstance(project)
         val root = model.primaryRoot() ?: return
         val platform = model.activePlatform(root) ?: return
         if (!force && platformOf(root) == platform) return
         if (!Files.exists(root.resolve("build/c4che/${platform}_cache.py"))) return
         val tool = PebbleSdkService.getInstance().tool() ?: return
-        if (running) return
-        running = true
+        if (!running.compareAndSet(false, true)) return
 
         object : Task.Backgroundable(project, "Updating the C compile database for $platform", false) {
             override fun run(indicator: ProgressIndicator) {
@@ -56,9 +62,10 @@ class CompileDatabase(private val project: Project) {
             }
 
             override fun onFinished() {
-                running = false
-                // The platform may have changed again while this one was being written.
-                if (platformOf(root) != PebbleProject.getInstance(project).activePlatform(root)) refresh()
+                running.set(false)
+                // The platform may have changed again while this one was being written; a failure is
+                // not tried again until the next build or switch.
+                if (!project.isDisposed && PebbleProject.getInstance(project).activePlatform(root) != platform) refresh()
             }
         }.queue()
     }
@@ -88,8 +95,17 @@ class CompileDatabase(private val project: Project) {
     }
 
     /** Whether there is a database for clangd to read at all, for any platform. */
-    fun exists(): Boolean =
-        PebbleProject.getInstance(project).primaryRoot()?.let { Files.isRegularFile(it.resolve(FILE_NAME)) } == true
+    fun exists(): Boolean {
+        val model = PebbleProject.getInstance(project)
+        val root = model.primaryRoot() ?: return false
+        // Asked on the UI thread, by LSP4IJ and the editor banner: from the virtual file system,
+        // which [refresh] tells of every database it writes.
+        return when (val found = model.findFile(root, FILE_NAME)) {
+            PebbleProject.Found.Unknown -> !model.isUiThread() && Files.isRegularFile(root.resolve(FILE_NAME))
+            PebbleProject.Found.Absent -> false
+            is PebbleProject.Found.File -> !found.file.isDirectory
+        }
+    }
 
     companion object {
         const val FILE_NAME = "compile_commands.json"

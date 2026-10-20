@@ -4,14 +4,20 @@ import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleProjectInfo
 import com.github.dtretyakov.pebble.sdk.PebblePlatform
 import com.github.dtretyakov.pebble.debug.AlloyDebugProcess
+import com.github.dtretyakov.pebble.debug.XsbugRelay
 import com.github.dtretyakov.pebble.debug.XsbugServer
 import com.github.dtretyakov.pebble.debug.gdb.GdbDebugProcess
 import com.github.dtretyakov.pebble.debug.gdb.GdbSetup
 import com.github.dtretyakov.pebble.emulator.EmulatorState
 import com.github.dtretyakov.pebble.project.PebbleCommands
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolCommandLine
+import com.github.dtretyakov.pebble.project.ToolHosts
+import com.github.dtretyakov.pebble.sdk.LocalToolHost
+import com.github.dtretyakov.pebble.sdk.WslToolHost
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.process.CapturingProcessHandler
+import java.io.IOException
 import java.nio.file.Path
 import com.intellij.execution.configurations.RunProfile
 import com.intellij.execution.configurations.RunProfileState
@@ -58,12 +64,19 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
      */
     private fun debugAlloy(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? {
         val server = try {
-            XsbugServer.bind(listener = XsbugServer.UNATTENDED)
+            xsbugServer()
         } catch (_: XsbugServer.PortInUse) {
             throw ExecutionException(
                 "Port ${XsbugServer.PORT} is in use: xsbug, or another Alloy debug session, is listening there. " +
                     "Close it and debug again.",
             )
+        } catch (_: XsbugRelay.PortInUse) {
+            throw ExecutionException(
+                "Port ${XsbugServer.PORT} is in use inside WSL: xsbug, or another Alloy debug session, is listening there. " +
+                    "Close it and debug again.",
+            )
+        } catch (e: IOException) {
+            throw ExecutionException(e.message ?: e.toString())
         }
         val result = try {
             state.execute(environment.executor, this) ?: throw ExecutionException("Nothing to debug.")
@@ -107,9 +120,11 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
                 override fun start(session: XDebugSession): XDebugProcess {
                     val process = GdbDebugProcess(
                         session, result,
-                        setup = { GdbSetup.prepare(PebbleSdkService.getInstance().sdks(), root, platform, EmulatorState.running()) },
+                        setup = { GdbSetup.prepare(ToolHosts.currentOrLocal(), PebbleSdkService.getInstance().sdks(), root, platform, EmulatorState.running()) },
                         relaunch = {
-                            PebbleSdkService.getInstance().tool()?.let { installAgain(it, root, platform) } ?: "pebble-tool is not installed."
+                            // installAgain answers null for success: not to be read as "no pebble-tool".
+                            val tool = PebbleSdkService.getInstance().tool()
+                            if (tool == null) "pebble-tool is not installed." else installAgain(tool, root, platform)
                         },
                     )
                     (result.processHandler as? PebbleLogProcessHandler)?.beforeDestroy = { process.detach() }
@@ -119,8 +134,20 @@ class PebbleDebugRunner : GenericProgramRunner<RunnerSettings>() {
         )
     }
 
+    /**
+     * Where pebble-tool will find the debugger: on this machine's loopback, as xsbug would be; or,
+     * when pebble-tool runs in WSL behind its NAT, through a relay inside the distribution. WSL's
+     * mirrored networking shares Windows' loopback, and needs none.
+     */
     companion object {
         private const val INSTALL_TIMEOUT_MILLIS = 60_000
+
+        fun xsbugServer(listener: XsbugServer.Listener = XsbugServer.UNATTENDED): XsbugServer {
+            val wsl = ToolHosts.forCommands() as? WslToolHost
+            if (wsl == null || wsl.probe?.networking == "mirrored") return XsbugServer.bind(listener = listener)
+            val relay = XsbugRelay.start(wsl, { command -> ToolCommandLine.from(command).createProcess() })
+            return XsbugServer.through(relay, listener)
+        }
 
         /**
          * `pebble install` once more, beside the run's own, which goes on showing the logs: the

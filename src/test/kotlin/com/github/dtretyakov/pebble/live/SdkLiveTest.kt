@@ -16,7 +16,7 @@ class SdkLiveTest {
         val answer = LiveSdk.run(Path.of("."), "--version").text
         assertTrue(PebbleTool.parseVersion(answer) != null, answer)
         val active = Regex("""active SDK: v(\S+)\)""").find(answer)?.groupValues?.get(1)
-        assertEquals(active, PebbleSdks.scan(PebbleDataDir.locate()).current?.version)
+        assertEquals(active, LiveSdk.sdks().current?.version)
     }
 
     @Test
@@ -24,7 +24,7 @@ class SdkLiveTest {
         val listed = LiveSdk.run(Path.of("."), "sdk", "list").text
             .substringAfter("Installed SDKs:").substringBefore("Available SDKs:")
             .lines().map { it.trim().substringBefore(" ") }.filter { it.isNotEmpty() }.toSet()
-        val found = PebbleSdks.scan(PebbleDataDir.locate()).installed.map { it.version }.toSet()
+        val found = LiveSdk.sdks().installed.map { it.version }.toSet()
         assertEquals(listed, found)
     }
 
@@ -32,7 +32,7 @@ class SdkLiveTest {
     fun `the SDK ships a pebble h for every platform it reports`() {
         // First: it is what skips the test where live tests are off, as on CI.
         LiveSdk.tool()
-        val sdk = PebbleSdks.scan(PebbleDataDir.locate()).current ?: error("no active SDK")
+        val sdk = LiveSdk.sdks().current ?: error("no active SDK")
         assertTrue(sdk.platforms().containsAll(listOf("emery", "gabbro", "flint")), sdk.platforms().toString())
         assertTrue(sdk.hasCompiler)
         assertTrue(sdk.hasAlloyTools)

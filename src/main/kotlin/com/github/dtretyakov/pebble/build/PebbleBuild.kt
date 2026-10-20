@@ -2,7 +2,10 @@ package com.github.dtretyakov.pebble.build
 
 import com.github.dtretyakov.pebble.project.PebbleCommands
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolHosts
+import com.github.dtretyakov.pebble.sdk.LocalToolHost
 import com.intellij.build.BuildViewManager
+import com.intellij.execution.ExecutionException
 import com.intellij.build.DefaultBuildDescriptor
 import com.intellij.build.FilePosition
 import com.intellij.build.events.BuildEvent
@@ -100,10 +103,22 @@ object PebbleBuild {
             return BuildResult(-1, emptyList(), null, problem = reason)
         }
 
-        val command = PebbleCommands.command(tool, listOfNotNull("build", "--debug".takeIf { debug }), root)
-        view.onEvent(id, output(id, command.commandLineString + "\n\n"))
+        val arguments = listOfNotNull("build", "--debug".takeIf { debug })
+        val host = ToolHosts.currentOrLocal()
+        val command = try {
+            PebbleCommands.command(tool, arguments, root)
+        } catch (e: ExecutionException) {
+            val reason = e.message ?: e.toString()
+            view.onEvent(id, output(id, "$reason\n", isError = true))
+            view.onEvent(id, finish(id, "failed", succeeded = false))
+            return BuildResult(-1, emptyList(), null, problem = reason)
+        }
+        // What was run as the user would type it: through wsl.exe the command line itself is a page long.
+        val shown = if (host is LocalToolHost) command.commandLineString else
+            (listOf(host.toolPath(tool) ?: tool.toString()) + arguments).joinToString(" ") + "    (in WSL ${host.presentableName})"
+        view.onEvent(id, output(id, shown + "\n\n"))
 
-        val parser = BuildOutputParser(root)
+        val parser = BuildOutputParser(root, host::idePath)
         val memoryParser = MemoryReportParser()
         val messages = mutableListOf<BuildMessage>()
         val memory = mutableListOf<MemoryUsage>()

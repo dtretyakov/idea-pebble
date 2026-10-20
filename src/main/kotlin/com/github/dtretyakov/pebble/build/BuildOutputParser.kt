@@ -29,7 +29,14 @@ data class BuildMessage(
  * Stateful, one instance per build: the platform carries from a progress line to the diagnostics
  * that follow it.
  */
-class BuildOutputParser(projectRoot: Path) {
+class BuildOutputParser(
+    projectRoot: Path,
+    /**
+     * An absolute path in the output, as the IDE spells it: under WSL gcc names a header of the
+     * SDK as `/home/me/.local/share/pebble-sdk/…`, which Windows reaches through the share.
+     */
+    private val absolute: (String) -> Path? = { runCatching { Path.of(it) }.getOrNull() },
+) {
 
     private val buildDirectory = projectRoot.resolve("build")
 
@@ -65,7 +72,7 @@ class BuildOutputParser(projectRoot: Path) {
     }
 
     private fun resolve(file: String): Path? =
-        runCatching { buildDirectory.resolve(file).normalize() }.getOrNull()
+        if (file.startsWith("/")) absolute(file)?.normalize() else runCatching { buildDirectory.resolve(file).normalize() }.getOrNull()
 
     private companion object {
         /** `[ 7/16] Compiling gabbro | c: …` — the platform is absent for steps shared by all of them. */

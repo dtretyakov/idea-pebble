@@ -6,8 +6,13 @@ import com.intellij.openapi.application.readAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.github.dtretyakov.pebble.sdk.LocalToolHost
+import com.github.dtretyakov.pebble.sdk.ToolHost
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
@@ -54,6 +59,43 @@ object TypeScriptConfig {
         |}
         |""".trimMargin()
 
+    /**
+     * The same for a build that ran in WSL, whose settings name the SDK's typings by Linux path —
+     * `/home/me/.local/share/pebble-sdk/…` — which the IDE's TypeScript, on Windows, would look for
+     * on a drive. Extending them would resolve nothing, so they are copied in, each absolute path
+     * spelled as the IDE reaches it ([idePath]) and each relative one made absolute from where the
+     * build wrote it. Null when the build's file cannot be read.
+     */
+    fun text(root: Path, generated: Path, idePath: (String) -> Path?): String? {
+        val settings = runCatching { Json.parseToJsonElement(generated.readText()) as? JsonObject }.getOrNull() ?: return null
+        val options = settings["compilerOptions"] as? JsonObject ?: JsonObject(emptyMap())
+        val base = generated.parent
+
+        fun spell(text: String): String = when {
+            text.startsWith("/") -> idePath(text)?.invariantSeparatorsPathString ?: text
+            text.startsWith("./") || text.startsWith("../") -> base.resolve(text).normalize().invariantSeparatorsPathString
+            else -> text
+        }
+
+        fun rewrite(element: JsonElement): JsonElement = when (element) {
+            is JsonPrimitive -> if (element.isString) JsonPrimitive(spell(element.content)) else element
+            is JsonArray -> JsonArray(element.map(::rewrite))
+            is JsonObject -> JsonObject(element.mapValues { (_, value) -> rewrite(value) })
+        }
+
+        val written = JsonObject(
+            linkedMapOf(
+                MARKER to JsonPrimitive(NOTE),
+                "compilerOptions" to rewrite(options),
+                "files" to JsonArray(emptyList()),
+                "include" to JsonArray(listOf(JsonPrimitive("src/embeddedjs/**/*"))),
+            ),
+        )
+        return PRETTY.encodeToString(JsonObject.serializer(), written) + "\n"
+    }
+
+    private val PRETTY = Json { prettyPrint = true }
+
     /** Whether [file] is one this plugin wrote, or absent: either may be (re)written. */
     fun isOurs(file: Path): Boolean {
         if (!file.isRegularFile()) return true
@@ -67,11 +109,11 @@ object TypeScriptConfig {
      * Writes [root]'s `tsconfig.json` for [platform]; false when there is nothing to extend, or the
      * file is the user's. The disk only: the IDE is told by [write], which its listeners call.
      */
-    fun update(root: Path, platform: String): Boolean {
+    fun update(root: Path, platform: String, host: ToolHost? = null): Boolean {
         val file = root.resolve(FILE_NAME)
         val generated = generated(root, platform) ?: return false
         if (!isOurs(file)) return false
-        val text = text(root, generated)
+        val text = if (host == null || host is LocalToolHost) text(root, generated) else text(root, generated, host::idePath) ?: return false
         if (file.isRegularFile() && file.readText() == text) return true
         file.writeText(text)
         return true
@@ -79,7 +121,7 @@ object TypeScriptConfig {
 
     /** [update], and the IDE told of the file, so its JavaScript reads the new settings. */
     private fun write(root: Path, platform: String) {
-        if (update(root, platform)) LocalFileSystem.getInstance().refreshNioFiles(listOf(root.resolve(FILE_NAME)))
+        if (update(root, platform, ToolHosts.currentOrLocal())) LocalFileSystem.getInstance().refreshNioFiles(listOf(root.resolve(FILE_NAME)))
     }
 
     private suspend fun refresh(project: Project) {

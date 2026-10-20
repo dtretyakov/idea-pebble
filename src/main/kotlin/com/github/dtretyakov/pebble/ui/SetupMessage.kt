@@ -17,11 +17,16 @@ internal object SetupMessage {
 
     fun title(item: PebbleEnvironment.Item): String = when {
         item.fix == Fix.SET_UP -> "Pebble SDK isn't set up"
+        item.concern == Concern.HOST && item.pending -> "Reading the WSL distribution"
+        item.concern == Concern.HOST && item.fix == Fix.USE_PROJECT_DISTRIBUTION -> "The project is in another WSL distribution"
+        item.concern == Concern.HOST && item.fix == null -> "The WSL distribution does not answer"
         item.concern == Concern.HOST -> "Pebble development on Windows needs WSL"
         item.concern == Concern.TOOL -> "pebble-tool is not where its setting says"
         item.concern == Concern.SDK -> "No Pebble SDK is active"
         item.concern == Concern.TOOLCHAIN -> "The Pebble SDK is incomplete"
         item.concern == Concern.EMULATOR -> "The Pebble emulator cannot start"
+        item.concern == Concern.NODE && item.detail.startsWith("npm") -> "npm is not installed"
+        item.concern == Concern.NODE && item.command?.contains("npm rebuild") == true -> "The SDK cannot bundle PebbleKit JS"
         item.concern == Concern.NODE -> "Node.js is not installed"
         else -> "C has no code insight"
     }

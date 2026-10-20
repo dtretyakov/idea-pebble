@@ -49,4 +49,23 @@ class TypeScriptConfigTest {
         assertFalse(TypeScriptConfig.update(root, "emery"))
         assertEquals(mine, root.resolve("tsconfig.json").readText())
     }
+
+    @Test
+    fun `a build in WSL has its settings copied in, its Linux paths spelled as the IDE reaches them`(@TempDir root: Path) {
+        val generated = generated(root, "emery", "release", 1000)
+        generated.writeText(
+            """{"compilerOptions": {"target": "es2025", "paths": {"piu/MC": ["/home/me/sdk/typings/piu/MC"]},
+               "types": ["/home/me/sdk/typings/pebble/global"], "baseUrl": "./"}}""",
+        )
+        val share = root.resolve("share")
+        val text = TypeScriptConfig.text(root, generated) { linux -> share.resolve(linux.removePrefix("/")) }!!
+        val sharePath = share.toString().replace('\\', '/')
+        assertTrue("\"target\": \"es2025\"" in text, text)
+        assertTrue("\"$sharePath/home/me/sdk/typings/piu/MC\"" in text, text)
+        assertTrue("\"$sharePath/home/me/sdk/typings/pebble/global\"" in text, text)
+        assertTrue("extends" !in text, text)
+        // Relative to where the build wrote it, made absolute: it is read from the project's root now.
+        assertTrue("\"${generated.parent.toString().replace('\\', '/')}\"" in text, text)
+        assertTrue("Written by Develop for Pebble" in text)
+    }
 }

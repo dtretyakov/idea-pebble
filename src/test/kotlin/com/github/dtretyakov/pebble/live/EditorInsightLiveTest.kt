@@ -39,7 +39,7 @@ class EditorInsightLiveTest : HeavyPlatformTestCase() {
     fun `test an Alloy TypeScript source resolves the SDK's modules from its typings`() {
         if (System.getProperty("pebble.liveTests") != "true") return
         LiveSdk.tool()
-        val sdk = PebbleSdks.scan(PebbleDataDir.locate()).current!!
+        val sdk = LiveSdk.sdks().current!!
         val typings = sdk.toolchain.resolve("moddable/typings").toRealPath()
         VfsRootAccess.allowRootAccess(testRootDisposable, typings.toString())
         val root = LiveSdk.fixture("fixture-alloy").toRealPath()
@@ -47,7 +47,7 @@ class EditorInsightLiveTest : HeavyPlatformTestCase() {
         source.writeText("import Poco from \"commodetto/Poco\";\n\nexport function make(screen: any) {\n  return new Poco(screen);\n}\n")
         assertEquals(0, LiveSdk.run(root, "build").exitCode)
         // What the plugin does after a build: a tsconfig.json extending the build's own settings.
-        assertTrue(com.github.dtretyakov.pebble.project.TypeScriptConfig.update(root, "emery"))
+        assertTrue(com.github.dtretyakov.pebble.project.TypeScriptConfig.update(root, "emery", LiveSdk.host))
         // And the build does not mind it.
         assertEquals(0, LiveSdk.run(root, "build").exitCode)
         open(root)

@@ -41,6 +41,12 @@ object ConnectionHint {
         if (target == PebbleRunTarget.CLOUDPEBBLE && "login" in text) {
             return "CloudPebble needs you signed in: run `pebble login` in a terminal once, then run again."
         }
+        // QEMU's own words for a taken display :1. Every WSL 2 distribution shares one network, and
+        // pebble-tool sees only its own distribution's emulators: one left running in another holds it.
+        if (target == PebbleRunTarget.EMULATOR && "-vnc :1: failed to find an available port" in text) {
+            return "Port 5901, where the emulator's screen goes, is taken: by an emulator still running in another WSL " +
+                "distribution — they share one network — or by another VNC server. Stop it (`pebble kill` there), then run again."
+        }
         if (CONNECTION_FAILURES.none { it in text }) return null
         return when (target) {
             PebbleRunTarget.PHONE ->

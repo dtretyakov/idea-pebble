@@ -1,8 +1,11 @@
 package com.github.dtretyakov.pebble.debug.gdb
 
 import com.github.dtretyakov.pebble.emulator.RunningEmulator
+import com.github.dtretyakov.pebble.project.ToolCommandLine
 import com.github.dtretyakov.pebble.sdk.PebbleSdk
+import com.github.dtretyakov.pebble.sdk.LocalToolHost
 import com.github.dtretyakov.pebble.sdk.PebbleSdks
+import com.github.dtretyakov.pebble.sdk.ToolHost
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.util.SystemInfo
@@ -24,10 +27,20 @@ import kotlin.io.path.invariantSeparatorsPathString
  *
  * `mi-async` lets the debugger interrupt a running app; without it gdb ignores `-exec-interrupt`.
  */
-class GdbSetup(val gdb: Path, val firmwareElf: Path, val port: Int, val symbolCommands: List<String>) {
+class GdbSetup(
+    val gdb: Path,
+    val firmwareElf: Path,
+    val port: Int,
+    val symbolCommands: List<String>,
+    /** A source or an ELF as gdb, where the tools run, spells it: under WSL a Linux path. */
+    val spell: (Path) -> String = DEFAULT_SPELL,
+    /** A path gdb wrote — a frame's `fullname` — as the IDE spells it. */
+    val unspell: (String) -> Path? = DEFAULT_UNSPELL,
+) {
 
-    fun commandLine(): GeneralCommandLine =
-        GeneralCommandLine(gdb.toString(), "--interpreter=mi3", "-q", firmwareElf.toString()).withCharset(Charsets.UTF_8)
+    /** Run where the tools are: under WSL, through wsl.exe; gdb's machine interface goes through its pipes untouched. */
+    fun commandLine(host: ToolHost = ToolCommandLine.host()): GeneralCommandLine =
+        ToolCommandLine.build(gdb, listOf("--interpreter=mi3", "-q", spell(firmwareElf)), host = host)
 
     fun commands(): List<String> = buildList {
         add("-gdb-set confirm off")
@@ -46,6 +59,9 @@ class GdbSetup(val gdb: Path, val firmwareElf: Path, val port: Int, val symbolCo
         const val WORKER_LOAD_ADDRESS = "*(void**)&g_worker_load_address"
         const val CRASH_FUNCTION = "app_crashed"
 
+        val DEFAULT_SPELL: (Path) -> String = { it.invariantSeparatorsPathString }
+        val DEFAULT_UNSPELL: (String) -> Path? = { runCatching { Path.of(it) }.getOrNull() }
+
         fun firmwareElf(sdk: PebbleSdk, platform: String): Path =
             sdk.core.resolve("pebble").resolve(platform).resolve("qemu").resolve("${platform}_sdk_debug.elf")
 
@@ -53,13 +69,23 @@ class GdbSetup(val gdb: Path, val firmwareElf: Path, val port: Int, val symbolCo
 
         fun workerElf(root: Path, platform: String): Path = root.resolve("build").resolve(platform).resolve("pebble-worker.elf")
 
+        /** [prepare] for gdb where [host] runs it: under WSL every path given to it is a Linux one, and every one it gives back too. */
+        fun prepare(host: ToolHost, sdks: PebbleSdks, root: Path, platform: String, emulators: List<RunningEmulator>): GdbSetup =
+            if (host is LocalToolHost) {
+                prepare(sdks, root, platform, emulators)
+            } else {
+                prepare(sdks, root, platform, emulators, spell = { path -> host.toolPath(path) ?: path.toString() }, unspell = host::idePath)
+            }
+
         /** Everything gdb needs, or what is missing, in pebble-tool's words where it has them. */
         fun prepare(
             sdks: PebbleSdks,
             root: Path,
             platform: String,
             emulators: List<RunningEmulator>,
-            objdump: (Path, Path) -> String = ::objdump,
+            spell: (Path) -> String = DEFAULT_SPELL,
+            unspell: (String) -> Path? = DEFAULT_UNSPELL,
+            objdump: (Path, Path) -> String = { tool, elf -> objdump(tool, elf, spell) },
         ): GdbSetup {
             val emulator = emulators.firstOrNull { it.platform == platform }
                 ?: throw Problem("No $platform emulator is running.")
@@ -75,8 +101,8 @@ class GdbSetup(val gdb: Path, val firmwareElf: Path, val port: Int, val symbolCo
             val tool = sdk.compilerBin.resolve("arm-none-eabi-objdump")
             val symbols = listOf(app to APP_LOAD_ADDRESS, workerElf(root, platform) to WORKER_LOAD_ADDRESS)
                 .filter { Files.isRegularFile(it.first) }
-                .map { (elf, base) -> symbolCommand(elf, base, sectionOffsets(objdump(tool, elf))) }
-            return GdbSetup(gdb, firmware, port, symbols)
+                .map { (elf, base) -> symbolCommand(elf, base, sectionOffsets(objdump(tool, elf)), spell) }
+            return GdbSetup(gdb, firmware, port, symbols, spell, unspell)
         }
 
         /** The allocated sections of `objdump --headers --wide`, by name, at their offsets in the image. */
@@ -91,18 +117,18 @@ class GdbSetup(val gdb: Path, val firmwareElf: Path, val port: Int, val symbolCo
         }
 
         /** `add-symbol-file "<elf>" <base>+<.text> -s <section> <base>+<offset> …`, as pebble-tool writes it. */
-        fun symbolCommand(elf: Path, base: String, offsets: Map<String, Long>): String {
+        fun symbolCommand(elf: Path, base: String, offsets: Map<String, Long>, spell: (Path) -> String = DEFAULT_SPELL): String {
             val text = offsets[".text"] ?: throw Problem("$elf has no .text section.")
             return buildString {
-                append("add-symbol-file \"").append(elf.invariantSeparatorsPathString).append("\" ").append(base).append("+0x").append(text.toString(16))
+                append("add-symbol-file \"").append(spell(elf)).append("\" ").append(base).append("+0x").append(text.toString(16))
                 for ((section, offset) in offsets) {
                     if (section != ".text") append(" -s ").append(section).append(' ').append(base).append("+0x").append(offset.toString(16))
                 }
             }
         }
 
-        private fun objdump(tool: Path, elf: Path): String {
-            val output = ExecUtil.execAndGetOutput(GeneralCommandLine(tool.toString(), "--headers", "--wide", elf.toString()))
+        private fun objdump(tool: Path, elf: Path, spell: (Path) -> String): String {
+            val output = ExecUtil.execAndGetOutput(ToolCommandLine.build(tool, listOf("--headers", "--wide", spell(elf))))
             if (output.exitCode != 0) throw Problem("objdump could not read $elf: ${output.stderr.trim()}")
             return output.stdout
         }

@@ -3,12 +3,12 @@ package com.github.dtretyakov.pebble.project
 import com.github.dtretyakov.pebble.sdk.PebbleDataDir
 import com.github.dtretyakov.pebble.sdk.PebbleSdk
 import com.github.dtretyakov.pebble.sdk.PebbleSdks
-import com.github.dtretyakov.pebble.sdk.PebbleTool
+import com.github.dtretyakov.pebble.sdk.HostTool
+import com.github.dtretyakov.pebble.sdk.ToolHost
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.Disposer
-import com.intellij.util.EnvironmentUtil
 import com.intellij.util.messages.Topic
 import org.jetbrains.annotations.TestOnly
 import java.nio.file.Files
@@ -30,15 +30,17 @@ class PebbleSdkService {
     @Volatile
     private var snapshot: Snapshot? = null
 
-    /** The `pebble` executable, or null when it cannot be found. */
-    fun tool(): Path? =
-        PebbleTool.locate(PebbleAppSettings.getInstance().pebbleToolPath, EnvironmentUtil.getValue("PATH"))
+    /** Where the tools run: this machine, or on Windows a WSL distribution ([ToolHosts]). */
+    fun host(): ToolHost? = ToolHosts.current()
+
+    /** The `pebble` executable, as the IDE spells it, or null when it cannot be found. */
+    fun tool(): Path? = host()?.locate(HostTool.PEBBLE, PebbleAppSettings.getInstance().pebbleToolPath)
 
     @Volatile
     private var dataDirForTests: Path? = null
 
-    /** Where pebble-tool keeps its SDKs on this machine; null on Windows, where it runs in WSL. */
-    fun dataDir(): Path? = dataDirForTests ?: PebbleDataDir.locate()
+    /** Where pebble-tool keeps its SDKs, as the IDE reads it; null on Windows until WSL has a distribution. */
+    fun dataDir(): Path? = dataDirForTests ?: host()?.let(PebbleDataDir::locate)
 
     /** An SDK laid out on disk by a test, in place of this machine's, until [disposable] goes. */
     @TestOnly
@@ -49,21 +51,22 @@ class PebbleSdkService {
 
     fun sdks(): PebbleSdks {
         val dataDir = dataDir()
-        val stamp = stampOf(dataDir)
+        val host = if (dataDirForTests != null) null else host()
+        val resolveLink: (Path) -> Path? = host?.let { it::resolveLink } ?: { link -> runCatching { link.toRealPath() }.getOrNull() }
+        val stamp = stampOf(dataDir, resolveLink)
         snapshot?.let { if (it.stamp == stamp) return it.sdks }
-        return PebbleSdks.scan(dataDir).also { snapshot = Snapshot(stamp, it) }
+        return PebbleSdks.scan(dataDir, resolveLink).also { snapshot = Snapshot(stamp, it) }
     }
 
     /** The active SDK — the one `pebble build` would use. */
     fun currentSdk(): PebbleSdk? = sdks().current
 
-    private fun stampOf(dataDir: Path?): List<Any?> {
+    private fun stampOf(dataDir: Path?, resolveLink: (Path) -> Path?): List<Any?> {
         val sdks = dataDir?.resolve("SDKs") ?: return listOf(null)
-        val current = sdks.resolve("current")
         return listOf(
             sdks,
             runCatching { Files.getLastModifiedTime(sdks) }.getOrNull(),
-            runCatching { Files.readSymbolicLink(current) }.getOrNull(),
+            resolveLink(sdks.resolve("current")),
         )
     }
 

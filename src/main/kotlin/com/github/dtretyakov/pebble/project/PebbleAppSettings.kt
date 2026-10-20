@@ -28,6 +28,12 @@ class PebbleAppSettings : PersistentStateComponent<PebbleAppSettings> {
     /** Path to `clangd`, for C outside CLion. Empty means "find it". */
     var clangdPath: String = ""
 
+    /**
+     * On Windows, the WSL distribution the SDK runs in. Empty means automatic: the one the open
+     * project is in, else WSL's default.
+     */
+    var wslDistribution: String = ""
+
     override fun getState(): PebbleAppSettings = this
 
     override fun loadState(state: PebbleAppSettings) = XmlSerializerUtil.copyBean(state, this)

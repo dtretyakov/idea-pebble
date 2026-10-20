@@ -5,6 +5,7 @@ import com.github.dtretyakov.pebble.project.PebbleEnvironment.Concern
 import com.github.dtretyakov.pebble.project.EmulatorCheck
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolHosts
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
@@ -43,6 +44,9 @@ object PebbleSetupNotice {
         if (project.isDisposed) return
         // Building first, then running: the emulator is what Run uses, and it is the step after.
         val problem = PebbleEnvironment.firstRunProblem(PebbleEnvironment.check())
+        // WSL is still being asked: a balloon now would be gone in a second, or say the wrong thing.
+        // The answer is announced, and comes back here.
+        if (problem?.pending == true) return
 
         // By what the problem is and what fixes it, not by concern alone: a wrong pebble-tool path
         // cleared becomes "not set up", the same concern with another message and another button.
@@ -108,6 +112,10 @@ object PebbleSetupNotice {
     class Startup : ProjectActivity {
         override suspend fun execute(project: Project) {
             if (!readAction { PebbleProject.getInstance(project).isPebbleProject() }) return
+            // Off the UI thread, before anything asks: on Windows WSL's distributions are listed and
+            // the chosen one asked where its tools are, so the balloon says what is so rather than
+            // "looking", and a first Run does not wait for wsl.exe on the UI thread.
+            ToolHosts.current()
             reconsider(project, opening = true)
             // Asked now, so Run and the settings page know before they are needed.
             EmulatorCheck.getInstance().refresh(PebbleSdkService.getInstance().currentSdk())

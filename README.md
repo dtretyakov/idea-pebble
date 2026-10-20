@@ -49,7 +49,27 @@ look at its screen and check the SDK's API.
 
 [Coding agents](docs/agents.md) has the details.
 
-On Windows the Pebble SDK runs only inside WSL, which this version does not drive yet.
+## Windows
+
+The Pebble SDK does not run on Windows itself, only inside WSL, and the plugin runs it there: the
+IDE stays on Windows, while pebble-tool, the build, the emulator, gdb and clangd run in a WSL
+distribution. The emulator's screen, logs and debuggers are in the IDE as on a Mac or Linux.
+
+1. No WSL yet: the balloon offers **Install Ubuntu in WSL**, which runs
+   `wsl --install -d Ubuntu-24.04` in the IDE's terminal (22.04 is too old for the emulator).
+   Windows may restart, and Ubuntu asks for a user name and password once.
+2. Then one command in a terminal of that distribution, which the balloon also runs for you: the
+   SDK's own list of Ubuntu packages — Node.js and npm, without which `pebble sdk install` fails,
+   and the emulator's libraries — after `sudo` asks for the password.
+3. Then **Set Up Pebble SDK**, as everywhere else.
+
+Projects can be in the distribution — open them as `\\wsl.localhost\Ubuntu-24.04\home\…`, where
+builds are several times faster — or on a Windows drive, which the distribution sees as `/mnt/c/…`.
+With several distributions, **Settings | Languages & Frameworks | Pebble | WSL** chooses one; by
+default it is the one the project is in, else WSL's default. In CLion, add a WSL toolchain so that
+its C engine reads the compile database the SDK writes with Linux paths; IDEA and WebStorm run
+clangd in the distribution (`sudo apt install clangd`). Installing on a watch over `--adb` needs
+adb inside WSL, which sees no USB devices without usbipd-win.
 
 ## Documentation
 

@@ -53,12 +53,16 @@ object NewPebbleProject {
     /**
      * Creates the project in [target], which may already exist — the IDE makes the directory
      * before it asks for the contents. pebble-tool refuses a directory that exists, so the project
-     * is made beside it and moved in.
+     * is made beside it and moved in: beside it rather than in the system's temporary directory,
+     * which under WSL is a Windows directory on another disk, and from which a directory cannot be
+     * moved into the distribution's.
      */
     @OptIn(ExperimentalPathApi::class)
     fun generate(tool: Path, target: Path, options: Options) {
         val name = target.name
-        val scratch = Files.createTempDirectory("pebble-new-project")
+        val scratch = target.parent?.takeIf { Files.isDirectory(it) }
+            ?.let { runCatching { Files.createTempDirectory(it, ".pebble-new-") }.getOrNull() }
+            ?: Files.createTempDirectory("pebble-new-project")
         try {
             val output = CapturingProcessHandler(PebbleCommands.command(tool, arguments(name, options), scratch))
                 .runProcess(TIMEOUT_MILLIS)

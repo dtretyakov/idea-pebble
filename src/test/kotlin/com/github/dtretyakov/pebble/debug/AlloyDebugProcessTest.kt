@@ -1,5 +1,7 @@
 package com.github.dtretyakov.pebble.debug
 
+import com.github.dtretyakov.pebble.project.ToolHosts
+import com.github.dtretyakov.pebble.sdk.LocalToolHost
 import com.github.dtretyakov.pebble.testing.IdeTestCase
 import com.intellij.execution.DefaultExecutionResult
 import com.intellij.execution.filters.TextConsoleBuilderFactory
@@ -44,6 +46,8 @@ class AlloyDebugProcessTest : IdeTestCase() {
 
     override fun setUp() {
         super.setUp()
+        // The tools on this machine, whatever it has: on Windows with WSL the engine would be given /mnt/c/… names.
+        ToolHosts.useHost(LocalToolHost(), testRootDisposable)
         val root = Files.createTempDirectory("alloy-debug").toRealPath().resolve("watchface")
         VfsRootAccess.allowRootAccess(testRootDisposable, root.parent.toString())
         root.createDirectories().resolve("package.json").writeText("""{"name": "watchface", "pebble": {"projectType": "moddable", "targetPlatforms": ["emery"]}}""")

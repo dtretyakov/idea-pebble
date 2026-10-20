@@ -4,8 +4,11 @@ import com.github.dtretyakov.pebble.ui.EnvironmentFixes
 import com.github.dtretyakov.pebble.ui.PebbleConfigurable
 import com.github.dtretyakov.pebble.ui.PebbleSetupNotice
 import com.github.dtretyakov.pebble.ui.SetupMessage
-import com.github.dtretyakov.pebble.sdk.Uv
+import com.github.dtretyakov.pebble.sdk.HostPackages
+import com.github.dtretyakov.pebble.sdk.HostTool
+import com.github.dtretyakov.pebble.sdk.LocalToolHost
 import com.github.dtretyakov.pebble.sdk.UvRelease
+import com.github.dtretyakov.pebble.sdk.WslToolHost
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.notification.Notification
@@ -18,7 +21,6 @@ import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.intellij.util.EnvironmentUtil
 import com.intellij.util.io.HttpRequests
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
@@ -51,7 +53,10 @@ object PebbleSdkSetup {
     }
 
     /** A user's own uv first; the plugin's, if it has installed one; otherwise none yet. */
-    fun uv(): Path? = Uv.locate(EnvironmentUtil.getValue("PATH")) ?: ManagedUv.locate()
+    fun uv(): Path? {
+        val host = PebbleSdkService.getInstance().host() ?: return null
+        return host.locate(HostTool.UV) ?: ManagedUv.locate(host)
+    }
 
     fun start(project: Project?) {
         // One at a time: the banner and the balloon clicked together would race to install the
@@ -107,37 +112,55 @@ object PebbleSdkSetup {
         }.queue()
     }
 
-    private fun setUp(indicator: ProgressIndicator) {
+    /** Everything [start] does in its task, on the calling thread: for a test that walks the setup through. */
+    internal fun setUp(indicator: ProgressIndicator) {
         val service = PebbleSdkService.getInstance()
+        // Under WSL, what is installed is known only by asking the distribution: asked again here,
+        // and after each step, rather than read from an answer that may be minutes old.
+        ToolHosts.refreshNow()
+        val host = service.host() ?: error("The Pebble SDK runs on Windows inside WSL: install it first (`${PebbleEnvironment.INSTALL_WSL}`).")
+        val where = if (host is LocalToolHost) "" else " in ${host.presentableName}"
 
         if (service.tool() == null) {
             val uv = uv() ?: run {
                 indicator.text = "Downloading uv ${UvRelease.VERSION}"
                 indicator.fraction = 0.05
-                val asset = UvRelease.forPlatform()
-                    ?: error("There is no uv for ${System.getProperty("os.name")} on ${System.getProperty("os.arch")}.")
-                ManagedUv.install(asset) { url, to ->
+                val asset = UvRelease.forPlatform(host.os, host.arch.ifEmpty { System.getProperty("os.arch") })
+                    ?: error("There is no uv for ${host.os.name.lowercase()} on ${host.arch.ifEmpty { System.getProperty("os.arch") }}.")
+                ManagedUv.install(asset, ManagedUv.directory(host)) { url, to ->
                     HttpRequests.request(url).productNameAsUserAgent().saveToFile(to.toFile(), indicator)
+                }.also { uv ->
+                    // A Windows drive's files are executable in WSL unless /etc/wsl.conf mounts it
+                    // with `metadata`, which keeps Linux modes and so gives this one none.
+                    if (host !is LocalToolHost) host.toolPath(uv)?.let { spelled ->
+                        runCatching { CapturingProcessHandler(ToolCommandLine.shell("chmod +x " + WslToolHost.shellQuote(spelled), null, host = host)).runProcess(CHMOD_MILLIS) }
+                    }
                 }
             }
 
-            indicator.text = "Installing pebble-tool"
+            indicator.text = "Installing pebble-tool$where"
             indicator.text2 = "uv tool install pebble-tool"
             indicator.fraction = 0.2
             // `--python 3.13`: pebble-tool's package allows any Python from 3.10 up, but the SDK
             // supports 3.10 to 3.13, and uv would otherwise pick 3.14 where it is the newest. uv
             // downloads 3.13 itself when it is not there.
             execute(
-                GeneralCommandLine(uv.toString(), "tool", "install", "--python", "3.13", "pebble-tool"),
+                ToolCommandLine.build(uv, listOf("tool", "install", "--python", "3.13", "pebble-tool"), host = host),
                 indicator, "Installing pebble-tool failed.",
             )
+            ToolHosts.refreshNow()
         }
 
         val tool = service.tool() ?: error(
-            "pebble-tool was installed, but not where the IDE looks: the PATH, ~/.local/bin, \$UV_TOOL_BIN_DIR or \$XDG_BIN_HOME.",
+            "pebble-tool was installed$where, but not where the IDE looks: the PATH, ~/.local/bin, \$UV_TOOL_BIN_DIR or \$XDG_BIN_HOME.",
         )
 
         val sdks = service.sdks()
+        // pebble-tool's installer runs npm and fails without it, after the download: said before it.
+        if (sdks.installed.isEmpty() && host.locate(HostTool.NPM) == null) {
+            val command = HostPackages.current(host).sdkPrerequisites()
+            error("Installing the SDK needs Node.js and npm$where" + (command?.let { ": run `$it`, then Set Up again." } ?: ": install Node.js, then Set Up again."))
+        }
         when {
             sdks.current != null -> Unit
             sdks.installed.isNotEmpty() -> {
@@ -151,6 +174,7 @@ object PebbleSdkSetup {
                 execute(PebbleCommands.command(tool, listOf("sdk", "install", "latest")), indicator, "Installing the SDK failed.")
             }
         }
+        ToolHosts.refreshNow()
 
         // Before saying "ready": the emulator is the part of the SDK that links against the
         // system's libraries, and the one part that can install cleanly and still not work.
@@ -185,4 +209,6 @@ object PebbleSdkSetup {
         ShowSettingsUtil.getInstance().showSettingsDialog(project, PebbleConfigurable::class.java)
 
     private val running = AtomicBoolean(false)
+
+    private const val CHMOD_MILLIS = 20_000
 }

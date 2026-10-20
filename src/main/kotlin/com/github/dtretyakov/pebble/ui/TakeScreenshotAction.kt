@@ -52,9 +52,16 @@ class TakeScreenshotAction : DumbAwareAction() {
             ?.file
             ?: return
 
+        // Where pebble-tool writes it, as pebble-tool spells it: under WSL, `/mnt/c/…` or `/home/…`.
+        val spelled = PebbleSdkService.getInstance().host()?.toolPath(file.toPath()) ?: run {
+            NotificationGroupManager.getInstance().getNotificationGroup(PebbleCommands.NOTIFICATION_GROUP)
+                .createNotification("pebble-tool cannot write to ${file.absolutePath}: choose a folder on a Windows drive or in its WSL distribution.", NotificationType.ERROR)
+                .notify(project)
+            return
+        }
         val arguments = listOf("screenshot", "--no-open") +
             PebbleInstallCommand.connection(options.target, configuration.platform(), options.phoneAddress, options.adbSerial) +
-            file.absolutePath
+            spelled
         if (PebbleSdkService.getInstance().tool() == null) {
             NotificationGroupManager.getInstance().getNotificationGroup(PebbleCommands.NOTIFICATION_GROUP)
                 .createNotification("pebble-tool is not installed.", NotificationType.ERROR)

@@ -1,5 +1,6 @@
 package com.github.dtretyakov.pebble.debug
 
+import com.github.dtretyakov.pebble.sdk.Loopback
 import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -23,7 +24,32 @@ import java.util.concurrent.TimeUnit
  * hears of it on the connection's reading thread and must answer the login there and then: the
  * engine gives up on a debugger that has not answered within two seconds.
  */
-class XsbugServer private constructor(private val socket: ServerSocket, listener: Listener) : AutoCloseable {
+class XsbugServer private constructor(private val source: Source, listener: Listener) : AutoCloseable {
+
+    /**
+     * Where the debugger's connections come from: a socket listening on this machine, or — when
+     * pebble-tool runs in WSL and cannot reach this machine's loopback — [XsbugRelay].
+     */
+    interface Source : AutoCloseable {
+        val port: Int
+
+        /** The next connection from pebble-tool; null once the source is closed. */
+        fun next(): Socket?
+    }
+
+    private class Listening(private val socket: ServerSocket) : Source {
+        override val port: Int get() = socket.localPort
+
+        override fun next(): Socket? = try {
+            socket.accept()
+        } catch (_: IOException) {
+            null
+        }
+
+        override fun close() {
+            runCatching { socket.close() }
+        }
+    }
 
     interface Listener {
         /** A run of the app has logged in; answer with the breakpoints now. */
@@ -36,7 +62,7 @@ class XsbugServer private constructor(private val socket: ServerSocket, listener
         fun disconnected(connection: XsbugConnection)
     }
 
-    val port: Int get() = socket.localPort
+    val port: Int get() = source.port
 
     /** Who hears of runs; the debug process takes over once it exists. */
     @Volatile
@@ -55,12 +81,8 @@ class XsbugServer private constructor(private val socket: ServerSocket, listener
 
     private fun accept() {
         while (!closed) {
-            val client = try {
-                socket.accept()
-            } catch (_: IOException) {
-                return
-            }
-            client.tcpNoDelay = true
+            val client = source.next() ?: return
+            runCatching { client.tcpNoDelay = true }
             XsbugConnection(client).also { it.start(this) }
         }
     }
@@ -83,7 +105,7 @@ class XsbugServer private constructor(private val socket: ServerSocket, listener
 
     override fun close() {
         closed = true
-        runCatching { socket.close() }
+        source.close()
         connection?.close()
     }
 
@@ -118,12 +140,13 @@ class XsbugServer private constructor(private val socket: ServerSocket, listener
                 socket.close()
                 throw if (e is java.net.BindException) PortInUse(port) else e
             }
-            return XsbugServer(socket, listener).also { it.start() }
+            return XsbugServer(Listening(socket), listener).also { it.start() }
         }
 
-        private fun listening(port: Int): Boolean = listOf("127.0.0.1", "::1").any { host ->
-            runCatching { Socket().use { it.connect(InetSocketAddress(host, port), 300) } }.isSuccess
-        }
+        /** A server whose connections come from [source]: pebble-tool's, through a relay. */
+        fun through(source: Source, listener: Listener): XsbugServer = XsbugServer(source, listener).also { it.start() }
+
+        private fun listening(port: Int): Boolean = Loopback.listening(port, 300)
     }
 }
 

@@ -12,7 +12,7 @@ class ApiLiveTest {
 
     private val sdk by lazy {
         LiveSdk.tool()
-        PebbleSdks.scan(PebbleDataDir.locate()).current!!
+        LiveSdk.sdks().current!!
     }
     private val all by lazy { sdk.platforms() }
 

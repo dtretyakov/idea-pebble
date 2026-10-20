@@ -102,7 +102,7 @@ class GdbDebugLiveTest : IdeTestCase() {
             object : XDebugProcessStarter() {
                 override fun start(session: XDebugSession): XDebugProcess {
                     process = GdbDebugProcess(session, DefaultExecutionResult(console, handler), setup = {
-                        GdbSetup.prepare(PebbleSdks.scan(PebbleDataDir.locate()), root, "emery", EmulatorState.running())
+                        GdbSetup.prepare(LiveSdk.host, LiveSdk.sdks(), root, "emery", EmulatorState.running())
                     })
                     handler.beforeDestroy = { process.detach() }
                     return process
@@ -136,7 +136,7 @@ class GdbDebugLiveTest : IdeTestCase() {
             assertTrue(XDebuggerTestUtil.evaluate(session, "nope").second!!.isNotEmpty())
 
             session.stepOver(false)
-            waitUntil(10, output) { session.isSuspended && session.currentPosition?.line == 7 }
+            waitUntil(30, output, { "suspended=${session.isSuspended} at ${session.currentPosition?.file?.name}:${session.currentPosition?.line}" }) { session.isSuspended && session.currentPosition?.line == 7 }
             assertEquals("1", XDebuggerTestUtil.computePresentation(XDebuggerTestUtil.evaluate(session, "s_clicks.count").first).myValue)
 
             // Off the end of the handler — after its closing brace, if gdb stops there — the app runs
@@ -177,9 +177,16 @@ class GdbDebugLiveTest : IdeTestCase() {
         )
         logs.startNotify()
         try {
-            Thread.sleep(2000)
-            assertEquals(0, LiveSdk.run(root, "emu-button", "click", "select", "--emulator", "emery", "--vnc").exitCode)
-            waitUntil(20, after) { "select 3" in after }
+            // `pebble logs` takes some seconds to listen — longer under WSL — and a press before it
+            // does is logged to nobody: pressed until one is heard.
+            val pressed = Regex("select [3-9]")
+            for (attempt in 1..4) {
+                assertEquals(0, LiveSdk.run(root, "emu-button", "click", "select", "--emulator", "emery", "--vnc").exitCode)
+                val until = System.currentTimeMillis() + 5_000
+                while (System.currentTimeMillis() < until && !pressed.containsMatchIn(after)) Thread.sleep(200)
+                if (pressed.containsMatchIn(after)) break
+            }
+            waitUntil(5, after) { pressed.containsMatchIn(after) }
         } finally {
             logs.destroyProcess()
             logs.waitFor(10_000)
@@ -238,7 +245,7 @@ class GdbDebugLiveTest : IdeTestCase() {
                 override fun start(session: XDebugSession): XDebugProcess {
                     val process = GdbDebugProcess(
                         session, DefaultExecutionResult(console, handler),
-                        setup = { GdbSetup.prepare(PebbleSdks.scan(PebbleDataDir.locate()), root, "emery", EmulatorState.running()) },
+                        setup = { GdbSetup.prepare(LiveSdk.host, LiveSdk.sdks(), root, "emery", EmulatorState.running()) },
                         relaunch = { PebbleDebugRunner.installAgain(tool, root, "emery") },
                     )
                     handler.beforeDestroy = { process.detach() }
@@ -268,7 +275,9 @@ class GdbDebugLiveTest : IdeTestCase() {
     fun `test pebble gdb still attaches the way the debugger copies it`() {
         if (System.getProperty("pebble.liveTests") != "true") return
         val tool = LiveSdk.tool()
-        val python = Path.of(Files.readAllLines(tool.toRealPath()).first().removePrefix("#!").trim())
+        // The script's interpreter, a path where the tools run: under WSL, read through the share.
+        val shebang = Files.readAllLines(tool.toRealPath()).first().removePrefix("#!").trim()
+        val python = LiveSdk.host.idePath(shebang) ?: Path.of(shebang)
         val debugPy = Files.walk(python.parent.parent).use { paths ->
             paths.filter { it.endsWith(Path.of("pebble_tool/commands/sdk/project/debug.py")) }.findFirst().orElse(null)
         } ?: return fail("no pebble_tool/commands/sdk/project/debug.py beside $python")
@@ -298,10 +307,10 @@ class GdbDebugLiveTest : IdeTestCase() {
         }
     }
 
-    private fun waitUntil(seconds: Int, output: CharSequence, condition: () -> Boolean) {
+    private fun waitUntil(seconds: Int, output: CharSequence, state: () -> String = { "" }, condition: () -> Boolean) {
         val deadline = System.currentTimeMillis() + seconds * 1000L
         while (!condition()) {
-            if (System.currentTimeMillis() > deadline) fail("timed out:\n$output")
+            if (System.currentTimeMillis() > deadline) fail("timed out ${state()}:\n$output")
             UIUtil.dispatchAllInvocationEvents()
             Thread.sleep(50)
         }

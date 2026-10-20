@@ -69,6 +69,8 @@ object PebbleCommands {
             override fun run(indicator: ProgressIndicator) {
                 val output = CapturingProcessHandler(command(tool, arguments, workDirectory))
                     .runProcessWithProgressIndicator(indicator)
+                // Before anyone is told: under WSL the active SDK is known only by asking.
+                if (arguments.firstOrNull() == "sdk") ToolHosts.refreshNow()
                 if (output.isCancelled) return
 
                 val failed = output.exitCode != 0 || output.isTimeout
@@ -93,17 +95,7 @@ object PebbleCommands {
         return true
     }
 
-    /**
-     * A command line for pebble-tool with the user's shell environment, so the `node`, `npm` and
-     * Python it runs are the ones the user's terminal would find.
-     *
-     * `PYTHONWARNINGS=ignore` because on Python 3.12 and later libpebble2's docstrings produce a
-     * screenful of `SyntaxWarning`s before every command, which would bury its real output.
-     */
+    /** A command line for pebble-tool, run where the tools are: see [ToolCommandLine]. */
     fun command(tool: Path, arguments: List<String>, workDirectory: Path? = null): GeneralCommandLine =
-        GeneralCommandLine(listOf(tool.toString()) + arguments)
-            .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
-            .withEnvironment("PYTHONWARNINGS", "ignore")
-            .withCharset(Charsets.UTF_8)
-            .also { if (workDirectory != null) it.withWorkingDirectory(workDirectory) }
+        ToolCommandLine.build(tool, arguments, workDirectory, ToolCommandLine.PEBBLE_ENVIRONMENT)
 }

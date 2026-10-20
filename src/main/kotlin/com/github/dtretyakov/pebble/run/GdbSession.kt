@@ -1,6 +1,6 @@
 package com.github.dtretyakov.pebble.run
 
-import com.github.dtretyakov.pebble.project.PebbleCommands
+import com.github.dtretyakov.pebble.project.ToolCommandLine
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.configurations.PtyCommandLine
 import com.intellij.execution.process.ProcessEvent
@@ -40,15 +40,11 @@ object GdbSession {
     /** `pebble install …; exec pebble gdb …` on a pseudo-terminal, quoted for `sh`. */
     fun commandLine(tool: Path, platform: String, root: Path): GeneralCommandLine {
         val (install, gdb) = arguments(platform)
-        val script = "${shell(listOf(tool.toString()) + install)} && exec ${shell(listOf(tool.toString()) + gdb)}"
-        val base = PebbleCommands.command(tool, emptyList(), root)
-        return PtyCommandLine(
-            GeneralCommandLine("/bin/sh", "-c", script)
-                .withEnvironment(base.environment)
-                .withParentEnvironmentType(base.parentEnvironmentType)
-                .withWorkingDirectory(root)
-                .withCharset(Charsets.UTF_8),
-        ).withInitialColumns(PtyCommandLine.MAX_COLUMNS).withConsoleMode(false)
+        val host = ToolCommandLine.host()
+        val pebble = host.toolPath(tool) ?: tool.toString()
+        val script = "${shell(listOf(pebble) + install)} && exec ${shell(listOf(pebble) + gdb)}"
+        return PtyCommandLine(ToolCommandLine.shell(script, root, ToolCommandLine.PEBBLE_ENVIRONMENT, host))
+            .withInitialColumns(PtyCommandLine.MAX_COLUMNS).withConsoleMode(false)
     }
 
     /** Says what the console is, before gdb says anything. */

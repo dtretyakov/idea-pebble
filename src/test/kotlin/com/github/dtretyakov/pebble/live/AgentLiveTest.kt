@@ -88,7 +88,7 @@ class AgentLiveTest : IdeTestCase() {
         try {
             val build = call("pebble_build")
             assertTrue(build.toString(), build["succeeded"]!!.jsonPrimitive.boolean)
-            assertTrue(build["memory"]!!.jsonArray.any { it.jsonObject["platform"]!!.jsonPrimitive.content == "emery" })
+            assertTrue(build.toString(), build["memory"]!!.jsonArray.any { it.jsonObject["platform"]!!.jsonPrimitive.content == "emery" })
 
             val run = call("pebble_run", "platform" to "emery")
             assertTrue(run.toString(), run["installed"]!!.jsonPrimitive.boolean)

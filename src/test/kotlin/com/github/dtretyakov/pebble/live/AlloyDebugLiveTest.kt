@@ -7,6 +7,7 @@ import com.github.dtretyakov.pebble.debug.XsbugConnection
 import com.github.dtretyakov.pebble.debug.XsbugLogin
 import com.github.dtretyakov.pebble.debug.XsbugMessage
 import com.github.dtretyakov.pebble.debug.XsbugServer
+import com.github.dtretyakov.pebble.run.PebbleDebugRunner
 import com.github.dtretyakov.pebble.debug.XscCompiler
 import com.github.dtretyakov.pebble.run.PebbleInstallCommand
 import com.github.dtretyakov.pebble.sdk.PebbleDataDir
@@ -47,12 +48,12 @@ class AlloyDebugLiveTest : IdeTestCase() {
         LiveSdk.install(warm, "--emulator", "gabbro", "--vnc")
 
         // Line 16 of the fixture's draw(), which a watchface runs every second.
-        val main = AlloySources.enginePath(root.resolve("src/embeddedjs/main.js")).toString()
+        val main = AlloySources.engineName(root.resolve("src/embeddedjs/main.js"), LiveSdk.host::toolPath)
         val line16 = Breakpoint(main, 16)
         val logins = LinkedBlockingQueue<XsbugConnection>()
         val breaks = LinkedBlockingQueue<XsbugMessage>()
         val logs = StringBuffer()
-        val server = XsbugServer.bind(
+        val server = PebbleDebugRunner.xsbugServer(
             listener = object : XsbugServer.Listener {
                 override fun connected(connection: XsbugConnection, login: XsbugLogin) {
                     connection.send(XsbugCommands.setAllBreakpoints(listOf(line16, XsbugCommands.EXCEPTIONS)))
@@ -95,7 +96,7 @@ class AlloyDebugLiveTest : IdeTestCase() {
                 assertTrue(logs.toString(), "Hello, Watchface." in logs)
 
                 // Expressions, compiled here by the SDK's xsc and evaluated there.
-                val compiler = XscCompiler.forSdk(PebbleSdks.scan(PebbleDataDir.locate()).current!!)!!
+                val compiler = XscCompiler.forSdk(LiveSdk.sdks().current!!, LiveSdk.host)!!
                 fun code(expression: String) = (compiler.compile(expression) as XscCompiler.Result.Compiled).hex
                 val length = connection.request(XsbugCommands.eval(frames[0].id, code("msg.length"), 0)).get(10, TimeUnit.SECONDS).result!!
                 assertEquals("8", length.value!!.value)
@@ -166,7 +167,7 @@ class AlloyDebugLiveTest : IdeTestCase() {
 
     private fun screenshot(root: Path, name: String): Path {
         val file = root.resolve("$name.png")
-        val result = LiveSdk.run(root, "screenshot", "--emulator", "gabbro", "--vnc", "--no-open", file.toString())
+        val result = LiveSdk.run(root, "screenshot", "--emulator", "gabbro", "--vnc", "--no-open", LiveSdk.host.toolPath(file) ?: file.toString())
         assertEquals(result.text, 0, result.exitCode)
         assertTrue(Files.exists(file))
         return file

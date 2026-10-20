@@ -15,6 +15,53 @@ pebble-tool needs Python 3.10–3.13, but its package says only `>=3.10`, so a p
 picks 3.14 where that is the newest Python; the plugin passes `--python 3.13`. Builds that use PebbleKit JS or npm dependencies need Node.js.
 The emulator on Linux needs glibc 2.38 or later. Windows is supported only inside WSL.
 
+`pebble sdk install` runs `npm install` for the SDK's JavaScript tools (webpack, for PebbleKit JS)
+and fails without npm — "You must have npm ≥ 3.0.0 available on your path" — removing what it had
+unpacked. So Node.js and npm come before the SDK, not only before the first PebbleKit JS build.
+
+## Windows and WSL
+
+What a client running pebble-tool in WSL from Windows meets, found on WSL 2.5.10 with Ubuntu 24.04
+(glibc 2.39) under the default NAT networking:
+
+- The SDK's guide for WSL 2 is Ubuntu's, plus `sudo apt install build-essential`; 24.04 or later
+  for the emulator's glibc.
+- Everything lives in the distribution: the data directory by the Linux rule under its home,
+  `pb-emulator.json` in its `/tmp`, pids that are its own. Windows reads ordinary files through
+  `\\wsl.localhost\<distribution>\…` (`\\wsl$\…` on older systems), `/proc/<pid>` included, but
+  not symbolic links: `SDKs/current`, `~/.local/bin/pebble` (uv installs a link) and
+  `/etc/os-release` do not exist there, and `readSymbolicLink` fails with "Incorrect function". The
+  plugin asks the distribution for those, in one `sh -lc` per refresh.
+- WSL appends Windows' PATH to its own. A Windows Node.js on it gives `npm` by that name, and
+  `pebble sdk install` run in a WSL terminal then installs the SDK's JavaScript tools with Windows'
+  npm: `node_modules/.bin/webpack` becomes a file without the executable bit (beside `webpack.cmd`
+  and `webpack.ps1`), and every build with PebbleKit JS ends in `FileNotFoundError: … '--config'`.
+  `npm rebuild` in the SDK's directory, with Linux's npm, makes it a link again. The plugin runs
+  every tool with Windows' directories taken off the PATH, and its checklist tells the case.
+- Windows reaches what listens inside WSL on `localhost`: QEMU's VNC, serial, gdb and monitor ports
+  on `127.0.0.1`. pypkjs listens on IPv6's any address, and is forwarded to `::1` only —
+  `127.0.0.1` refuses it.
+- The other way, under NAT, does not work: WSL's `localhost` is not Windows'. pebble-tool looks for
+  xsbug on `localhost:5002`, with no option for another host or port, so a debugger listening on
+  Windows is out of its reach. The plugin starts a relay in the distribution (Python's standard
+  library) that listens on `127.0.0.1:5002` and on a port the IDE connects to, and joins the two;
+  with `networkingMode=mirrored` (`wslinfo --networking-mode`) loopback is shared and none is
+  needed. An option in pebble-tool for xsbug's host and port would retire the relay.
+- `wsl.exe --distribution <d> --cd <linux dir> --exec /bin/sh -lc 'exec "$0" "$@"' <tool> <args>`
+  passes arguments through intact — spaces, quotes, `$`, backslashes, UTF-8 — when they are quoted
+  for `CreateProcess`; stopping `wsl.exe` stops the program it started. A login shell gives the
+  PATH a WSL terminal has (`~/.local/bin` from `~/.profile`). wsl.exe's own messages are UTF-16
+  unless `WSL_UTF8=1`.
+- A build on a Windows drive (`/mnt/c/…`) works, and is slower than one in the distribution's own
+  file system.
+- Every WSL 2 distribution runs in one virtual machine with one network, while each has its own
+  `/tmp`: an emulator left running in one holds port 5901 for all of them, and pebble-tool in
+  another, which does not see it, fails with `qemu-pebble: -vnc :1: Failed to find an available
+  port: Address already in use`. The plugin says so after the run.
+- A fresh `wsl --install Ubuntu-24.04` has Python 3.12, curl and tar, and no compiler, Node.js or
+  npm — and `npm` is found on the PATH all the same, as Windows' `/mnt/c/Program Files/nodejs/npm`
+  when Windows has Node.js.
+
 The emulator, `toolchain/bin/qemu-pebble`, is the one part of the SDK that links against system
 libraries: SDL2, GLib, pixman, zlib and sndio on Linux (the SDK's `apt`/`dnf` list), and on macOS
 Homebrew's libpng by the fixed path `/opt/homebrew/opt/libpng/lib/libpng16.16.dylib` (`otool -L`;

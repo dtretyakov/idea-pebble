@@ -23,8 +23,10 @@ import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.ui.EditorNotifications
 import com.intellij.ui.components.JBTextField
@@ -235,7 +237,13 @@ class PebbleConfigurable(private val project: Project) :
      */
     private fun isExecutable(given: String, here: () -> Boolean): Boolean {
         val wsl = PebbleSdkService.getInstance().host() as? WslToolHost ?: return here()
-        return wsl.isExecutable(given)
+        // Asked on Apply, on the UI thread: the process runs under a modal progress, off it.
+        return ProgressManager.getInstance().runProcessWithProgressSynchronously(
+            ThrowableComputable<Boolean, RuntimeException> { wsl.isExecutable(given) },
+            "Checking $given in ${wsl.distribution}",
+            false,
+            null,
+        )
     }
 
     /** Every check with what it found, paths included, as plain text. */

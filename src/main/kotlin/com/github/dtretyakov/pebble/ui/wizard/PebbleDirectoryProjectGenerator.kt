@@ -40,7 +40,6 @@ class PebbleDirectoryProjectGenerator : DirectoryProjectGeneratorBase<NewPebbleP
 
     override fun generateProject(project: Project, baseDir: VirtualFile, settings: NewPebbleProject.Options, module: Module) {
         val tool = PebbleSdkService.getInstance().tool() ?: return
-        NewPebbleProject.generate(tool, baseDir.toNioPath(), settings)
-        baseDir.refresh(false, true)
+        NewPebbleProject.generateWithProgress(project, tool, baseDir.toNioPath(), settings)
     }
 }

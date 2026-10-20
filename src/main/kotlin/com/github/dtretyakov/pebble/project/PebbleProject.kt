@@ -31,7 +31,8 @@ class PebbleProject(private val project: Project) {
     /** Every Pebble project root in this IDE project, outermost first. */
     fun roots(): List<Path> {
         val contentRoots = ProjectRootManager.getInstance(project).contentRoots.mapNotNull { it.toNioPathOrNull() }
-        val candidates = contentRoots.ifEmpty { listOfNotNull(project.guessProjectDir()?.toNioPathOrNull()) }
+        // A project with no module, as the New Project wizard makes one, is its base directory.
+        val candidates = contentRoots.ifEmpty { listOfNotNull(project.guessProjectDir()?.toNioPathOrNull() ?: project.basePath?.let(Path::of)) }
         return candidates.filter { infoAt(it) != null }.distinct()
     }
 

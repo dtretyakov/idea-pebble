@@ -58,7 +58,10 @@ class PebbleProjectSetup : ProjectActivity {
         private fun apply(project: Project, work: List<Pair<Module?, VirtualFile>>) {
             if (PebbleSettings.getInstance(project).rootsConfigured) return
             val index = ProjectFileIndex.getInstance(project)
-            work.forEach { (module, directory) -> configure(module ?: index.getModuleForFile(directory) ?: newModule(project, directory), directory) }
+            work.forEach { (module, directory) ->
+                val owner = module ?: index.getModuleForFile(directory) ?: newModule(project, directory) ?: return@forEach
+                configure(owner, directory)
+            }
             PebbleSettings.getInstance(project).rootsConfigured = true
         }
 
@@ -66,8 +69,12 @@ class PebbleProjectSetup : ProjectActivity {
          * The module a folder gets when the IDE opens it, which the New Project wizard does not
          * make: a project it made — this version's, and every one made before — has none, and
          * nothing to lay out without one. Where the IDE keeps it, of the type it gives one.
+         *
+         * Only in a project with no module at all, and not in an IDE with its own C engine: CLion
+         * keeps a project model of its own, which a module beside it would only confuse.
          */
-        private fun newModule(project: Project, root: VirtualFile): Module {
+        private fun newModule(project: Project, root: VirtualFile): Module? {
+            if (ModuleManager.getInstance(project).modules.isNotEmpty() || IdeCapabilities.hasNativeC()) return null
             val file = root.toNioPath().resolve(Project.DIRECTORY_STORE_FOLDER).resolve("${root.name}.iml")
             val module = ModuleManager.getInstance(project).newModule(file, ModuleTypeManager.getInstance().defaultModuleType.id)
             ModuleRootModificationUtil.updateModel(module) { it.addContentEntry(root) }

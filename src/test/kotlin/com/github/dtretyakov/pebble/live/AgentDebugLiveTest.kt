@@ -88,9 +88,10 @@ class AgentDebugLiveTest : IdeTestCase() {
             assertEquals(started.toString(), "running", started["state"]!!.jsonPrimitive.content)
             assertEquals("verified", call("pebble_debug_breakpoint", "file" to "src/c/fixture-c.c", "line" to 5)["state"]!!.jsonPrimitive.content)
 
-            call("pebble_emulator", "platform" to "emery", "steps" to "press select", "screenshot" to false)
+            val pressed = call("pebble_emulator", "platform" to "emery", "steps" to "press select", "screenshot" to false)
+            assertFalse(pressed.toString(), pressed["failed"]?.jsonPrimitive?.boolean == true)
             val stop = call("pebble_debug_wait", "timeout" to 60)
-            assertEquals(stop.toString(), "suspended", stop["state"]!!.jsonPrimitive.content)
+            if (stop["state"]!!.jsonPrimitive.content != "suspended") fail("$stop\n${call("pebble_logs")}")
             assertEquals("src/c/fixture-c.c", stop["position"]!!.jsonObject["file"]!!.jsonPrimitive.content)
             assertEquals(5, stop["position"]!!.jsonObject["line"]!!.jsonPrimitive.int)
             val frames = stop["frames"]!!.jsonArray.map { it.jsonObject }

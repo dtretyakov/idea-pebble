@@ -1,5 +1,6 @@
 package com.github.dtretyakov.pebble.emulator
 
+import com.github.dtretyakov.pebble.project.ToolHosts
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
@@ -36,9 +37,13 @@ object EmulatorState {
     /** pebble-tool's display `:1`, the same for every emulator it starts with `--vnc`. */
     const val VNC_PORT = 5901
 
-    fun file(): Path = Path.of(System.getProperty("java.io.tmpdir"), "pb-emulator.json")
+    /**
+     * In the temporary directory of the machine the tools run on — under WSL the distribution's
+     * `/tmp`, read through its share — where pebble-tool's `tempfile.gettempdir()` is.
+     */
+    fun file(): Path = (ToolHosts.currentOrLocal().tempDirectory ?: Path.of(System.getProperty("java.io.tmpdir"))).resolve("pb-emulator.json")
 
-    /** The emulators recorded in [file] whose QEMU is still alive. */
+    /** The emulators recorded in [file] whose QEMU is still alive — a pid of the tools' machine, not the IDE's. */
     fun running(file: Path = file(), isAlive: (Long) -> Boolean = ::isAlive): List<RunningEmulator> {
         if (!Files.isRegularFile(file)) return emptyList()
         return parse(runCatching { file.readText() }.getOrDefault("")).filter { isAlive(it.qemuPid) }
@@ -67,5 +72,5 @@ object EmulatorState {
         }
     }
 
-    private fun isAlive(pid: Long): Boolean = ProcessHandle.of(pid).map { it.isAlive }.orElse(false)
+    fun isAlive(pid: Long): Boolean = ToolHosts.currentOrLocal().isProcessAlive(pid)
 }

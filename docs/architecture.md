@@ -55,10 +55,23 @@ worked around here, and each workaround that does exist is listed in
 [Notes on the Pebble SDK](pebble-sdk-notes.md) with a live test that turns red the day it is no
 longer needed.
 
+**Where the tools run is a question of its own.** On a Mac or Linux the tools run where the IDE
+does; on Windows they run in a WSL distribution. `ToolHost` answers for the tools' machine —
+where each tool is, its data directory, its temporary directory, whether one of its processes is
+alive — and spells paths both ways: the IDE's (`\\wsl.localhost\Ubuntu\home\me\app`, `C:\…`) and the
+tools' (`/home/me/app`, `/mnt/c/…`). `HostOs` still says where the IDE runs. Every process the
+plugin starts is made by `ToolCommandLine` from what the host gives; a path handed to a tool is
+spelled with `toolPath`, and a path a tool prints — gcc's diagnostics, the Alloy engine's sources,
+gdb's frames, clangd's URIs, the build's TypeScript settings — is read back with `idePath`.
+`WslToolHost` starts tools through `wsl.exe` rather than through the platform's WSL API, which is
+internal or experimental in the parts that run commands; it is a function of text, and tested as
+one on every system.
+
 ## Layout
 
 ```
-sdk/        finding pebble-tool, its data directory, SDKs, platforms, clangd — no IDE API
+sdk/        finding pebble-tool, its data directory, SDKs, platforms, clangd, and the machine they run
+            on (ToolHost: this one, or a WSL distribution) — no IDE API
 project/    what a Pebble project is, settings, the active platform, the environment checklist,
             the compile database, new projects, running pebble-tool
 build/      pebble build into the Build tool window, and reading its output

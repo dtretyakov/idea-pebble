@@ -48,7 +48,7 @@ internal class GdbStackFrame(
 
     private val position: XSourcePosition? by lazy {
         if (!process.isAppSource(frame)) return@lazy null
-        val file = LocalFileSystem.getInstance().findFileByNioFile(Path.of(frame.fullname!!)) ?: return@lazy null
+        val file = process.sourceOf(frame)?.let(LocalFileSystem.getInstance()::findFileByNioFile) ?: return@lazy null
         XDebuggerUtil.getInstance().createPosition(file, (frame.line ?: 1) - 1)
     }
 

@@ -7,6 +7,39 @@
   inline `backticks`.
 -->
 
+## 0.10.0
+
+### Windows
+
+- The plugin runs the Pebble SDK inside WSL: the IDE stays on Windows, and pebble-tool, the build,
+  the emulator, gdb and clangd run in a WSL distribution — the one the project is in, else WSL's
+  default, or the one chosen in Settings. Projects can be in the distribution or on a Windows drive.
+- Setting up from nothing is three steps, each a button: Install Ubuntu in WSL; the SDK's packages
+  in one `sudo apt install`; Set Up Pebble SDK.
+- Build, Run, logs with their links, the emulator's screen and controls, screenshots, every
+  platform side by side, UI tests, the agent's tools, and debugging C and Alloy work as on a Mac or
+  Linux. Alloy's debugger reaches pebble-tool through a relay inside the distribution, so WSL's
+  default networking needs no change.
+
+### Getting started
+
+- Node.js and npm come first wherever they are missing before the SDK is: `pebble sdk install`
+  fails without npm. On Linux and in WSL the command offered is the SDK's whole list of packages,
+  the emulator's libraries included, so the password is asked once.
+- An SDK whose JavaScript tools another npm installed — Windows' npm, from a WSL terminal — is
+  told, with `npm rebuild` in the SDK as the fix.
+- The check that the emulator answers before each Run now finds pypkjs on IPv6 as well.
+- A Run whose emulator cannot start because its screen's port is taken — by an emulator left in
+  another WSL distribution, which share one network — says so, rather than only QEMU's
+  "Address already in use", and no longer waits a minute for it first.
+
+### Debugging
+
+- Debug of a C app with breakpoints said "The app could not be started again: pebble-tool is not
+  installed" after starting it again successfully; it says when it has.
+- The agents' `pebble_debug_start` answers once the app has started again under gdb, so a button
+  pressed straight after reaches the app the breakpoints are in.
+
 ## 0.9.0
 
 ### Name

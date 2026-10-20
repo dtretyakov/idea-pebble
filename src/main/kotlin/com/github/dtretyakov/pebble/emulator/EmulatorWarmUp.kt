@@ -1,13 +1,12 @@
 package com.github.dtretyakov.pebble.emulator
 
 import com.github.dtretyakov.pebble.project.PebbleCommands
+import com.github.dtretyakov.pebble.sdk.Loopback
 import com.github.dtretyakov.pebble.run.PebbleInstallCommand
 import com.github.dtretyakov.pebble.run.PebbleRunTarget
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProgressIndicator
-import java.net.InetSocketAddress
-import java.net.Socket
 import java.nio.file.Path
 
 /**
@@ -48,6 +47,9 @@ object EmulatorWarmUp {
         val output = run(tool, root, ask(platform), indicator, WAIT_MILLIS)
         if (output.isCancelled) return
         if (output.exitCode == 0) return
+        // QEMU could not start at all — its display is taken — and waiting changes nothing: the
+        // install that follows says so, with the run's hint about who holds the port.
+        if (NOT_STARTING.any { it in output.stdout || it in output.stderr }) return
 
         // Gave up before pypkjs listened, as `install` would have: wait for it the rest of the way.
         val until = System.currentTimeMillis() + WAIT_MILLIS
@@ -68,7 +70,7 @@ object EmulatorWarmUp {
         platform: String,
         sdkVersion: String?,
         listening: (Int) -> Boolean,
-        isAlive: (Long) -> Boolean = { pid -> ProcessHandle.of(pid).map { it.isAlive }.orElse(false) },
+        isAlive: (Long) -> Boolean = EmulatorState::isAlive,
     ): RunningEmulator? = running.firstOrNull { emulator ->
         emulator.platform == platform &&
             emulator.vnc &&
@@ -97,9 +99,10 @@ object EmulatorWarmUp {
             if (indicator != null) handler.runProcessWithProgressIndicator(indicator, timeoutMillis) else handler.runProcess(timeoutMillis)
         }
 
-    private fun listening(port: Int): Boolean = runCatching {
-        Socket().use { it.connect(InetSocketAddress("127.0.0.1", port), CONNECT_MILLIS) }
-    }.isSuccess
+    /** pypkjs listens on IPv6's any address, which WSL forwards to Windows' `::1` alone. */
+    private fun listening(port: Int): Boolean = Loopback.listening(port, CONNECT_MILLIS)
+
+    private val NOT_STARTING = listOf("Couldn't launch emulator", "Failed to find an available port")
 
     /** A cold start is some seconds; this is room for a slow machine, not an expected wait. */
     private const val WAIT_MILLIS = 60_000

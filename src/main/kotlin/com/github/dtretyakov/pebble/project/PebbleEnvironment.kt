@@ -1,12 +1,12 @@
 package com.github.dtretyakov.pebble.project
 
-import com.github.dtretyakov.pebble.sdk.Clangd
 import com.github.dtretyakov.pebble.sdk.EmulatorStart
 import com.github.dtretyakov.pebble.sdk.HostOs
 import com.github.dtretyakov.pebble.sdk.HostPackages
+import com.github.dtretyakov.pebble.sdk.HostTool
 import com.github.dtretyakov.pebble.sdk.PebbleSdks
-import com.intellij.execution.configurations.PathEnvironmentVariableUtil
-import com.intellij.util.EnvironmentUtil
+import com.github.dtretyakov.pebble.sdk.ToolHostState
+import com.github.dtretyakov.pebble.sdk.WslToolHost
 import com.intellij.util.messages.Topic
 import java.nio.file.Path
 
@@ -36,7 +36,13 @@ object PebbleEnvironment {
         /** Pages, for where there is no command to give. */
         HOW_TO_INSTALL_CLANGD,
         HOW_TO_INSTALL_NODE,
+
+        /** Windows: run the tools in the WSL distribution the open project is in, rather than the one Settings names. */
+        USE_PROJECT_DISTRIBUTION,
     }
+
+    /** Where a [Fix.RUN_IN_TERMINAL] command runs: where the tools are, or — to install WSL itself — Windows. */
+    enum class Terminal { TOOL_HOST, WINDOWS }
 
     /**
      * What a missing item stops, which decides where it is said.
@@ -68,26 +74,38 @@ object PebbleEnvironment {
         val impact: Impact = Impact.BUILD,
         /** For [Fix.RUN_IN_TERMINAL]: what to run. */
         val command: String? = null,
+        /** For [Fix.RUN_IN_TERMINAL]: where. */
+        val terminal: Terminal = Terminal.TOOL_HOST,
+        /**
+         * Not a problem but a moment: WSL is being asked where its tools are. In the way of a build
+         * like a problem, and shown nowhere it would flash by — the setup balloon, the banner.
+         */
+        val pending: Boolean = false,
     )
 
     /** The machine as it is now. */
     fun check(): List<Item> {
         val service = PebbleSdkService.getInstance()
+        val settings = PebbleAppSettings.getInstance()
+        val state = ToolHosts.state()
+        val host = service.host()
         val sdks = service.sdks()
         return check(
-            os = HostOs.current(),
+            host = state,
             tool = service.tool(),
-            configuredTool = PebbleAppSettings.getInstance().pebbleToolPath,
+            configuredTool = settings.pebbleToolPath,
             sdks = sdks,
-            node = PathEnvironmentVariableUtil.findExecutableInPathOnAnyOS("node")?.toPath(),
+            node = host?.locate(HostTool.NODE),
             cInsight = when {
                 IdeCapabilities.hasNativeC() -> CInsight.NATIVE
                 !IdeCapabilities.hasLsp4ij() -> CInsight.NO_LSP4IJ
-                else -> Clangd.locate(PebbleAppSettings.getInstance().clangdPath, EnvironmentUtil.getValue("PATH"))
-                    ?.let { CInsight.Clangd(it) } ?: CInsight.NO_CLANGD
+                else -> host?.locate(HostTool.CLANGD, settings.clangdPath)?.let { CInsight.Clangd(it) } ?: CInsight.NO_CLANGD
             },
-            packages = HostPackages.current(EnvironmentUtil.getValue("PATH")),
+            packages = HostPackages.current(host),
             emulator = EmulatorCheck.getInstance().cached(sdks.current),
+            toolSpelling = { path -> host?.toolPath(path) ?: path.toString() },
+            npm = host?.locate(HostTool.NPM),
+            sdkJavaScript = sdks.current?.let { sdk -> host?.sdkJavaScriptReady(sdk) },
         )
     }
 
@@ -102,7 +120,7 @@ object PebbleEnvironment {
 
     /** The rules, as a function of what was found. */
     fun check(
-        os: HostOs,
+        host: ToolHostState,
         tool: Path?,
         configuredTool: String,
         sdks: PebbleSdks,
@@ -110,24 +128,23 @@ object PebbleEnvironment {
         cInsight: CInsight = CInsight.NATIVE,
         packages: HostPackages = HostPackages.NONE,
         emulator: EmulatorStart.Verdict? = null,
+        /** How a path is shown: as the user would type it where the tools are — `/home/me/…` under WSL. */
+        toolSpelling: (Path) -> String = Path::toString,
+        /** npm, which the SDK's installer runs; beside Node.js wherever a package manager installs both. */
+        npm: Path? = node,
+        /** Whether the active SDK's JavaScript tools run ([com.github.dtretyakov.pebble.sdk.ToolHost.sdkJavaScriptReady]). */
+        sdkJavaScript: Boolean? = null,
     ): List<Item> {
-        if (os == HostOs.WINDOWS) {
-            // Everything below would be a list of consequences of this one fact.
-            return listOf(
-                Item(
-                    Concern.HOST, "Windows", Status.MISSING,
-                    "The Pebble SDK runs on Windows only inside WSL, which this version of the plugin does not " +
-                        "drive yet. Install Ubuntu 24.04 in WSL (`wsl --install -d Ubuntu-24.04`; 22.04 is too old " +
-                        "for the emulator), set up the SDK there and build from a WSL terminal — or use " +
-                        "CloudPebble in the browser, which needs no installation.",
-                ),
-            )
-        }
+        // Each of these is the one thing to say: everything below would be its consequences.
+        hostProblem(host)?.let { return listOf(it) }
 
         return buildList {
+            if (host is ToolHostState.Wsl) {
+                add(Item(Concern.HOST, "WSL", Status.READY, "Tools run in the WSL distribution ${host.name}"))
+            }
             add(
                 when {
-                    tool != null -> Item(Concern.TOOL, "pebble-tool", Status.READY, "Found at $tool")
+                    tool != null -> Item(Concern.TOOL, "pebble-tool", Status.READY, "Found at ${toolSpelling(tool)}")
                     // Not offered Set Up: it would install where uv puts pebble-tool, and the setting
                     // would go on pointing somewhere else.
                     configuredTool.isNotBlank() -> Item(
@@ -168,7 +185,7 @@ object PebbleEnvironment {
             if (current != null) {
                 add(
                     if (current.hasCompiler) {
-                        Item(Concern.TOOLCHAIN, "Toolchain", Status.READY, "Compiler at ${current.compilerBin}")
+                        Item(Concern.TOOLCHAIN, "Toolchain", Status.READY, "Compiler at ${toolSpelling(current.compilerBin)}")
                     } else {
                         Item(
                             Concern.TOOLCHAIN, "Toolchain", Status.MISSING,
@@ -181,18 +198,49 @@ object PebbleEnvironment {
 
             if (current != null && current.hasCompiler) emulatorItem(emulator, packages)?.let(::add)
 
-            add(
-                if (node != null) {
-                    Item(Concern.NODE, "Node.js", Status.READY, "Found at $node", impact = Impact.SOME_FILES)
-                } else {
+            val javaScript = node != null && npm != null
+            when {
+                // `pebble sdk install` runs npm, and fails without it: before the SDK, Node.js is
+                // what Set Up needs first. One command for everything the system has to provide,
+                // so that the password is asked once and Set Up then needs nothing more.
+                !javaScript && sdks.installed.isEmpty() -> {
+                    // clangd too, where this IDE would ask for it next: one password rather than two.
+                    val command = packages.sdkPrerequisites(withClangd = cInsight == CInsight.NO_CLANGD)
+                    val also = if (command != null && command != packages.node()) ", and the emulator's libraries with them" else ""
+                    // Before pebble-tool's line, so it is the first thing in the way.
+                    add(
+                        indexOfFirst { it.concern == Concern.TOOL }.coerceAtLeast(0),
+                        Item(
+                            Concern.NODE, "Node.js", Status.MISSING,
+                            if (node == null) "The SDK's installer runs npm, so Node.js and npm come before it$also."
+                            else "npm is not installed beside Node.js, and the SDK's installer runs it, so it comes before the SDK$also.",
+                            command?.let { Fix.RUN_IN_TERMINAL } ?: Fix.HOW_TO_INSTALL_NODE,
+                            command = command,
+                        ),
+                    )
+                }
+                !javaScript -> {
+                    val command = packages.node()?.let { install -> repairJavaScript(current, sdkJavaScript, toolSpelling)?.let { "$install && $it" } ?: install }
+                    add(
+                        Item(
+                            Concern.NODE, "Node.js", Status.MISSING,
+                            if (node == null) "Not found. Projects with PebbleKit JS or npm dependencies need it to build."
+                            else "npm is not installed beside Node.js. Projects with PebbleKit JS or npm dependencies need it to build.",
+                            command?.let { Fix.RUN_IN_TERMINAL } ?: Fix.HOW_TO_INSTALL_NODE,
+                            impact = Impact.SOME_FILES, command = command,
+                        ),
+                    )
+                }
+                current != null && sdkJavaScript == false -> add(
                     Item(
                         Concern.NODE, "Node.js", Status.MISSING,
-                        "Not found. Projects with PebbleKit JS or npm dependencies need it to build.",
-                        packages.node()?.let { Fix.RUN_IN_TERMINAL } ?: Fix.HOW_TO_INSTALL_NODE,
-                        impact = Impact.SOME_FILES, command = packages.node(),
-                    )
-                },
-            )
+                        "The SDK's JavaScript tools were installed by another npm — Windows', under WSL — and cannot run here, " +
+                            "so projects with PebbleKit JS do not build. `npm rebuild` in the SDK makes them this system's.",
+                        Fix.RUN_IN_TERMINAL, impact = Impact.SOME_FILES, command = repairJavaScript(current, false, toolSpelling),
+                    ),
+                )
+                else -> add(Item(Concern.NODE, "Node.js", Status.READY, "Found at ${toolSpelling(node!!)}", impact = Impact.SOME_FILES))
+            }
 
             // Worth knowing rather than in the way: builds and runs do not need it.
             when (cInsight) {
@@ -213,9 +261,49 @@ object PebbleEnvironment {
                     ),
                 )
                 is CInsight.Clangd -> add(
-                    Item(Concern.C_INSIGHT, "C code insight", Status.READY, "clangd at ${cInsight.path}", impact = Impact.SOME_FILES),
+                    Item(Concern.C_INSIGHT, "C code insight", Status.READY, "clangd at ${toolSpelling(cInsight.path)}", impact = Impact.SOME_FILES),
                 )
             }
+        }
+    }
+
+    /** `npm rebuild` in [sdk], when its JavaScript tools are known not to run. */
+    private fun repairJavaScript(sdk: com.github.dtretyakov.pebble.sdk.PebbleSdk?, ready: Boolean?, spell: (Path) -> String): String? {
+        if (sdk == null || ready != false) return null
+        return "cd ${WslToolHost.shellQuote(spell(sdk.root))} && npm rebuild --silent"
+    }
+
+    /** The command that installs what the SDK runs in on Windows: Ubuntu, in a release new enough for the emulator. */
+    const val INSTALL_WSL = "wsl --install -d Ubuntu-24.04"
+
+    private fun hostProblem(host: ToolHostState): Item? = when (host) {
+        ToolHostState.Local -> null
+        ToolHostState.Listing -> Item(Concern.HOST, "WSL", Status.MISSING, "Looking for WSL distributions…", pending = true)
+        ToolHostState.NoWsl -> Item(
+            Concern.HOST, "WSL", Status.MISSING,
+            "The Pebble SDK runs on Windows inside WSL, and there is no WSL distribution here yet. " +
+                "`$INSTALL_WSL` installs Ubuntu 24.04 — 22.04 is too old for the emulator; Windows may ask to restart " +
+                "and Ubuntu for a user name and password. The SDK itself is set up from here afterwards.",
+            Fix.RUN_IN_TERMINAL, command = INSTALL_WSL, terminal = Terminal.WINDOWS,
+        )
+        is ToolHostState.Wsl -> when {
+            !host.ready && host.problem == null -> Item(
+                Concern.HOST, "WSL", Status.MISSING,
+                "Asking ${host.name} where its tools are — a few seconds the first time, while WSL starts.",
+                pending = true,
+            )
+            host.problem != null -> Item(
+                Concern.HOST, "WSL", Status.MISSING,
+                "The WSL distribution ${host.name}, where the SDK runs, does not answer: ${host.problem.trimEnd('.')}. " +
+                    "Open it once from the Start menu to finish its setup, or choose another in Settings.",
+            )
+            host.projectDistribution != null -> Item(
+                Concern.HOST, "WSL", Status.MISSING,
+                "This project is in the WSL distribution ${host.projectDistribution}, and pebble-tool runs in ${host.name}, " +
+                    "which cannot see its files.",
+                Fix.USE_PROJECT_DISTRIBUTION,
+            )
+            else -> null
         }
     }
 

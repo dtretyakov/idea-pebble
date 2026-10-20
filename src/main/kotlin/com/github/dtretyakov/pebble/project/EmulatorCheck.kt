@@ -2,7 +2,6 @@ package com.github.dtretyakov.pebble.project
 
 import com.github.dtretyakov.pebble.sdk.EmulatorStart
 import com.github.dtretyakov.pebble.sdk.PebbleSdk
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -43,7 +42,7 @@ class EmulatorCheck {
     fun checkNow(sdk: PebbleSdk?): EmulatorStart.Verdict? {
         val stamp = sdk?.let(::stampOf) ?: return null
         val output = runCatching {
-            CapturingProcessHandler(GeneralCommandLine(stamp.qemu.toString(), "--version")).runProcess(TIMEOUT_MILLIS)
+            CapturingProcessHandler(ToolCommandLine.build(stamp.qemu, listOf("--version"))).runProcess(TIMEOUT_MILLIS)
         }.getOrNull() ?: return null
         // A timeout means the loader got as far as running it, which is what is being asked.
         val verdict = if (output.isTimeout) EmulatorStart.Verdict.Starts else EmulatorStart.read(output.exitCode, output.stdout + "\n" + output.stderr)
@@ -72,7 +71,7 @@ class EmulatorCheck {
     }
 
     private fun stampOf(sdk: PebbleSdk): Stamp? {
-        val qemu = sdk.toolchain.resolve("bin/qemu-pebble")
+        val qemu = sdk.qemu
         val modified = runCatching { Files.getLastModifiedTime(qemu).toMillis() }.getOrNull() ?: return null
         return Stamp(qemu, modified)
     }

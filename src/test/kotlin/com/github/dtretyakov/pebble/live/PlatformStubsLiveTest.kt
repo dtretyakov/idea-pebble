@@ -13,7 +13,7 @@ class PlatformStubsLiveTest {
     @Test
     fun `the speaker is stubbed out on exactly the platforms without one`() {
         LiveSdk.tool()
-        val sdk = PebbleSdks.scan(PebbleDataDir.locate()).current!!
+        val sdk = LiveSdk.sdks().current!!
         val stubbed = sdk.platforms().filter { "speaker_play_notes" in PlatformStubs.inert(sdk, it) }
         assertEquals(listOf("aplite", "basalt", "chalk", "diorite"), stubbed)
         assertTrue(sdk.platforms().none { "persist_get_max_size" in PlatformStubs.inert(sdk, it) })

@@ -47,6 +47,7 @@ class MissingSdkNotification : EditorNotificationProvider {
             notLoaded(project)?.let { return it }
         }
         val problem = PebbleEnvironment.firstProblem(items) ?: aboutThisFile(items, root, file) ?: return null
+        if (problem.pending) return null
         // Closing the banner silences this problem, not every later one: someone who chose to
         // live without pebble-tool for now still wants to hear that the SDK is missing once
         // they have it.

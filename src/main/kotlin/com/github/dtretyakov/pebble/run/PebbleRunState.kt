@@ -4,6 +4,7 @@ import com.github.dtretyakov.pebble.emulator.EmulatorToolWindowFactory
 import com.github.dtretyakov.pebble.project.PebbleCommands
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolHosts
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.configurations.PtyCommandLine
@@ -48,7 +49,7 @@ class PebbleRunState(environment: ExecutionEnvironment, private val configuratio
             options.logs || debugger,
         )
 
-        consoleBuilder.addFilter(PebbleLogFilter(project, root))
+        consoleBuilder.addFilter(PebbleLogFilter(project, root, ToolHosts.currentOrLocal()::idePath))
         if (gdbConsole) {
             val platform = configuration.platform() ?: throw ExecutionException("The project targets no platform.")
             val gdb = KillableColoredProcessHandler(GdbSession.commandLine(tool, platform, root))

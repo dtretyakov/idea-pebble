@@ -22,7 +22,28 @@ class HostPackages(
     val distro: Distro?,
     /** On a Mac: Apple silicon, where Homebrew lives in `/opt/homebrew` rather than `/usr/local`. */
     val appleSilicon: Boolean = true,
+    /** A WSL distribution, whose fresh installs lack the compilers the SDK's guide installs there first. */
+    val wsl: Boolean = false,
 ) {
+
+    /**
+     * Everything the SDK needs from the system, in one command, as its installation guide gives it:
+     * Node.js and npm — without which `pebble sdk install` itself fails, since it runs npm — and the
+     * emulator's libraries, which nothing can check before there is an emulator to ask. One
+     * password, then Set Up needs nothing more; where there is no package manager to name, the
+     * Node.js command alone, or null.
+     */
+    fun sdkPrerequisites(withClangd: Boolean = false): String? = when {
+        // A fresh WSL distribution has had no `apt update`, and finds none of these without one;
+        // sudo asks for the password once for both.
+        os == HostOs.LINUX && distro == Distro.DEBIAN ->
+            (if (wsl) "sudo apt update && " else "") +
+                "sudo apt install ${if (wsl) "build-essential " else ""}nodejs npm libsdl2-2.0-0 libglib2.0-0 libpixman-1-0 zlib1g libsndio7.0" +
+                if (withClangd) " clangd" else ""
+        os == HostOs.LINUX && distro == Distro.FEDORA ->
+            "sudo dnf install nodejs npm SDL2 glib2 pixman zlib sndio" + if (withClangd) " clang-tools-extra" else ""
+        else -> node()
+    }
 
     /**
      * Whether `brew install` here would put a library where [path] says the emulator looks for it.
@@ -81,22 +102,21 @@ class HostPackages(
         val NONE = HostPackages(HostOs.LINUX, null, null)
 
         /**
-         * This machine. Homebrew is looked for each time — it is the thing a user installs while
-         * the IDE runs — and the distribution read once: the checklist asks on every editor
+         * Where the tools run: this machine, or a WSL distribution, which is a Linux like any other
+         * here. Homebrew is looked for each time — it is the thing a user installs while the IDE
+         * runs — and the distribution read once by the host: the checklist asks on every editor
          * notification and run configuration check, on the UI thread.
          */
-        fun current(path: String?): HostPackages {
-            val os = HostOs.current()
+        fun current(host: ToolHost?): HostPackages {
+            host ?: return NONE
+            val os = host.os
             return HostPackages(
                 os,
-                brew = if (os == HostOs.MAC) locateBrew(path) else null,
-                distro = if (os == HostOs.LINUX) thisDistro else null,
-                appleSilicon = System.getProperty("os.arch").let { it == "aarch64" || it == "arm64" },
+                brew = if (os == HostOs.MAC) locateBrew(host.env("PATH")) else null,
+                distro = if (os == HostOs.LINUX) host.osRelease()?.let(::distro) else null,
+                appleSilicon = host.arch.let { it == "aarch64" || it == "arm64" },
+                wsl = host is WslToolHost,
             )
-        }
-
-        private val thisDistro: Distro? by lazy {
-            runCatching { Files.readString(Path.of("/etc/os-release")) }.getOrNull()?.let(::distro)
         }
 
         /** Homebrew's prefix is off the PATH of an IDE started from the Dock, so it is looked in too. */

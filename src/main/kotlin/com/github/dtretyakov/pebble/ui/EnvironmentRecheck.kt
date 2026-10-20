@@ -3,6 +3,7 @@ package com.github.dtretyakov.pebble.ui
 import com.github.dtretyakov.pebble.project.EmulatorCheck
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolHosts
 import com.intellij.openapi.application.ApplicationActivationListener
 import com.intellij.openapi.wm.IdeFrame
 import com.intellij.ui.EditorNotifications
@@ -19,6 +20,9 @@ class EnvironmentRecheck : ApplicationActivationListener {
     override fun applicationActivated(ideFrame: IdeFrame) {
         val project = ideFrame.project?.takeUnless { it.isDisposed } ?: return
         if (!PebbleProject.getInstance(project).isPebbleProject()) return
+        // Under WSL nothing is a file away: the distribution is asked again, in the background,
+        // and what it says is announced when it differs.
+        ToolHosts.refreshLater()
         EditorNotifications.getInstance(project).updateAllNotifications()
         PebbleSetupNotice.reconsider(project)
         // An emulator that could not start may have had its libraries installed meanwhile.

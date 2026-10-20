@@ -19,7 +19,12 @@ import kotlin.streams.asSequence
  * `pkjs> ./src/pkjs/index.js:3:0 Hello`. An Alloy exception, as the debugger writes it, carries
  * the source's absolute path: `/…/src/embeddedjs/main.js:16: # Exception: …`.
  */
-class PebbleLogFilter(private val project: Project, private val root: Path) : Filter {
+class PebbleLogFilter(
+    private val project: Project,
+    private val root: Path,
+    /** An absolute path the engine wrote, as the IDE spells it: under WSL `/home/…` is in the distribution's share. */
+    private val absolute: (String) -> Path? = { runCatching { Path.of(it) }.getOrNull() },
+) : Filter {
 
     /** Every C source by file name, read once per run: a log can be long and a project is small. */
     private val sources: Map<String, List<Path>> by lazy {
@@ -41,7 +46,7 @@ class PebbleLogFilter(private val project: Project, private val root: Path) : Fi
         }
 
         ALLOY.find(line)?.let { match ->
-            val file = Path.of(match.groupValues[1])
+            val file = absolute(match.groupValues[1]) ?: return null
             if (!Files.isRegularFile(file)) return null
             return link(file, match.groupValues[2].toInt() - 1, 0, start + match.range.first, start + match.groups[2]!!.range.last + 1)
         }

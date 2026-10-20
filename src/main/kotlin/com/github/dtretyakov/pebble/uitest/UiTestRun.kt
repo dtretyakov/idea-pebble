@@ -6,6 +6,7 @@ import com.github.dtretyakov.pebble.emulator.RfbClient
 import com.github.dtretyakov.pebble.project.PebbleCommands
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolCommandLine
 import com.github.dtretyakov.pebble.ui.PebbleIcons
 import com.intellij.execution.DefaultExecutionResult
 import com.intellij.execution.ExecutionException
@@ -268,8 +269,11 @@ class PebbleToolEmulator(private val tool: Path, private val root: Path) : Scena
         return (if (output.isTimeout) -1 else output.exitCode) to (output.stdout + output.stderr)
     }
 
-    override fun screenshot(platform: String, file: Path): Pair<Int, String> =
-        pebble(platform, listOf("screenshot", "--no-open", file.toString()))
+    override fun screenshot(platform: String, file: Path): Pair<Int, String> {
+        // pebble-tool writes it, so the path is spelled for pebble-tool: under WSL a Linux one.
+        val spelled = ToolCommandLine.host().toolPath(file) ?: return -1 to "pebble-tool cannot reach $file."
+        return pebble(platform, listOf("screenshot", "--no-open", spelled))
+    }
 
     override fun tap(platform: String, x: Int, y: Int) {
         val frame = CountDownLatch(1)

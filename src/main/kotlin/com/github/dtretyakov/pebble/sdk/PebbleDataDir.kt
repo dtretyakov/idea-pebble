@@ -12,7 +12,8 @@ import java.nio.file.Path
  * - Linux: `~/.pebble-sdk` when it already exists — installations from before the move to the XDG
  *   layout — and `$XDG_DATA_HOME/pebble-sdk` (`~/.local/share/pebble-sdk`) otherwise.
  *
- * Windows has none: the SDK lives inside a WSL distribution, under that distribution's Linux home.
+ * Windows has none of its own: the SDK lives inside a WSL distribution, which is a Linux host and
+ * answers by the Linux rule — as the IDE reads it, through the distribution's share.
  */
 object PebbleDataDir {
 
@@ -20,14 +21,16 @@ object PebbleDataDir {
         os: HostOs = HostOs.current(),
         home: Path = Path.of(System.getProperty("user.home")),
         env: (String) -> String? = System::getenv,
-    ): Path? = when (os) {
-        HostOs.MAC -> home.resolve("Library/Application Support/Pebble SDK")
-        HostOs.LINUX -> {
+    ): Path? = locate(LocalToolHost(os, home, env))
+
+    fun locate(host: ToolHost): Path? = when (host.os) {
+        HostOs.MAC -> host.home?.resolve("Library/Application Support/Pebble SDK")
+        HostOs.LINUX -> host.home?.let { home ->
             val legacy = home.resolve(".pebble-sdk")
             if (Files.isDirectory(legacy)) {
                 legacy
             } else {
-                val dataHome = env("XDG_DATA_HOME")?.takeIf { it.isNotBlank() }?.let(Path::of)
+                val dataHome = host.env("XDG_DATA_HOME")?.takeIf { it.isNotBlank() }?.let(host::idePath)
                     ?: home.resolve(".local/share")
                 dataHome.resolve("pebble-sdk")
             }

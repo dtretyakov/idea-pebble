@@ -24,7 +24,28 @@ Building it, and the kinds of test that catch different failures.
 ```
 
 The JDK is 21; use Temurin rather than the Microsoft build of OpenJDK, which Ant mistakes for the
-Microsoft JVM of the 1990s and `instrumentCode` then fails on Windows.
+Microsoft JVM of the 1990s and `instrumentCode` then fails on Windows. The Gradle daemon's JDK is
+the one that matters: point `JAVA_HOME` at Temurin, which Gradle may already have downloaded to
+`~/.gradle/jdks`.
+
+On Windows the live tests drive the pebble-tool of WSL's default distribution, or of the one
+`PEBBLE_WSL_DISTRIBUTION` names, the way the plugin does — through `wsl.exe` — so they need the SDK
+set up in that distribution, and its packages (see [Notes on the Pebble SDK](pebble-sdk-notes.md)).
+Tests that run without an IDE give `ToolHosts` that distribution themselves (`LiveSdk.host`); the
+others find it as the plugin would.
+
+`OnboardingLiveTest` walks a newcomer's setup through on a distribution fresh from `wsl --install`
+— the checklist's one `apt` command, Set Up, a build — and changes that distribution for good, so it
+runs only when one is named. With a throwaway one:
+
+```
+wsl --install Ubuntu-24.04 --name PebbleOnboarding --no-launch
+wsl -d PebbleOnboarding -u root -- sh -c "useradd -m -s /bin/bash -G sudo tester"
+wsl --manage PebbleOnboarding --set-default-user tester
+./gradlew --stop
+PEBBLE_WSL_ONBOARDING=PebbleOnboarding ./gradlew test -PliveTests --tests '*OnboardingLiveTest'
+wsl --unregister PebbleOnboarding
+```
 
 Releasing, and what the verifier's warnings mean, is in [Publishing](../PUBLISHING.md).
 

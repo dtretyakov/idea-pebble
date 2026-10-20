@@ -15,7 +15,7 @@ class SdkListLiveTest {
         val output = LiveSdk.run(Path.of("."), "sdk", "list").text
         val available = PebbleSdkList.available(output)
         assertTrue(available.isNotEmpty(), output)
-        val installed = PebbleSdks.scan(PebbleDataDir.locate()).installed.map { it.version }
+        val installed = LiveSdk.sdks().installed.map { it.version }
         assertTrue(available.none { it in installed }, "$available overlaps $installed")
     }
 }

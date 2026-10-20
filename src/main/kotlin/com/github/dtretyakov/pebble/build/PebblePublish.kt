@@ -15,8 +15,11 @@ object PebblePublish {
      * The terminal's command: `pebble publish`, after `pebble login` when there is no login yet.
      * `PYTHONWARNINGS=ignore` for the screenful of libpebble2 warnings Python 3.12 and later print.
      */
-    fun command(tool: Path, loggedIn: Boolean): String {
-        val pebble = "PYTHONWARNINGS=ignore ${quote(tool.toString())}"
+    fun command(tool: Path, loggedIn: Boolean): String = command(tool.toString(), loggedIn)
+
+    /** [tool] as the terminal's shell spells it: under WSL, the distribution's path. */
+    fun command(tool: String, loggedIn: Boolean): String {
+        val pebble = "PYTHONWARNINGS=ignore ${quote(tool)}"
         return if (loggedIn) "$pebble publish" else "$pebble login && $pebble publish"
     }
 

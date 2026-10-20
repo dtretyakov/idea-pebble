@@ -7,6 +7,7 @@ import com.github.dtretyakov.pebble.project.AlloyGlobals
 import com.github.dtretyakov.pebble.project.PebbleProject
 import com.github.dtretyakov.pebble.project.PebbleProjectInfo
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolHosts
 import com.intellij.lang.javascript.library.JSLibraryManager
 import com.intellij.lang.javascript.library.JSPredefinedLibraryProvider
 import com.intellij.openapi.Disposable
@@ -87,7 +88,7 @@ class PebbleJsLibraries : JSPredefinedLibraryProvider() {
             val model = PebbleProject.getInstance(project)
             val root = model.primaryRoot() ?: return emptyList()
             if (model.infoAt(root)?.projectType != PebbleProjectInfo.ProjectType.ALLOY) return emptyList()
-            return AlloyGlobals.files(root, model.activePlatform(root), PebbleSdkService.getInstance().currentSdk())
+            return AlloyGlobals.files(root, model.activePlatform(root), PebbleSdkService.getInstance().currentSdk(), ToolHosts.currentOrLocal()::idePath)
                 .mapNotNull { LocalFileSystem.getInstance().findFileByNioFile(it) }
         }
 

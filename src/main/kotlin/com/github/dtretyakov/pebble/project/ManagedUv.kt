@@ -1,5 +1,7 @@
 package com.github.dtretyakov.pebble.project
 
+import com.github.dtretyakov.pebble.sdk.LocalToolHost
+import com.github.dtretyakov.pebble.sdk.ToolHost
 import com.github.dtretyakov.pebble.sdk.UvRelease
 import com.intellij.openapi.application.PathManager
 import com.intellij.util.io.Decompressor
@@ -26,8 +28,20 @@ object ManagedUv {
 
     fun directory(): Path = PathManager.getCommonDataPath().resolve("pebble").resolve("uv")
 
+    /**
+     * Where the uv for [host] goes: this machine's, or — for a WSL distribution — a Linux uv on
+     * the Windows disk, which the distribution runs from `/mnt/c/…`. Kept apart by processor, so a
+     * second distribution on another one does not take the first one's.
+     */
+    fun directory(host: ToolHost?): Path =
+        if (host == null || host is LocalToolHost) directory() else directory().resolveSibling("uv-linux-${host.arch.ifEmpty { "x86_64" }}")
+
     /** The plugin's uv, if it has installed one. */
     fun locate(): Path? = directory().resolve("uv").takeIf { Files.isExecutable(it) }
+
+    /** The plugin's uv for [host]. On the Windows disk an executable bit is the distribution's business, not the file's. */
+    fun locate(host: ToolHost?): Path? =
+        if (host == null || host is LocalToolHost) locate() else directory(host).resolve("uv").takeIf { Files.isRegularFile(it) }
 
     /**
      * Downloads [asset], checks it, and puts `uv` in [into]. [download] fetches a URL to a file;

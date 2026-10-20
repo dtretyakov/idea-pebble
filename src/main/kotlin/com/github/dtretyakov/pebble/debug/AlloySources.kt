@@ -20,8 +20,15 @@ object AlloySources {
     fun isAlloySource(root: Path, file: Path): Boolean =
         file.extension in EXTENSIONS && enginePath(file).startsWith(enginePath(root).resolve(DIRECTORY))
 
-    /** The engine's name for [file]. */
+    /** The engine's name for [file], as the IDE spells it. */
     fun enginePath(file: Path): Path = runCatching { file.toRealPath() }.getOrElse { file.toAbsolutePath().normalize() }
+
+    /**
+     * The engine's name for [file] as the engine has it: the build's spelling, which under WSL is
+     * the distribution's — `/home/me/app/src/embeddedjs/main.js` for `\\wsl.localhost\…`.
+     */
+    fun engineName(file: Path, toolPath: (Path) -> String? = { it.toString() }): String =
+        enginePath(file).let { toolPath(it) ?: it.toString() }
 }
 
 /**

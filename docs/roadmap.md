@@ -55,7 +55,7 @@ Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by 
   buttons and arrow keys, clicks and drags as touches on emery and gabbro — confirmed by an app
   that logs its touches — screenshots, and stopping it.
 
-Moved to Phase 2: Windows, which needs a machine with WSL to be verified on.
+Moved to Phase 2: Windows, which needed a machine with WSL to be verified on — done there.
 
 ## Phase 2 — Advanced development experience (P1)
 
@@ -80,9 +80,17 @@ emulator and a separate debugger.
 - [x] `package.json`: a resource whose file is in `resources/` neither as named nor as a platform
   variant, and message keys no source uses.
 - [x] PebbleKit JS typings for `src/pkjs`, the plugin's own, under External Libraries.
-- **Windows.** Projects inside WSL: pebble-tool run in the distribution (`WSLDistribution`), its data
-  directory and `pb-emulator.json` read through the distribution's paths, and the emulator's VNC
-  reached over WSL's localhost forwarding.
+- [x] **Windows.** The tools run in a WSL distribution (`ToolHost`, `WslToolHost`), started through
+  `wsl.exe`, with the SDK, `pb-emulator.json` and `/proc` read through the distribution's share and
+  what the share cannot show — symbolic links, where each tool is — asked of the distribution in
+  one process. Projects in the distribution or on a Windows drive. Build, run, logs, the emulator
+  over WSL's localhost forwarding, its controls, screenshots, UI tests, the agent's tools, C
+  debugging, Alloy debugging through a relay inside the distribution, clangd there with LSP4IJ
+  mapping file URIs — each verified by the live tests on WSL 2.5.10, Ubuntu 24.04, NAT networking;
+  and setting up from nothing, on a distribution fresh from `wsl --install`
+  (`OnboardingLiveTest`). Untried: publishing, which runs `pebble login` and `pebble publish` in a
+  WSL terminal and needs an account; CLion's C engine, which needs a WSL toolchain configured in
+  CLion.
 
 ## Phase 3 — Integrated tooling and automation (P2)
 

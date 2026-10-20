@@ -48,7 +48,8 @@ class PublishAction : DumbAwareAction() {
                     PebbleCommands.notify(project, "Not published: $refused problem(s) the appstore would refuse, in the Build window.", NotificationType.ERROR)
                     return
                 }
-                TerminalCommand.run(project, PebblePublish.command(tool, PebblePublish.loggedIn(sdk.dataDir())), root, "Pebble publish")
+                val spelled = sdk.host()?.toolPath(tool) ?: tool.toString()
+                TerminalCommand.run(project, PebblePublish.command(spelled, PebblePublish.loggedIn(sdk.dataDir())), root, "Pebble publish")
             }
         }.queue()
     }

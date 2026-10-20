@@ -61,6 +61,14 @@ class BuildOutputParserTest {
     }
 
     @Test
+    fun `an absolute path is the tools', and is spelled as the IDE reaches it`() {
+        val sdkHeader = Path.of("sdk-share", "pebble.h")
+        val parser = BuildOutputParser(root) { if (it == "/home/me/sdk/pebble.h") sdkHeader else null }
+        assertEquals(sdkHeader, parser.parseLine("/home/me/sdk/pebble.h:12:3: warning: something [-Wsomething]")?.file)
+        assertEquals(root.resolve("src/c/a.c"), parser.parseLine("../src/c/a.c:1:1: error: x")?.file)
+    }
+
+    @Test
     fun `everything else is not a diagnostic`() {
         val parser = BuildOutputParser(root)
         listOf(

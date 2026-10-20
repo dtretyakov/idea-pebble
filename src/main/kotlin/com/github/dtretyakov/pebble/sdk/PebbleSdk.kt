@@ -43,7 +43,17 @@ class PebbleSdk(val root: Path, val version: String, val channel: String?) {
      * directory. A glob over the SDKs directory matches both spellings.
      */
     val compilerGlob: String
-        get() = root.resolveSibling("*").resolve("toolchain/arm-none-eabi/bin/arm-none-eabi-*").toString()
+        get() = compilerGlob { it.toString() }!!
+
+    /**
+     * [compilerGlob] in the tools' spelling — `/home/me/.local/share/pebble-sdk/SDKs/…` under WSL
+     * — built as text: `*` is no part of a Windows path. Null when the tools cannot reach the SDK.
+     */
+    fun compilerGlob(spell: (Path) -> String?): String? =
+        root.parent?.let(spell)?.let { "${it.trimEnd('/', '\\')}/*/toolchain/arm-none-eabi/bin/arm-none-eabi-*" }
+
+    /** The emulator. */
+    val qemu: Path get() = toolchain.resolve("bin/qemu-pebble")
 
     /** `mcrun` and `xsbug`, which only SDKs with Alloy support carry. */
     val hasAlloyTools: Boolean get() = Files.exists(toolchain.resolve("moddable-tools/mcrun"))
@@ -64,6 +74,13 @@ class PebbleSdk(val root: Path, val version: String, val channel: String?) {
     override fun toString(): String = "Pebble SDK $version"
 
     companion object {
+        /**
+         * The bundler for PebbleKit JS, which `pebble sdk install` puts there with `npm install`.
+         * Under WSL an npm of Windows' — on WSL's PATH after Linux's — writes it as a file the build
+         * cannot run, and `npm rebuild` in the SDK makes it a link again.
+         */
+        const val WEBPACK = "node_modules/.bin/webpack"
+
         private val json = Json { ignoreUnknownKeys = true }
 
         /** The SDK at [root], or null when that is not a complete installation. */
@@ -90,17 +107,24 @@ class PebbleSdks(val installed: List<PebbleSdk>, val current: PebbleSdk?) {
          * `list_local_sdks` makes: every directory with a readable `sdk-core/manifest.json`, the
          * `current` link excepted.
          */
-        fun scan(dataDir: Path?): PebbleSdks {
+        fun scan(
+            dataDir: Path?,
+            /**
+             * Where the `current` link leads. Through a WSL distribution's share a link is
+             * invisible, so there the distribution itself is asked ([ToolHost.resolveLink]).
+             */
+            resolveLink: (Path) -> Path? = { link -> runCatching { link.toRealPath() }.getOrNull() },
+        ): PebbleSdks {
             val sdks = dataDir?.resolve("SDKs")?.takeIf { it.isDirectory() } ?: return NONE
             val installed = sdks.listDirectoryEntries()
-                .filter { !Files.isSymbolicLink(it) && it.isDirectory() }
+                .filter { it.name != "current" && !Files.isSymbolicLink(it) && it.isDirectory() }
                 .mapNotNull { PebbleSdk.at(it) }
                 .sortedByDescending { SdkVersion.of(it.version) }
 
-            val current = sdks.resolve("current").takeIf { Files.exists(it) }?.let { link ->
-                val target = runCatching { link.toRealPath() }.getOrNull()
-                installed.firstOrNull { runCatching { it.root.toRealPath() }.getOrNull() == target }
-                    ?: PebbleSdk.at(link)
+            val current = resolveLink(sdks.resolve("current"))?.let { target ->
+                val real = runCatching { target.toRealPath() }.getOrDefault(target)
+                installed.firstOrNull { (runCatching { it.root.toRealPath() }.getOrNull() ?: it.root) == real }
+                    ?: PebbleSdk.at(target)
             }
             return PebbleSdks(installed, current)
         }

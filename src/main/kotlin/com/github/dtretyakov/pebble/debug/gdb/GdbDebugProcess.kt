@@ -64,6 +64,10 @@ class GdbDebugProcess(
     @Volatile
     private var connection: GdbConnection? = null
 
+    /** What gdb was started with: how it spells paths, which under WSL is not how the IDE does. */
+    @Volatile
+    private var prepared: GdbSetup? = null
+
     @Volatile
     private var attaching = false
 
@@ -133,6 +137,7 @@ class GdbDebugProcess(
                 return@execute print("The debugger cannot start gdb: ${e.message}\n", ProcessOutputTypes.STDERR)
             }
             connection = gdb
+            prepared = config
             attaching = true
             try {
                 for (command in config.commands()) {
@@ -142,8 +147,11 @@ class GdbDebugProcess(
                 attaching = false
                 registered.forEach { insert(gdb, it) }
                 gdb.call(GdbCommands.CONTINUE)
-                print("gdb is attached to the app in the emulator.\n", ProcessOutputTypes.SYSTEM)
-                if (numbers.isNotEmpty()) startAgain()
+                // One line with what follows, so a reader of the console — an agent waiting on it —
+                // knows from the first whether to wait for the app's second start too.
+                val again = numbers.isNotEmpty() && relaunch != null
+                print("$ATTACHED${if (again) " $RELAUNCHING" else ""}\n", ProcessOutputTypes.SYSTEM)
+                if (again) startAgain()
             } catch (e: GdbError) {
                 print("gdb could not attach to the emulator: ${e.message}\n", ProcessOutputTypes.STDERR)
                 connection = null
@@ -161,10 +169,12 @@ class GdbDebugProcess(
      */
     private fun startAgain() {
         val relaunch = relaunch ?: return
-        print("Starting the app again, so its start runs under the debugger.\n", ProcessOutputTypes.SYSTEM)
         AppExecutorUtil.getAppExecutorService().execute {
             if (stopping) return@execute
-            relaunch()?.let { print("The app could not be started again: $it\n", ProcessOutputTypes.STDERR) }
+            when (val problem = relaunch()) {
+                null -> print("$RELAUNCHED\n", ProcessOutputTypes.SYSTEM)
+                else -> print("$NOT_RELAUNCHED $problem\n", ProcessOutputTypes.STDERR)
+            }
         }
     }
 
@@ -196,7 +206,7 @@ class GdbDebugProcess(
     private fun insert(gdb: GdbConnection, breakpoint: XLineBreakpoint<XBreakpointProperties<*>>) {
         if (breakpoint !in registered || numbers.containsKey(breakpoint)) return
         val path = breakpoint.sourcePosition?.file?.toNioPathOrNull() ?: return
-        val command = GdbCommands.breakInsert(path.invariantSeparatorsPathString, breakpoint.line + 1, breakpoint.conditionExpression?.expression)
+        val command = GdbCommands.breakInsert((prepared?.spell ?: GdbSetup.DEFAULT_SPELL)(path), breakpoint.line + 1, breakpoint.conditionExpression?.expression)
         val answer = try {
             whileStopped(gdb) { gdb.call(command) }
         } catch (e: GdbError) {
@@ -376,9 +386,12 @@ class GdbDebugProcess(
     // Frames, values and expressions, asked for as they are opened.
 
     internal fun isAppSource(frame: GdbFrame): Boolean {
-        val path = frame.fullname?.let { runCatching { Path.of(it) }.getOrNull() } ?: return false
+        val path = sourceOf(frame) ?: return false
         return path.isAbsolute && Files.isRegularFile(path)
     }
+
+    /** The source a frame names, as the IDE reaches it. */
+    internal fun sourceOf(frame: GdbFrame): Path? = frame.fullname?.let(prepared?.unspell ?: GdbSetup.DEFAULT_UNSPELL)
 
     internal fun computeFrameChildren(suspension: Suspension, frame: GdbFrame, node: XCompositeNode) = onStopped(suspension, node::setErrorMessage) { gdb ->
         val names = gdb.call(GdbCommands.variables(suspension.thread, frame.level)).list("variables")
@@ -448,6 +461,12 @@ class GdbDebugProcess(
     companion object {
         /** What pebble-tool prints once the app is installed, and the watch has started it. */
         const val INSTALLED = "App install succeeded."
+
+        /** The console's words for the attach and the second start, which the agent's tools wait on. */
+        const val ATTACHED = "gdb is attached to the app in the emulator."
+        const val RELAUNCHING = "Starting the app again, so its start runs under the debugger."
+        const val RELAUNCHED = "The app has started again, under the debugger."
+        const val NOT_RELAUNCHED = "The app could not be started again:"
 
         const val MAX_CHILDREN = 100
 

@@ -1,6 +1,7 @@
 package com.github.dtretyakov.pebble.debug.gdb
 
 import com.github.dtretyakov.pebble.emulator.RunningEmulator
+import com.github.dtretyakov.pebble.sdk.LocalToolHost
 import com.github.dtretyakov.pebble.sdk.PebbleSdk
 import com.github.dtretyakov.pebble.sdk.PebbleSdks
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -54,7 +55,7 @@ class GdbSetupTest {
         GdbSetup.workerElf(app, "emery").createFile()
         val setup = GdbSetup.prepare(PebbleSdks(listOf(sdk), sdk), app, "emery", listOf(emulator())) { _, _ -> headers }
 
-        assertEquals(listOf(sdk.compilerBin.resolve("arm-none-eabi-gdb").toString(), "--interpreter=mi3", "-q", GdbSetup.firmwareElf(sdk, "emery").toString()), setup.commandLine().getCommandLineList(null))
+        assertEquals(listOf(sdk.compilerBin.resolve("arm-none-eabi-gdb").toString(), "--interpreter=mi3", "-q", GdbSetup.DEFAULT_SPELL(GdbSetup.firmwareElf(sdk, "emery"))), setup.commandLine(LocalToolHost()).getCommandLineList(null))
         val commands = setup.commands()
         assertEquals(listOf("-gdb-set confirm off", "-gdb-set mi-async on"), commands.take(2))
         assertTrue("-target-select remote :38119" in commands)

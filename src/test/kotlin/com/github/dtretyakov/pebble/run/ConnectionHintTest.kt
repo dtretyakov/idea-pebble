@@ -18,6 +18,13 @@ class ConnectionHintTest {
     }
 
     @Test
+    fun `an emulator whose screen port is taken says who may hold it`() {
+        val output = "Couldn't launch emulator:\nqemu-pebble: -vnc :1: Failed to find an available port: Address already in use\n"
+        val hint = ConnectionHint.hint(PebbleRunTarget.EMULATOR, "", output)!!
+        assertTrue("5901" in hint && "WSL" in hint, hint)
+    }
+
+    @Test
     fun `an error that is not about connecting gets no hint`() {
         assertNull(ConnectionHint.hint(PebbleRunTarget.PHONE, "1.2.3.4", "Error: this pbw does not support basalt"))
     }

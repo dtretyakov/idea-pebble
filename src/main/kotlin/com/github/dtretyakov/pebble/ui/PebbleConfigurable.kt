@@ -6,6 +6,12 @@ import com.github.dtretyakov.pebble.project.PebbleAppSettings
 import com.github.dtretyakov.pebble.project.PebbleEnvironment
 import com.github.dtretyakov.pebble.project.PebbleEnvironment.Concern
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolHosts
+import com.github.dtretyakov.pebble.sdk.HostOs
+import com.github.dtretyakov.pebble.sdk.HostTool
+import com.github.dtretyakov.pebble.sdk.LocalToolHost
+import com.github.dtretyakov.pebble.sdk.ToolHost
+import com.github.dtretyakov.pebble.sdk.WslToolHost
 import com.github.dtretyakov.pebble.sdk.Clangd
 import com.github.dtretyakov.pebble.sdk.EmulatorStart
 import com.github.dtretyakov.pebble.sdk.PebbleTool
@@ -28,10 +34,12 @@ import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.HyperlinkEventAction
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.Row
+import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindText
+import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
 import com.intellij.ui.dsl.builder.panel
-import com.intellij.util.EnvironmentUtil
 import java.awt.datatransfer.StringSelection
+import java.nio.file.Path
 import javax.swing.JEditorPane
 
 /**
@@ -73,14 +81,30 @@ class PebbleConfigurable(private val project: Project) :
         val items = PebbleEnvironment.check()
 
         val page = panel {
-            PebbleEnvironment.of(items, Concern.HOST)?.let { host ->
-                row { comment(PebbleEnvironment.html(host.detail)) }
-            }
-
             // At the top, about the whole page: at the bottom, under the SDK's status line, it read
             // as a link about the SDK.
             row {
                 comment("Guides and the API reference: <a href='$DOCUMENTATION_URL'>Pebble developer documentation</a>")
+            }
+
+            // Windows: the SDK runs in WSL, and which distribution is the first thing to know.
+            if (HostOs.current() == HostOs.WINDOWS) {
+                group("WSL") {
+                    row("Distribution:") {
+                        val automatic = ToolHosts.automaticDistribution()?.let { "Automatic ($it)" } ?: "Automatic"
+                        val choices = listOf("") + ToolHosts.distributionNames()
+                            .let { names -> if (settings.wslDistribution.isNotBlank() && settings.wslDistribution !in names) names + settings.wslDistribution else names }
+                        comboBox(choices, textListCellRenderer { if (it.isNullOrEmpty()) automatic else it })
+                            .bindItem({ settings.wslDistribution }, { settings.wslDistribution = it.orEmpty() })
+                    }
+                    row {
+                        comment(
+                            "pebble-tool, the SDK and the emulator run inside this Linux distribution; projects can be in it " +
+                                "(<code>\\\\wsl.localhost\\…</code>, where builds are fastest) or on a Windows drive.",
+                        )
+                    }
+                    status(items, Concern.HOST)
+                }
             }
 
             group("pebble-tool") {
@@ -91,7 +115,7 @@ class PebbleConfigurable(private val project: Project) :
                             val given = field.text.trim().takeIf { it.isNotEmpty() }
                             // Refused here rather than reported at the first build: a typo and no
                             // pebble-tool at all would otherwise read the same.
-                            if (given != null && PebbleTool.locate(given, null) == null) {
+                            if (given != null && !isExecutable(given) { PebbleTool.locate(given, null) != null }) {
                                 error("No pebble executable here")
                             } else {
                                 null
@@ -123,7 +147,7 @@ class PebbleConfigurable(private val project: Project) :
                             .bindText(settings::clangdPath)
                             .validationOnApply { field ->
                                 val given = field.text.trim().takeIf { it.isNotEmpty() }
-                                if (given != null && Clangd.locate(given, null) == null) error("No clangd here") else null
+                                if (given != null && !isExecutable(given) { Clangd.locate(given, null) != null }) error("No clangd here") else null
                             }
                     }
                     status(items, Concern.C_INSIGHT)
@@ -156,7 +180,11 @@ class PebbleConfigurable(private val project: Project) :
     }
 
     override fun apply() {
+        val before = PebbleAppSettings.getInstance().let { Triple(it.wslDistribution, it.pebbleToolPath, it.clangdPath) }
         super.apply()
+        val after = PebbleAppSettings.getInstance().let { Triple(it.wslDistribution, it.pebbleToolPath, it.clangdPath) }
+        // Under WSL the tools are where the distribution says, and it is asked with the paths set here.
+        if (before != after) ToolHosts.reset()
         refresh()
         // The banner and the setup balloon read the same settings, and may have nothing to say.
         ProjectManager.getInstance().openProjects.filterNot { it.isDisposed }.forEach {
@@ -184,12 +212,30 @@ class PebbleConfigurable(private val project: Project) :
         sdkList?.enabled(PebbleSdkService.getInstance().tool() != null)
         nodeGroup?.visible(PebbleEnvironment.of(items, Concern.NODE)?.status == PebbleEnvironment.Status.MISSING)
 
-        toolField?.emptyText?.text = PebbleTool.locate("", EnvironmentUtil.getValue("PATH"))
-            ?.let { "Found at ${FileUtil.getLocationRelativeToUserHome(it.toString())}" }
-            ?: "Looked for on the PATH and in ~/.local/bin"
-        clangdField?.emptyText?.text = Clangd.locate("", EnvironmentUtil.getValue("PATH"))
-            ?.let { "Found at ${FileUtil.getLocationRelativeToUserHome(it.toString())}" }
-            ?: "Looked for on the PATH"
+        val host = PebbleSdkService.getInstance().host()
+        val wsl = host as? WslToolHost
+        val inside = wsl?.let { " in ${it.distribution}" }.orEmpty()
+        toolField?.emptyText?.text = host?.locate(HostTool.PEBBLE)?.let { "Found at ${shown(host, it)}$inside" }
+            ?: "Looked for on the PATH$inside and in ~/.local/bin"
+        clangdField?.emptyText?.text = host?.locate(HostTool.CLANGD)?.let { "Found at ${shown(host, it)}$inside" }
+            ?: "Looked for on the PATH$inside"
+    }
+
+    /** A found tool, as the user would type it there: a Linux path under WSL, `~/…` for the home directory. */
+    private fun shown(host: ToolHost, path: Path): String {
+        if (host is LocalToolHost) return FileUtil.getLocationRelativeToUserHome(path.toString())
+        val spelled = host.toolPath(path) ?: return path.toString()
+        val home = (host as? WslToolHost)?.probe?.home
+        return if (home != null && spelled.startsWith("$home/")) "~" + spelled.removePrefix(home) else spelled
+    }
+
+    /**
+     * Whether a path typed into a field is an executable where the tools run: asked of the WSL
+     * distribution, since a Linux path means nothing to Windows; locally, by [here].
+     */
+    private fun isExecutable(given: String, here: () -> Boolean): Boolean {
+        val wsl = PebbleSdkService.getInstance().host() as? WslToolHost ?: return here()
+        return wsl.isExecutable(given)
     }
 
     /** Every check with what it found, paths included, as plain text. */
@@ -197,6 +243,10 @@ class PebbleConfigurable(private val project: Project) :
         val report = buildString {
             appendLine(ApplicationInfo.getInstance().fullApplicationName)
             appendLine("${System.getProperty("os.name")} ${System.getProperty("os.version")} ${System.getProperty("os.arch")}")
+            (PebbleSdkService.getInstance().host() as? WslToolHost)?.let { wsl ->
+                val release = wsl.osRelease()?.lines()?.firstOrNull { it.startsWith("PRETTY_NAME=") }?.substringAfter('=')?.trim('"')
+                appendLine("WSL ${wsl.distribution}: ${release ?: "unknown release"}, ${wsl.arch}, networking ${wsl.probe?.networking ?: "unknown"}")
+            }
             PebbleEnvironment.check().forEach { appendLine("${it.status} ${it.name}: ${it.detail.replace("`", "")}") }
         }
         CopyPasteManager.getInstance().setContents(StringSelection(report))

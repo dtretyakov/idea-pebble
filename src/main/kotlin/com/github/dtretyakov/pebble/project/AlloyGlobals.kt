@@ -26,12 +26,19 @@ object AlloyGlobals {
      * The `.d.ts` files of the last build's `types`, for [platform]; before a first build, those
      * the SDK's build has always named, from [sdk].
      */
-    fun files(root: Path, platform: String?, sdk: PebbleSdk?): List<Path> {
+    fun files(
+        root: Path,
+        platform: String?,
+        sdk: PebbleSdk?,
+        /** A path the build wrote, as the IDE reads it: under WSL the build's are Linux paths. */
+        idePath: (String) -> Path? = { runCatching { Path.of(it) }.getOrNull() },
+    ): List<Path> {
         val generated = platform?.let { TypeScriptConfig.generated(root, it) }
-        val types = generated?.let { runCatching { typesIn(it.readText()) }.getOrNull() }
-            ?: sdk?.let { DEFAULT.map { name -> sdk.toolchain.resolve("moddable").resolve(name).toString() } }
+        val fromBuild = generated?.let { runCatching { typesIn(it.readText()) }.getOrNull() }?.mapNotNull { idePath("$it.d.ts") }
+        val types = fromBuild
+            ?: sdk?.let { DEFAULT.map { name -> sdk.toolchain.resolve("moddable").resolve("$name.d.ts") } }
             ?: return emptyList()
-        return types.map { Path.of("$it.d.ts") }.filter { it.isRegularFile() }
+        return types.filter { it.isRegularFile() }
     }
 
     /** `compilerOptions.types` of a `tsconfig.json`'s text. */

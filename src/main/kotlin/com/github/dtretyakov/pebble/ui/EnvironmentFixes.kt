@@ -1,11 +1,14 @@
 package com.github.dtretyakov.pebble.ui
 
+import com.github.dtretyakov.pebble.project.PebbleAppSettings
 import com.github.dtretyakov.pebble.project.PebbleCommands
 import com.github.dtretyakov.pebble.project.PebbleEnvironment
 import com.github.dtretyakov.pebble.project.PebbleEnvironment.Fix
 import com.github.dtretyakov.pebble.project.PebbleSdkSetup
+import com.github.dtretyakov.pebble.project.ToolHosts
 import com.github.dtretyakov.pebble.sdk.Clangd
 import com.github.dtretyakov.pebble.sdk.HostPackages
+import com.github.dtretyakov.pebble.sdk.ToolHostState
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
@@ -23,7 +26,9 @@ internal object EnvironmentFixes {
      */
     fun label(item: PebbleEnvironment.Item): String {
         val fix = item.fix ?: return ""
+        if (fix == Fix.USE_PROJECT_DISTRIBUTION) return projectDistribution()?.let { "Use $it" } ?: label(fix)
         val command = item.command?.takeIf { fix == Fix.RUN_IN_TERMINAL } ?: return label(fix)
+        if (command == PebbleEnvironment.INSTALL_WSL) return "Install Ubuntu in WSL"
         homebrewFirst(command)?.let { return "Install Homebrew and $it" }
         return if (inLabel(command)) "Run ${shown(command)}" else label(fix)
     }
@@ -35,6 +40,7 @@ internal object EnvironmentFixes {
         Fix.INSTALL_LSP4IJ -> "Open Plugins"
         Fix.HOW_TO_INSTALL_CLANGD -> "How to install clangd"
         Fix.HOW_TO_INSTALL_NODE -> "How to install Node.js"
+        Fix.USE_PROJECT_DISTRIBUTION -> "Use the project's distribution"
     }
 
     fun run(project: Project?, item: PebbleEnvironment.Item) {
@@ -42,14 +48,20 @@ internal object EnvironmentFixes {
             Fix.SET_UP -> PebbleSdkSetup.start(project)
             Fix.ACTIVATE_SDK -> PebbleCommands.activateNewestSdk(project)
             Fix.RUN_IN_TERMINAL -> item.command?.let {
-                TerminalCommand.run(project, it)
+                TerminalCommand.run(project, it, inToolHost = item.terminal == PebbleEnvironment.Terminal.TOOL_HOST)
                 FixWatcher.watch(item.concern)
             }
             Fix.INSTALL_LSP4IJ -> ShowSettingsUtil.getInstance().showSettingsDialog(project, "Plugins")
             Fix.HOW_TO_INSTALL_CLANGD -> BrowserUtil.browse(Clangd.INSTALL_URL)
             Fix.HOW_TO_INSTALL_NODE -> BrowserUtil.browse(NODE_URL)
+            Fix.USE_PROJECT_DISTRIBUTION -> projectDistribution()?.let {
+                PebbleAppSettings.getInstance().wslDistribution = it
+                ToolHosts.reset()
+            }
         }
     }
+
+    private fun projectDistribution(): String? = (ToolHosts.state() as? ToolHostState.Wsl)?.projectDistribution
 
     /**
      * The item's detail as HTML, and the command a terminal fix would run: a command the user is

@@ -1,6 +1,7 @@
 package com.github.dtretyakov.pebble.debug
 
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolHosts
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.ColoredTextContainer
@@ -175,6 +176,8 @@ internal class AlloyGlobals(
 
 private fun position(path: String?, line: Int?): XSourcePosition? {
     if (path == null || line == null) return null
-    val file = LocalFileSystem.getInstance().findFileByPath(path) ?: return null
+    // The engine names a source by the build's path, which under WSL is the distribution's.
+    val fromTools = if (path.startsWith("/")) ToolHosts.currentOrLocal().idePath(path)?.let(LocalFileSystem.getInstance()::findFileByNioFile) else null
+    val file = fromTools ?: LocalFileSystem.getInstance().findFileByPath(path) ?: return null
     return XDebuggerUtil.getInstance().createPosition(file, line - 1)
 }

@@ -3,6 +3,7 @@ package com.github.dtretyakov.pebble.ui
 import com.github.dtretyakov.pebble.project.EmulatorCheck
 import com.github.dtretyakov.pebble.project.PebbleEnvironment
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolHosts
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.concurrency.AppExecutorUtil
 import java.util.concurrent.ConcurrentHashMap
@@ -33,6 +34,8 @@ internal object FixWatcher {
 
     private fun look(concern: PebbleEnvironment.Concern, started: Long) {
         if (System.currentTimeMillis() - started > LIMIT_MILLIS) return stop(concern)
+        // Under WSL what is installed is known by asking the distribution, which announces a change.
+        ToolHosts.refreshNow()
         // The emulator's answer is a process away, and asking announces a change of it; the others
         // are files, read by the checklist itself.
         if (concern == PebbleEnvironment.Concern.EMULATOR) {

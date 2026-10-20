@@ -2,6 +2,7 @@ package com.github.dtretyakov.pebble.debug
 
 import com.github.dtretyakov.pebble.debug.XsbugCommands.Breakpoint
 import com.github.dtretyakov.pebble.project.PebbleSdkService
+import com.github.dtretyakov.pebble.project.ToolHosts
 import com.intellij.execution.ExecutionResult
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessOutputTypes
@@ -38,7 +39,7 @@ class AlloyDebugProcess(
     session: XDebugSession,
     private val server: XsbugServer,
     private val result: ExecutionResult,
-    compilers: () -> ExpressionCompiler? = { PebbleSdkService.getInstance().currentSdk()?.let(XscCompiler::forSdk) },
+    compilers: () -> ExpressionCompiler? = { PebbleSdkService.getInstance().currentSdk()?.let { XscCompiler.forSdk(it, ToolHosts.currentOrLocal()) } },
 ) : XDebugProcess(session), XsbugServer.Listener {
 
     private val lineBreakpoints = ConcurrentHashMap<XLineBreakpoint<*>, Breakpoint>()
@@ -79,7 +80,7 @@ class AlloyDebugProcess(
         val file = breakpoint.sourcePosition?.file ?: return
         val path = file.toNioPathOrNull() ?: return
         if (!AlloyBreakpoints.isAlloySource(session.project, file)) return
-        val enginePath = AlloySources.enginePath(path).toString()
+        val enginePath = AlloySources.engineName(path, ToolHosts.currentOrLocal()::toolPath)
         if (!XsbugCommands.canSend(enginePath)) {
             session.invalidate(breakpoint, "The Alloy debugger cannot be given a path with a double quote or a line break")
             return

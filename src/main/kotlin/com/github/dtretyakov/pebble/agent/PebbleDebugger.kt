@@ -1,6 +1,7 @@
 package com.github.dtretyakov.pebble.agent
 
 import com.github.dtretyakov.pebble.debug.BreakpointStates
+import com.github.dtretyakov.pebble.debug.gdb.GdbDebugProcess
 import com.github.dtretyakov.pebble.run.PebbleRunConfiguration
 import com.github.dtretyakov.pebble.run.PebbleRunConfigurationType
 import com.github.dtretyakov.pebble.run.PebbleRunTarget
@@ -119,7 +120,7 @@ class PebbleDebugger(private val project: Project) {
             }
         }
         val execution = agent.execute(settings, timeoutSeconds, DefaultDebugExecutor.getDebugExecutorInstance()) { output ->
-            ATTACHED.any { it in output } || FAILED.any { it in output }
+            FAILED.any { it in output } || (ATTACHED.any { it in output } && relaunchSettled(output))
         }
         val output = execution.output.lines().map { ANSI.replace(it, "").trimEnd() }.filter { it.isNotBlank() }
         if (!execution.matched || FAILED.any { it in execution.output }) {
@@ -406,7 +407,15 @@ class PebbleDebugger(private val project: Project) {
 
     companion object {
         /** What the Pebble debuggers print once attached: gdb to the emulator, or the app's engine to the IDE. */
-        private val ATTACHED = listOf("gdb is attached", "is connected to the debugger")
+        private val ATTACHED = listOf(GdbDebugProcess.ATTACHED, "is connected to the debugger")
+
+        /**
+         * With breakpoints set, gdb attaches and then the app is started again, so that its start
+         * runs under gdb: the session is the agent's once that is done — a button pressed in between
+         * reaches the app that is going, and is lost. Seconds where pebble-tool starts slowly, as in WSL.
+         */
+        internal fun relaunchSettled(output: CharSequence): Boolean =
+            GdbDebugProcess.RELAUNCHING !in output || GdbDebugProcess.RELAUNCHED in output || GdbDebugProcess.NOT_RELAUNCHED in output
         private val FAILED = listOf("The debugger cannot", "gdb could not attach")
         private const val TIMEOUT = 15_000L
         private const val MAX_FRAMES = 30

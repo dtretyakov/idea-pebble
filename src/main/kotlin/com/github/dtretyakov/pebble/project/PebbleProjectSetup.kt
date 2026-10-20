@@ -1,9 +1,12 @@
 package com.github.dtretyakov.pebble.project
 
+import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleManager
+import com.intellij.openapi.module.ModuleTypeManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.ModuleRootManager
@@ -29,69 +32,91 @@ import org.jetbrains.jps.model.module.JpsModuleSourceRootType
 class PebbleProjectSetup : ProjectActivity {
 
     override suspend fun execute(project: Project) {
-        val settings = PebbleSettings.getInstance(project)
-        if (settings.rootsConfigured) return
+        if (PebbleSettings.getInstance(project).rootsConfigured) return
+        val work = readAction { work(project) }
+        if (work.isEmpty()) return
+        edtWriteAction { if (!project.isDisposed) apply(project, work) }
+    }
 
-        val work = readAction {
+    companion object {
+        /** [execute], on the UI thread, at once. */
+        internal fun configureNow(project: Project) {
+            val work = work(project)
+            if (work.isNotEmpty()) WriteAction.run<RuntimeException> { apply(project, work) }
+        }
+
+        /** Each Pebble project, and the module it belongs to: none for one the wizard made. */
+        private fun work(project: Project): List<Pair<Module?, VirtualFile>> {
             val index = ProjectFileIndex.getInstance(project)
-            PebbleProject.getInstance(project).roots().mapNotNull { root ->
+            return PebbleProject.getInstance(project).roots().mapNotNull { root ->
                 val directory = LocalFileSystem.getInstance().findFileByNioFile(root) ?: return@mapNotNull null
-                index.getModuleForFile(directory)?.let { module -> module to directory }
+                index.getModuleForFile(directory) to directory
             }
         }
-        if (work.isEmpty()) return
 
-        edtWriteAction {
-            if (project.isDisposed) return@edtWriteAction
-            work.forEach { (module, directory) -> configure(module, directory) }
-            settings.rootsConfigured = true
+        /** Under a write action. Once: the wizard and the startup activity may both get here. */
+        private fun apply(project: Project, work: List<Pair<Module?, VirtualFile>>) {
+            if (PebbleSettings.getInstance(project).rootsConfigured) return
+            val index = ProjectFileIndex.getInstance(project)
+            work.forEach { (module, directory) -> configure(module ?: index.getModuleForFile(directory) ?: newModule(project, directory), directory) }
+            PebbleSettings.getInstance(project).rootsConfigured = true
         }
-    }
 
-    private fun configure(module: Module, root: VirtualFile) {
-        // Only an untouched module: one with source roots has been arranged by someone, and their
-        // arrangement is not ours to second-guess.
-        if (ModuleRootManager.getInstance(module).sourceRoots.isNotEmpty()) return
-
-        ModuleRootModificationUtil.updateModel(module) { model ->
-            val entry = model.contentEntries.firstOrNull { it.file == root } ?: return@updateModel
-            SOURCES.forEach { mark(entry, root, it, JavaSourceRootType.SOURCE) }
-            mark(entry, root, RESOURCES, JavaResourceRootType.RESOURCE)
-            // By URL, so they hold before the first build and the first clangd have made them.
-            EXCLUDED.map { "${root.url}/$it" }
-                .filter { it !in entry.excludeFolderUrls }
-                .forEach(entry::addExcludeFolder)
-            // waf's lock file is a file beside the sources, so a pattern rather than a folder.
-            if (WAF_LOCK !in entry.excludePatterns) entry.addExcludePattern(WAF_LOCK)
-            // No JDK. IDEA opens a folder as a Java module and gives it whichever JDK it finds, and
-            // nothing in a Pebble project is Java: all it brought was the JDK under External
-            // Libraries, to index, and the jQuery of the JDK's own javadoc pages, offered by
-            // completion in the app's JavaScript.
-            if (model.isSdkInherited) model.sdk = null
+        /**
+         * The module a folder gets when the IDE opens it, which the New Project wizard does not
+         * make: a project it made — this version's, and every one made before — has none, and
+         * nothing to lay out without one. Where the IDE keeps it, of the type it gives one.
+         */
+        private fun newModule(project: Project, root: VirtualFile): Module {
+            val file = root.toNioPath().resolve(Project.DIRECTORY_STORE_FOLDER).resolve("${root.name}.iml")
+            val module = ModuleManager.getInstance(project).newModule(file, ModuleTypeManager.getInstance().defaultModuleType.id)
+            ModuleRootModificationUtil.updateModel(module) { it.addContentEntry(root) }
+            return module
         }
-    }
 
-    /**
-     * The root types are the Java ones, and that is not a mistake: they live in the platform's
-     * `jps-model`, in every IDE, and they are the vocabulary an `.iml` is read with. A Pebble
-     * source folder is a source folder.
-     */
-    private fun mark(entry: ContentEntry, root: VirtualFile, name: String, type: JpsModuleSourceRootType<*>) {
-        val directory = root.findChild(name)?.takeIf { it.isDirectory } ?: return
-        if (entry.sourceFolders.any { it.file == directory }) return
-        runCatching { entry.addSourceFolder(directory, type) }
-            .onFailure { LOG.warn("Could not mark $name as a $type root", it) }
-    }
+        private fun configure(module: Module, root: VirtualFile) {
+            // Only an untouched module: one with source roots has been arranged by someone, and their
+            // arrangement is not ours to second-guess.
+            if (ModuleRootManager.getInstance(module).sourceRoots.isNotEmpty()) return
 
-    private companion object {
+            ModuleRootModificationUtil.updateModel(module) { model ->
+                val entry = model.contentEntries.firstOrNull { it.file == root } ?: return@updateModel
+                SOURCES.forEach { mark(entry, root, it, JavaSourceRootType.SOURCE) }
+                mark(entry, root, RESOURCES, JavaResourceRootType.RESOURCE)
+                // By URL, so they hold before the first build and the first clangd have made them.
+                EXCLUDED.map { "${root.url}/$it" }
+                    .filter { it !in entry.excludeFolderUrls }
+                    .forEach(entry::addExcludeFolder)
+                // waf's lock file is a file beside the sources, so a pattern rather than a folder.
+                if (WAF_LOCK !in entry.excludePatterns) entry.addExcludePattern(WAF_LOCK)
+                // No JDK. IDEA opens a folder as a Java module and gives it whichever JDK it finds, and
+                // nothing in a Pebble project is Java: all it brought was the JDK under External
+                // Libraries, to index, and the jQuery of the JDK's own javadoc pages, offered by
+                // completion in the app's JavaScript.
+                if (model.isSdkInherited) model.sdk = null
+            }
+        }
+
+        /**
+         * The root types are the Java ones, and that is not a mistake: they live in the platform's
+         * `jps-model`, in every IDE, and they are the vocabulary an `.iml` is read with. A Pebble
+         * source folder is a source folder.
+         */
+        private fun mark(entry: ContentEntry, root: VirtualFile, name: String, type: JpsModuleSourceRootType<*>) {
+            val directory = root.findChild(name)?.takeIf { it.isDirectory } ?: return
+            if (entry.sourceFolders.any { it.file == directory }) return
+            runCatching { entry.addSourceFolder(directory, type) }
+                .onFailure { LOG.warn("Could not mark $name as a $type root", it) }
+        }
+
         /** C, PebbleKit JS and Alloy all live under `src/`; a background worker under `worker_src/`. */
-        val SOURCES = listOf("src", "worker_src")
-        const val RESOURCES = "resources"
+        private val SOURCES = listOf("src", "worker_src")
+        private const val RESOURCES = "resources"
 
         /** waf's output, and clangd's index (`--background-index` keeps it in `.cache/clangd`). */
-        val EXCLUDED = listOf("build", ".cache")
-        const val WAF_LOCK = ".lock-waf*"
+        private val EXCLUDED = listOf("build", ".cache")
+        private const val WAF_LOCK = ".lock-waf*"
 
-        val LOG = logger<PebbleProjectSetup>()
+        private val LOG = logger<PebbleProjectSetup>()
     }
 }

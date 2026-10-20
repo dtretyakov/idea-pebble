@@ -1,6 +1,13 @@
 package com.github.dtretyakov.pebble.project
 
 import com.intellij.execution.process.CapturingProcessHandler
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.ThrowableComputable
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFileVisitor
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -48,6 +55,27 @@ object NewPebbleProject {
             }
         }
         add(name)
+    }
+
+    /**
+     * [generate], from the New Project wizards, which ask on the UI thread: under a modal progress,
+     * so the process runs off it — in WSL it starts the distribution first, which takes seconds.
+     */
+    fun generateWithProgress(project: Project?, tool: Path, target: Path, options: Options) {
+        val work: () -> Unit = {
+            generate(tool, target, options)
+            // Seen by the IDE before the wizard goes on, there on the UI thread, which reads only
+            // what the IDE has seen.
+            LocalFileSystem.getInstance().refreshAndFindFileByNioFile(target)?.let { VfsUtilCore.visitChildrenRecursively(it, object : VirtualFileVisitor<Unit>() {}) }
+            Unit
+        }
+        if (!ApplicationManager.getApplication().isDispatchThread) return work()
+        ProgressManager.getInstance().runProcessWithProgressSynchronously(
+            ThrowableComputable<Unit, IOException> { work() },
+            "Creating the Pebble project",
+            false,
+            project,
+        )
     }
 
     /**

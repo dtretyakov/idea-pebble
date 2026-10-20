@@ -12,7 +12,6 @@ import com.intellij.ide.wizard.NewProjectWizardStep
 import com.intellij.ide.wizard.RootNewProjectWizardStep
 import com.intellij.ide.util.projectWizard.WizardContext
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.dsl.builder.Panel
 import java.nio.file.Path
 import javax.swing.Icon
@@ -44,8 +43,7 @@ class PebbleNewProjectWizard : GeneratorNewProjectWizard {
             val tool = PebbleSdkService.getInstance().tool() ?: return
             val base = baseData ?: return
             val root = Path.of(base.path, base.name)
-            NewPebbleProject.generate(tool, root, options)
-            LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root)?.refresh(false, true)
+            NewPebbleProject.generateWithProgress(project, tool, root, options)
         }
     }
 }

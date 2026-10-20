@@ -23,6 +23,9 @@
 - Opening and editing a project in WSL does not wait on the distribution: what the IDE asks on
   its UI thread is answered from what it already holds, never from the WSL share, which had frozen
   the IDE while the share was slow to answer.
+- A project made by New Project | Pebble is laid out like one opened as a folder: `src` marked as
+  sources, `build` left out. One made by an earlier version is laid out when it next opens.
+- Making a project, and checking a tool path in Settings under WSL, no longer hold the UI thread.
 
 ### Getting started
 

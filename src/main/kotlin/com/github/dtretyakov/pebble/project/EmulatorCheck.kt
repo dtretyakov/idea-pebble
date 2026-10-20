@@ -2,6 +2,7 @@ package com.github.dtretyakov.pebble.project
 
 import com.github.dtretyakov.pebble.sdk.EmulatorStart
 import com.github.dtretyakov.pebble.sdk.PebbleSdk
+import com.github.dtretyakov.pebble.sdk.WslToolHost
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -72,6 +73,9 @@ class EmulatorCheck {
 
     private fun stampOf(sdk: PebbleSdk): Stamp? {
         val qemu = sdk.qemu
+        // In a distribution the binary is not stat-ed through its share, a request per stat that
+        // this, on the UI thread, would wait for: an SDK installed again is asked again by Set Up.
+        if (ToolHosts.current() is WslToolHost) return Stamp(qemu, -1)
         val modified = runCatching { Files.getLastModifiedTime(qemu).toMillis() }.getOrNull() ?: return null
         return Stamp(qemu, modified)
     }

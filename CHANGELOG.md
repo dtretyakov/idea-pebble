@@ -20,6 +20,9 @@
   platform side by side, UI tests, the agent's tools, and debugging C and Alloy work as on a Mac or
   Linux. Alloy's debugger reaches pebble-tool through a relay inside the distribution, so WSL's
   default networking needs no change.
+- Opening and editing a project in WSL does not wait on the distribution: what the IDE asks on
+  its UI thread is answered from what it already holds, never from the WSL share, which had frozen
+  the IDE while the share was slow to answer.
 
 ### Getting started
 

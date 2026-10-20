@@ -23,7 +23,10 @@ object PebbleDataDir {
         env: (String) -> String? = System::getenv,
     ): Path? = locate(LocalToolHost(os, home, env))
 
-    fun locate(host: ToolHost): Path? = when (host.os) {
+    fun locate(host: ToolHost): Path? = if (host is WslToolHost) {
+        // The distribution applied this same rule itself, where the share would have been asked a stat.
+        host.probe?.dataDirectory?.let(host::idePath)
+    } else when (host.os) {
         HostOs.MAC -> host.home?.resolve("Library/Application Support/Pebble SDK")
         HostOs.LINUX -> host.home?.let { home ->
             val legacy = home.resolve(".pebble-sdk")

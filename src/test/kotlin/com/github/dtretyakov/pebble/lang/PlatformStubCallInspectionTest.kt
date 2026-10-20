@@ -6,6 +6,7 @@ import com.intellij.codeInspection.InspectionEngine
 import com.intellij.codeInspection.InspectionManager
 import com.intellij.codeInspection.ex.LocalInspectionToolWrapper
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.psi.PsiManager
 import java.nio.file.Files
@@ -66,7 +67,10 @@ class PlatformStubCallInspectionTest : IdeTestCase() {
 
         val root = temp.resolve("app")
         root.createDirectories().resolve("package.json").writeText("""{"name": "app", "pebble": {"targetPlatforms": $targets}}""")
-        return root.resolve("src/c").createDirectories().resolve("main.c").apply { writeText(source.trimIndent()) }
+        val main = root.resolve("src/c").createDirectories().resolve("main.c").apply { writeText(source.trimIndent()) }
+        // Seen by the IDE, as an opened project is: the UI thread is answered from what it has seen.
+        VfsUtil.markDirtyAndRefresh(false, true, true, LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root)!!)
+        return main
     }
 
     private fun header(sdk: Path, platform: String, text: String) {

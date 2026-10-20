@@ -69,7 +69,9 @@ object NewPebbleProject {
             LocalFileSystem.getInstance().refreshAndFindFileByNioFile(target)?.let { VfsUtilCore.visitChildrenRecursively(it, object : VirtualFileVisitor<Unit>() {}) }
             Unit
         }
-        if (!ApplicationManager.getApplication().isDispatchThread) return work()
+        val application = ApplicationManager.getApplication()
+        // Under a write action, as some IDEs call a project generator, no progress can be shown.
+        if (!application.isDispatchThread || application.isWriteAccessAllowed) return work()
         ProgressManager.getInstance().runProcessWithProgressSynchronously(
             ThrowableComputable<Unit, IOException> { work() },
             "Creating the Pebble project",

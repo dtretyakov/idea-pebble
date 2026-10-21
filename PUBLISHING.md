@@ -83,7 +83,10 @@ Then, on the listing page:
 - **License** — Apache 2.0, matching `LICENSE`.
 - **EEA trader / non-trader declaration** — it belongs to the vendor profile, which idea-monkeyc's
   listing has already answered: an individual publishing a free plugin is a non-trader.
-- **Tags** — `Build`, `Debugging`, `Embedded Development`, `Languages`.
+- **Tags** — `Build`, `Debugging`, `Internet of Things`, `Tools Integration`, `Testing`. Only the
+  Marketplace's own list is offered (`curl https://plugins.jetbrains.com/api/tags?family=intellij`):
+  there is no tag for embedded development or wearables, and `Programming Language` is for plugins
+  that add a language, which this one does not.
 - **Source code** and **Issue tracker** — <https://github.com/dtretyakov/idea-pebble> and its issues.
 - **Screenshots** — 1280×800, one aspect ratio across all of them, taken in `runIdeWithFixture`
   against a real SDK: a 1560×975 window (16:10) on a Retina display, scaled to 1280×800 and

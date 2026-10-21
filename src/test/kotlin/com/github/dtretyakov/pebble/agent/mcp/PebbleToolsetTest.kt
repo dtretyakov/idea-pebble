@@ -9,6 +9,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.testFramework.PsiTestUtil
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
@@ -45,11 +46,11 @@ class PebbleToolsetTest : IdeTestCase() {
             Disposer.register(testRootDisposable) { server.stop() }
         }
         client = McpClient(server.serverStreamUrl, mapOf("IJ_MCP_SERVER_PROJECT_PATH" to project.basePath!!))
-        client.initialize()
+        offUiThread { client.initialize() }
     }
 
     fun `test the tools are listed, each saying when to call it`() {
-        val tools = client.request("tools/list")["tools"]!!.jsonArray.map { it.jsonObject }.associateBy { it["name"]!!.jsonPrimitive.content }
+        val tools = offUiThread { client.request("tools/list") }["tools"]!!.jsonArray.map { it.jsonObject }.associateBy { it["name"]!!.jsonPrimitive.content }
         val pebble = tools.keys.filter { it.startsWith("pebble_") }.toSet()
         assertEquals(
             setOf("pebble_project", "pebble_build", "pebble_run", "pebble_logs", "pebble_screenshot", "pebble_emulator", "pebble_api", "pebble_ui_tests", "pebble_ui_test_accept", "pebble_emulator_reset", "pebble_sdk", "pebble_release_check",
@@ -65,7 +66,7 @@ class PebbleToolsetTest : IdeTestCase() {
     }
 
     fun `test the project is described`() {
-        val result = structured(client.callTool("pebble_project"))
+        val result = structured(callTool("pebble_project"))
         assertEquals("native", result["type"]!!.jsonPrimitive.content)
         assertEquals(listOf("basalt", "chalk", "emery"), result["targetPlatforms"]!!.jsonArray.map { it.jsonPrimitive.content })
         val chalk = result["platforms"]!!.jsonArray.map { it.jsonObject }.first { it["id"]!!.jsonPrimitive.content == "chalk" }
@@ -78,31 +79,31 @@ class PebbleToolsetTest : IdeTestCase() {
         buffer.append("\u001b[1m\u001b[31m[06:03:16] main.c:4> a warning\u001b[0m\n[06:03:16] main.c:5> an info\n", LogBuffer.Source.APP)
         buffer.append("The app exited with 104 bytes still allocated.\n", LogBuffer.Source.IDE)
 
-        val all = structured(client.callTool("pebble_logs", mapOf("after" to JsonPrimitive(start))))
+        val all = structured(callTool("pebble_logs", mapOf("after" to JsonPrimitive(start))))
         val lines = all["lines"]!!.jsonArray.map { it.jsonObject }
         assertEquals(listOf("[06:03:16] main.c:4> a warning", "[06:03:16] main.c:5> an info", "The app exited with 104 bytes still allocated."), lines.map { it["text"]!!.jsonPrimitive.content })
         assertEquals("WARNING", lines[0]["level"]!!.jsonPrimitive.content)
         assertEquals("ide", lines[2]["source"]!!.jsonPrimitive.content)
 
         val next = all["next"]!!.jsonPrimitive.long
-        assertTrue(structured(client.callTool("pebble_logs", mapOf("after" to JsonPrimitive(next))))["lines"]!!.jsonArray.isEmpty())
-        val warnings = structured(client.callTool("pebble_logs", mapOf("after" to JsonPrimitive(start), "level" to JsonPrimitive("warning"))))
+        assertTrue(structured(callTool("pebble_logs", mapOf("after" to JsonPrimitive(next))))["lines"]!!.jsonArray.isEmpty())
+        val warnings = structured(callTool("pebble_logs", mapOf("after" to JsonPrimitive(start), "level" to JsonPrimitive("warning"))))
         assertEquals(2, warnings["lines"]!!.jsonArray.size)
     }
 
     fun `test what cannot be done is said, not thrown`() {
-        val badStep = client.callTool("pebble_emulator", mapOf("steps" to JsonPrimitive("press start"), "platform" to JsonPrimitive("emery")))
+        val badStep = callTool("pebble_emulator", mapOf("steps" to JsonPrimitive("press start"), "platform" to JsonPrimitive("emery")))
         assertTrue(badStep.toString(), badStep["isError"]?.jsonPrimitive?.boolean == true)
         val text = (badStep["content"] as JsonArray).joinToString { it.jsonObject["text"]!!.jsonPrimitive.content }
         assertTrue(text, "emulator is running" in text || "'press' takes a button" in text)
 
-        val notDebugging = client.callTool("pebble_debug_control", mapOf("action" to JsonPrimitive("over")))
+        val notDebugging = callTool("pebble_debug_control", mapOf("action" to JsonPrimitive("over")))
         assertTrue(notDebugging.toString(), "No Pebble debug session" in notDebugging.toString())
-        assertEquals("none", structured(client.callTool("pebble_debug_wait", mapOf("timeout" to JsonPrimitive(1))))["state"]!!.jsonPrimitive.content)
+        assertEquals("none", structured(callTool("pebble_debug_wait", mapOf("timeout" to JsonPrimitive(1))))["state"]!!.jsonPrimitive.content)
 
-        saysOrNeedsTool(client.callTool("pebble_emulator_reset", mapOf("action" to JsonPrimitive("everything"))), "Actions: kill, wipe.")
-        saysOrNeedsTool(client.callTool("pebble_ui_tests"), "No .pbtest scenarios at tests/ui")
-        saysOrNeedsTool(client.callTool("pebble_run", mapOf("platform" to JsonPrimitive("aplite"))), "does not target aplite")
+        saysOrNeedsTool(callTool("pebble_emulator_reset", mapOf("action" to JsonPrimitive("everything"))), "Actions: kill, wipe.")
+        saysOrNeedsTool(callTool("pebble_ui_tests"), "No .pbtest scenarios at tests/ui")
+        saysOrNeedsTool(callTool("pebble_run", mapOf("platform" to JsonPrimitive("aplite"))), "does not target aplite")
     }
 
     /**
@@ -116,18 +117,16 @@ class PebbleToolsetTest : IdeTestCase() {
     }
 
     fun `test a build answers with what pebble build reported`() {
-        // The test holds the UI thread, which the build saves documents on: the call goes from another.
-        val future = java.util.concurrent.CompletableFuture.supplyAsync { client.callTool("pebble_build", timeoutSeconds = 120) }
-        val deadline = System.currentTimeMillis() + 120_000
-        while (!future.isDone && System.currentTimeMillis() < deadline) {
-            com.intellij.util.ui.UIUtil.dispatchAllInvocationEvents()
-            Thread.sleep(20)
-        }
-        val result = future.get(1, java.util.concurrent.TimeUnit.SECONDS)
+        // The build saves documents on the UI thread.
+        val result = callTool("pebble_build", timeoutSeconds = 120)
         val build = if (result["isError"]?.jsonPrimitive?.boolean == true) null else structured(result)
         // No sources: the build fails, or without pebble-tool does not start; either way it is said.
         assertTrue(result.toString(), build == null || !build["succeeded"]!!.jsonPrimitive.boolean)
     }
+
+    /** As an agent calls a tool: from a thread of its own, the UI thread free for what the call needs of it. */
+    private fun callTool(name: String, arguments: Map<String, JsonElement> = emptyMap(), timeoutSeconds: Long = 120): JsonObject =
+        offUiThread(timeoutSeconds + 30) { client.callTool(name, arguments, timeoutSeconds) }
 
     private fun structured(result: JsonObject): JsonObject {
         assertFalse(result.toString(), result["isError"]?.jsonPrimitive?.boolean == true)

@@ -1,10 +1,14 @@
 package com.github.dtretyakov.pebble.testing
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.testFramework.LoggedErrorProcessor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.ThrowableRunnable
+import com.intellij.util.ui.UIUtil
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
 
 /**
  * A platform test that does not fail on the IDE's own startup noise.
@@ -32,6 +36,26 @@ abstract class IdeTestCase : BasePlatformTestCase() {
             },
         ) {
             super.runBare(testRunnable)
+        }
+    }
+
+    /**
+     * [block] on a pooled thread, as an agent or a background task would run it, the UI thread
+     * dispatching its events meanwhile. A test runs on the UI thread, and a read action waits out
+     * any write action pending there — a VFS refresh the file watcher asked for, say — so a test that
+     * held the UI thread while it waited would wait out its whole timeout, or with none, forever.
+     */
+    protected fun <T> offUiThread(timeoutSeconds: Long = 150, block: () -> T): T {
+        val future = ApplicationManager.getApplication().executeOnPooledThread<T>(block)
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds)
+        while (!future.isDone && System.nanoTime() < deadline) {
+            UIUtil.dispatchAllInvocationEvents()
+            Thread.sleep(10)
+        }
+        return try {
+            future.get(1, TimeUnit.SECONDS)
+        } catch (e: ExecutionException) {
+            throw e.cause ?: e
         }
     }
 }

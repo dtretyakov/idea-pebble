@@ -23,8 +23,6 @@ class PebbleProjectTest : IdeTestCase() {
         return root
     }
 
-    private fun <T> offUiThread(block: () -> T): T = ApplicationManager.getApplication().executeOnPooledThread<T>(block).get()
-
     fun `test a project the IDE has not seen is not read from the disk on the UI thread`() {
         val root = app()
         val model = PebbleProject.getInstance(project)

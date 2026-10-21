@@ -116,6 +116,7 @@ tasks.withType<Test>().configureEach {
     )
     testLogging {
         showStandardStreams = providers.gradleProperty("showOutput").isPresent
+        events("started", "passed", "failed", "skipped")
     }
 }
 

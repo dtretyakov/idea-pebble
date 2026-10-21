@@ -1,0 +1,31 @@
+name: Debug macOS hang
+
+on:
+  push:
+    branches: [debug/macos-hang]
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Tests, with thread dumps once they hang
+        run: |
+          (
+            sleep 900
+            for i in 1 2; do
+              for p in $(jps -l | grep -i -E 'worker|test' | awk '{print $1}'); do
+                echo "===== jstack $p ($(jps -l | grep "^$p "))"
+                jstack -l "$p" || true
+              done
+              sleep 60
+            done
+          ) &
+          ./gradlew build buildPlugin 2>&1 || true
+          wait

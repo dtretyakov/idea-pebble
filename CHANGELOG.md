@@ -4,8 +4,17 @@
   The top section of this file becomes the Marketplace's release notes verbatim, converted to HTML
   by `latestChangeNotes` in build.gradle.kts. That converter understands four things and no others:
   `## ` to open a release, `### ` subheadings, `- ` bullets with wrapped continuation lines, and
-  inline `backticks`.
+  inline `backticks`. Bold, italics and links ship as literal punctuation.
 -->
+
+## 0.10.1
+
+### The plugin's page
+
+- The description says what 0.10.0 brought and what it had left out: Windows through WSL, the
+  requirements, the tools for coding agents, and a release checked and published to the Pebble
+  appstore. C is debugged in the IDE's debugger, not in the console, as it said.
+- The plugin's icon has a dark variant, for the dark theme and the Marketplace's dark pages.
 
 ## 0.10.0
 

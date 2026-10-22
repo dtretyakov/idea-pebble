@@ -11,8 +11,8 @@
             <li>New projects, SDKs to install and activate, and a platform to work on beside the Run button.</li>
             <li>Build into the Build tool window, and run in the emulator — its screen, buttons and touch in the
                 IDE — or on a watch, with the app's logs in the console.</li>
-            <li>Debug Alloy in the IDE's debugger — breakpoints and conditions, stepping, the stack, variables and
-                expressions — and C with gdb in the console.</li>
+            <li>Debug C and Alloy in the IDE's debugger — breakpoints and conditions, stepping, the stack,
+                variables and expressions — C through the SDK's gdb, on the emulator.</li>
             <li>Each platform's memory after a build, and a word when an app exits with memory it never freed.</li>
             <li>Screenshots of every platform side by side, and GIFs of the emulator's screen.</li>
             <li>UI test scenarios run in the IDE's test runner, comparing each platform's screens with reference
@@ -20,6 +20,11 @@
             <li>Code insight from the IDE's own engines with the SDK's headers and typings, and checks for
                 what the build would not catch: calls a target platform only stubs out, missing resources,
                 unused message keys.</li>
+            <li>A release checked against what the Pebble appstore takes, then published with
+                <code>pebble publish</code>: <b>Build | Check Pebble Release</b> and <b>Publish to Pebble Appstore</b>.</li>
+            <li>Pebble tools on the IDE's own MCP server, so a coding agent — Claude Code, Codex, Junie,
+                Copilot — can build the app, run it, read its logs, press its buttons and look at its screen;
+                and a <code>pebble</code> skill that tells the agent how.</li>
         </ul>
         <h3>Getting started</h3>
         <ol>
@@ -29,7 +34,16 @@
                 you have none. <b>Tools | Pebble | Check Environment</b> shows everything at once.</li>
             <li>Pick a platform beside the Run button and press Run.</li>
         </ol>
-        <p>For C in IntelliJ IDEA or WebStorm, install the LSP4IJ plugin and clangd; CLion needs neither.</p>
+        <p>
+            For C in IntelliJ IDEA or WebStorm, install the
+            <a href="https://plugins.jetbrains.com/plugin/23257-lsp4ij">LSP4IJ</a> plugin and clangd; CLion
+            needs neither.
+        </p>
+        <p>
+            IntelliJ IDEA, CLion and WebStorm 2026.1 and later. macOS, Linux with glibc 2.38 or later, and
+            Windows through WSL: the SDK runs only there, so the plugin runs it in a WSL distribution while
+            the IDE stays on Windows, and offers to install Ubuntu 24.04 in WSL when there is none.
+        </p>
         <h3>Trademarks</h3>
         <p>
             Pebble is a trademark of Core Devices LLC. It is used here only to name the watches this

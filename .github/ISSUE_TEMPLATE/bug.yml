@@ -1,0 +1,57 @@
+name: Bug report
+description: Something the plugin does that it should not, or does not do that it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The fields below are the ones that decide whether a Pebble bug can be reproduced at all.
+        Everything else is optional.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment report
+      description: >
+        Settings | Languages & Frameworks | Pebble | Copy environment report: pebble-tool, the SDK
+        and the rest of the checklist. Add the platform you were building for or running on.
+      render: text
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      description: >
+        Development happens on macOS, so Linux and Windows get less exercise. On Windows, add the
+        WSL distribution and its version (wsl -l -v) to the report above.
+      options: [macOS, Linux, Windows (WSL)]
+    validations:
+      required: true
+
+  - type: input
+    id: ide
+    attributes:
+      label: IDE and plugin version
+      description: From Help | About, and Settings | Plugins. C code insight differs between IDEA, CLion and WebStorm.
+      placeholder: "CLion 2026.2.3, Develop for Pebble 0.10.1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Anything the IDE said
+      description: >
+        Help | Show Log in Finder (or Explorer) has idea.log. For a build or a run, what the Build
+        window or the Run console showed.
+      render: text

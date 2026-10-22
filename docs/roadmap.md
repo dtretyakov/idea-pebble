@@ -4,7 +4,24 @@ The product plan, mapped onto what the plugin builds and which IntelliJ extensio
 them on. The principle throughout is the one in [Architecture](architecture.md): pebble-tool does
 the work, the IDE provides the UI, and the plugin connects them.
 
-## Phase 0 — Foundation
+Phases 0 to 3 are done; what is left of them, and what has turned up since, is under Next.
+
+## Next
+
+- **Several live emulators at once**, one per platform. pebble-tool's `--vnc` uses display `:1`
+  for every emulator, so only one can have it; this waits on a display number option upstream.
+- **C highlighting outside CLion.** clangd checks a Pebble source clean from the compile database
+  (a live test). Whether LSP4IJ carries its diagnostics into a TextMate C file's editor cannot be
+  tested in a headless IDE, where LSP4IJ's annotator waits for answers that never come: it needs a
+  look by hand.
+- **Untried under WSL:** publishing, which runs `pebble login` and `pebble publish` in a WSL
+  terminal and needs an account; CLion's C engine, which needs a WSL toolchain configured in
+  CLion.
+- What users ask for on the [issue tracker](https://github.com/dtretyakov/idea-pebble/issues).
+
+## Done
+
+### Phase 0 — Foundation
 
 Done when a Pebble project opens in IDEA, CLion or WebStorm and the plugin can say whether
 everything a build needs is installed.
@@ -17,13 +34,13 @@ everything a build needs is installed.
 - [x] Settings | Languages & Frameworks | Pebble, with the environment checklist.
 - [x] An editor banner when nothing could be built, offering to install or activate an SDK.
 
-## Phase 1 — MVP: the complete development loop
+### Phase 1 — MVP: the complete development loop
 
 Done when a developer can create or open a project, write code with SDK completion, build it, run
 it in the emulator inside the IDE, install it on a watch and read its logs without typing a CLI
 command.
 
-Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by a live test:
+Each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by a live test:
 
 - [x] **New project.** `pebble new-project` behind IDEA's wizard (`newProjectWizard.generator`) and
   CLion's and WebStorm's (`directoryProjectGenerator`): C or Alloy, watchapp or watchface,
@@ -55,17 +72,13 @@ Done so far — each item verified against pebble-tool 5.0.40 and SDK 4.33.1 by 
   buttons and arrow keys, clicks and drags as touches on emery and gabbro — confirmed by an app
   that logs its touches — screenshots, and stopping it.
 
-Moved to Phase 2: Windows, which needed a machine with WSL to be verified on — done there.
-
-## Phase 2 — Advanced development experience (P1)
+### Phase 2 — Advanced development experience (P1)
 
 Done when testing across watches and finding bugs is quicker here than with a terminal, an external
 emulator and a separate debugger.
 
 - [x] Every platform side by side: `pebble screenshot --all-platforms` behind Capture Every
   Platform, and the last capture of each in the emulator tool window's All Platforms tab.
-- Several live emulators at once, one per platform — waits on a VNC display number per emulator
-  upstream.
 - [x] GIF recording from the frame stream (`javax.imageio`, no dependency), up to a minute.
 - [x] Battery, Bluetooth, clock, tap, tilt, compass, Timeline Quick View and content size from the
   emulator's tool window, over `pebble emu-*`.
@@ -88,11 +101,9 @@ emulator and a separate debugger.
   debugging, Alloy debugging through a relay inside the distribution, clangd there with LSP4IJ
   mapping file URIs — each verified by the live tests on WSL 2.5.10, Ubuntu 24.04, NAT networking;
   and setting up from nothing, on a distribution fresh from `wsl --install`
-  (`OnboardingLiveTest`). Untried: publishing, which runs `pebble login` and `pebble publish` in a
-  WSL terminal and needs an account; CLion's C engine, which needs a WSL toolchain configured in
-  CLion.
+  (`OnboardingLiveTest`). What is untried is under Next.
 
-## Phase 3 — Integrated tooling and automation (P2)
+### Phase 3 — Integrated tooling and automation (P2)
 
 - [x] Alloy debugging in the IDE's debugger: an `XDebugProcess` over xsbug's protocol on port 5002,
   where pebble-tool looks for xsbug. Breakpoints — the JavaScript debugger's own where it is
@@ -126,26 +137,19 @@ emulator and a separate debugger.
 - [x] Coding agents, part three: the debugger as tools — start, breakpoints, wait, step, evaluate,
   stop — for C and Alloy alike, through the IDE's own debug session.
 
-## Risks to settle early in Phase 1
+## Risks settled in Phase 1
 
-Each of these is a short experiment against a real SDK before the feature that depends on it.
+Each of these was a short experiment against a real SDK before the feature that depended on it.
 
 - **VNC — confirmed.** Frames arrive as raw 32-bit pixels and key events reach the buttons.
-  Pointer events are touches on emery and gabbro. pebble-tool's `--vnc` uses
-  display `:1` for every emulator, so only one can have it; the fix is a display number option
-  upstream.
+  Pointer events are touches on emery and gabbro. One emulator at a time has it: see Next.
 - **gdb and DAP — ruled out.** The SDK's gdb has no Python, so no `-i=dap`. C debugging speaks
   GDB/MI instead, which this gdb has.
-- **CLion and a regenerated compile database.** Confirm that CLion reloads `compile_commands.json`
-  when it changes. If it does not, a small optional module on CLion's API, in that one place.
 - **TypeScript and library roots — settled: a generated `tsconfig.json`.** Library roots alone do
   not do it: `import Poco from "commodetto/Poco"` resolves to nothing. The build writes the
   TypeScript settings it checks the app with for itself, under `build/mods/`; a root
   `tsconfig.json` that extends them, written after each build, makes the import resolve into the
   SDK's typings, and the build does not mind it.
-- **C highlighting outside CLion — open.** clangd checks a Pebble source clean from the compile
-  database (a live test). Whether LSP4IJ carries its diagnostics into a TextMate C file's editor
-  cannot be tested in a headless IDE, where LSP4IJ's annotator waits for answers that never come.
 - **The name — settled: Develop for Pebble.** Core Devices' trademark rules allow "Pebble" in a
   name only in reference ("… for Pebble"), and the Marketplace's "Pebble" is already another
   plugin's, for Pebble Templates. The plugin ID, packages, MCP tools and skill keep `pebble`: they

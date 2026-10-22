@@ -31,8 +31,8 @@ the build, so it is never behind.
 ## Decisions that keep it cheap to maintain
 
 **One archive for IDEA, CLion and WebStorm.** The plugin depends on `com.intellij.modules.platform`
-— and, once clangd arrives, LSP4IJ — and is compiled against no IDE-specific API. CLion opens a `compile_commands.json` natively, so C
-support there is the plugin keeping that file current; in IDEA and WebStorm, which have no C
+— and optionally on LSP4IJ, for clangd — and is compiled against no IDE-specific API. CLion opens a
+`compile_commands.json` natively, so C support there is the plugin keeping that file current; in IDEA and WebStorm, which have no C
 engine, the same file feeds clangd. The clangd server declines to start where CLion's engine is
 present, which is a runtime check on an installed plugin id rather than a compile-time dependency.
 `./gradlew verifyPlugin -PverifyClion` and `-PverifyWebStorm` hold the claim to account.
@@ -92,5 +92,5 @@ ui/         settings, the platform selector, the missing SDK banner, the new pro
 ```
 
 `sdk/` has no IntelliJ API in it on purpose: it is a set of functions of a directory tree, which is
-what makes it testable without an IDE, and what will let the live tests compare it against what
-pebble-tool itself reports.
+what makes it testable without an IDE, and what lets the live tests compare it against what
+pebble-tool itself reports (`SdkLiveTest`).

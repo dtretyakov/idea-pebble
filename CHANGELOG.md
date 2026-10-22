@@ -16,6 +16,11 @@
   appstore. C is debugged in the IDE's debugger, not in the console, as it said.
 - The plugin's icon has a dark variant, for the dark theme and the Marketplace's dark pages.
 
+### Coding agents
+
+- The `pebble` skill's command-line reference names the SDK's directory on macOS, not only on
+  Linux, and says that on Windows pebble-tool runs inside WSL.
+
 ## 0.10.0
 
 ### Windows

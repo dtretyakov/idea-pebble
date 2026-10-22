@@ -1,8 +1,8 @@
 # Coding agents and the IDE
 
 How a coding agent (Claude Code, Codex, Junie, Copilot, Cursor) develops a Pebble app, where it
-struggles, and what the plugin hands it through the IDE's MCP server and a skill. Since 0.9.0
-the first part is built: the `projectTaskRunner`, the P0 tools and the skill; the rest is the plan
+struggles, and what the plugin hands it through the IDE's MCP server and a skill. All of it is
+built, since 0.9.0: the `projectTaskRunner`, the tools and the skill; what building them showed is
 at the end. Facts were read from IntelliJ IDEA 2026.1 and 2026.2's bundled MCP server and from
 the Claude Code documentation (October 2026).
 
@@ -46,9 +46,9 @@ Some of these already do Pebble work, and should simply be made to:
   `package.json` resources and keys) and, outside CLion, clangd's diagnostics through LSP4IJ.
 - `get_run_configurations` and `execute_run_configuration` see the Pebble run configuration —
   but a run with logs never ends, so the call times out (scenario 3 needs its own tool).
-- `build_project` does nothing for a Pebble project yet. A `projectTaskRunner` that runs
-  `pebble build` for it would make the built-in tool, Build Project and Ctrl+F9 all build — the
-  IntelliJ way, and no new tool.
+- `build_project` builds a Pebble project: the plugin's `projectTaskRunner` runs `pebble build`
+  for it, so the built-in tool, Build Project and Ctrl+F9 all build — the IntelliJ way, and no new
+  tool.
 
 ## Tools the plugin adds
 
@@ -162,7 +162,7 @@ is nothing else to install. The agent connects to that server once:
   rank the header's names by shared words, `snake_case` and `CamelCase` alike, then by edits.
 - The MCP server calls a tool off the UI thread, and the tools need that thread free: saving
   documents and refreshing `build/` happen on it. A test that holds it waits forever, so the
-  live test calls the tools from another thread, as an agent does.
+  tests call the tools from another thread, as an agent does (`IdeTestCase.offUiThread`).
 - The Build Project runner is called off the UI thread, sometimes under a read lock: it saves
   documents and starts the build from the UI thread later, rather than waiting for it.
 - `pebble_ui_tests` runs the Pebble UI Tests configuration, so the run is in the IDE's test
@@ -178,13 +178,14 @@ is nothing else to install. The agent connects to that server once:
 - `@JvmDefaultWithoutCompatibility` on the toolset: otherwise Kotlin writes bridges to
   `McpToolset` methods that only 2026.2 has, and 2026.1 cannot load the class.
 
-## Order
+## How it was built
 
-1. Built in 0.9.0: `projectTaskRunner` for `build_project`, the P0 tools, and the skill with its
-   install action and Claude Code marketplace.
-2. Built in 0.9.0: UI tests as tools, `pebble_ui_tests` and `pebble_ui_test_accept`.
-3. Built in 0.9.0: the `pebble_debug_*` tools, then the P2 tools, `pebble_emulator_reset` and
-   `pebble_sdk`.
+All in 0.9.0, in this order:
+
+1. `projectTaskRunner` for `build_project`, the P0 tools, and the skill with its install action
+   and Claude Code marketplace.
+2. UI tests as tools, `pebble_ui_tests` and `pebble_ui_test_accept`.
+3. The `pebble_debug_*` tools, then the P2 tools, `pebble_emulator_reset` and `pebble_sdk`.
 
 Each with the same tests as the rest of the plugin: the tools called in an `IdeTestCase`, and a
 live test that has the MCP server answer a real client.

@@ -77,10 +77,7 @@ look at its screen and check the SDK's API.
    /plugin install pebble --marketplace dtretyakov/idea-pebble
    ```
 
-   On Claude Code before 2.1.275, run `/plugin marketplace add dtretyakov/idea-pebble`, then
-   `/plugin install pebble@idea-pebble`.
-
-[Coding agents](docs/agents.md) has the details.
+[Coding agents](docs/agents.md) has the details, and the commands for Claude Code before 2.1.275.
 
 ## Windows
 
@@ -99,9 +96,9 @@ distribution. The emulator's screen, logs and debuggers are in the IDE as on a M
 Projects can be in the distribution — open them as `\\wsl.localhost\Ubuntu-24.04\home\…`, where
 builds are several times faster — or on a Windows drive, which the distribution sees as `/mnt/c/…`.
 With several distributions, **Settings | Languages & Frameworks | Pebble | WSL** chooses one; by
-default it is the one the project is in, else WSL's default. In CLion, add a WSL toolchain so that
-its C engine reads the compile database the SDK writes with Linux paths; IDEA and WebStorm run
-clangd in the distribution (`sudo apt install clangd`). Installing on a watch over `--adb` needs
+default it is the one the project is in, else WSL's default. IDEA and WebStorm run clangd in the
+distribution (`sudo apt install clangd`). CLion's own C engine reads the compile database the SDK
+writes with Linux paths only through a WSL toolchain, which has not been tried yet. Installing on a watch over `--adb` needs
 adb inside WSL, which sees no USB devices without usbipd-win.
 
 ## Documentation

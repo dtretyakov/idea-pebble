@@ -9,4 +9,4 @@
 - [ ] `./gradlew verifyPlugin -PverifySince` — the promise `sinceBuild` makes to users on an older
       IDE; nothing else can tell you it still holds
 - [ ] `./gradlew test -PliveTests`, if you have the SDK set up and touched anything that drives it
-- [ ] No Pebble SDK content added to the repository — see CONTRIBUTING.md
+- [ ] Nothing of the Pebble SDK added to what the plugin ships — see CONTRIBUTING.md

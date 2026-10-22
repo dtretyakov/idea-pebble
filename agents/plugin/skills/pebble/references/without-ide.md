@@ -2,7 +2,9 @@
 
 The same loop as the MCP tools, with `pebble` (pebble-tool 5) in the project's directory. Every
 emulator command takes `--emulator <platform>`. Add `--vnc` so it uses the same emulator the IDE
-shows.
+shows. On Windows, pebble-tool runs only inside WSL: run these in the distribution's shell
+(`wsl -d <distribution>`), from the project's path as it sees it — `/mnt/c/...` for a Windows
+drive.
 
 | Step | Command |
 |------|---------|
@@ -18,6 +20,8 @@ shows.
 | SDK | `pebble sdk list`, `pebble sdk install latest` |
 
 API lookups without `pebble_api`: the headers are in
-`~/.local/share/pebble-sdk/SDKs/current/sdk-core/pebble/<platform>/include/pebble.h`. Their `//!`
+`<data>/SDKs/current/sdk-core/pebble/<platform>/include/pebble.h`, where `<data>` is
+`~/Library/Application Support/Pebble SDK` on macOS, and on Linux and in WSL `~/.pebble-sdk` if it
+exists, else `~/.local/share/pebble-sdk` (or `$XDG_DATA_HOME/pebble-sdk`). Their `//!`
 comments are the documentation. A function written as `#define name(...) (0)` there is a stub on
 that platform. Alloy's typings are in `.../SDKs/current/toolchain/moddable/typings/`.

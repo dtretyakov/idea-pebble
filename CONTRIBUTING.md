@@ -45,10 +45,11 @@ green.
   Facts about pebble-tool and the SDK go in [Notes on the Pebble SDK](docs/pebble-sdk-notes.md).
 * **The plugin drives pebble-tool and the IDE's own engines, and reimplements neither.**
   [Architecture](docs/architecture.md) says why; read it before adding a feature.
-* **Nothing of Core Devices' is committed.** No SDK files, headers or typings, no templates, no
-  documentation prose. Test fixtures are written for the test, in the SDK's *formats*. The README
-  and the plugin's description both say the plugin redistributes nothing of theirs, and that has to
-  stay true.
+* **The plugin ships nothing of Core Devices'.** No SDK files, headers, typings or documentation
+  prose under `src/main`: the plugin reads them from the SDK the user installed. The README and the
+  plugin's description both say it redistributes nothing of theirs, and that has to stay true. Test
+  resources hold only what a test needs, and
+  [src/test/resources/README.md](src/test/resources/README.md) says where each comes from.
 * **No `resource-bundle`.** Every string lives in the source that shows it.
 
 ## Commit messages

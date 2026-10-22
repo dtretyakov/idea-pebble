@@ -76,7 +76,10 @@ that exists but cannot bring one into being. So the first release goes up manual
    <https://plugins.jetbrains.com/plugin/add>. The archive is named after `rootProject.name` in
    `settings.gradle.kts`, not after the plugin's display name.
 3. Do not tag that version. A tag runs `publishPlugin`, and the Marketplace refuses a version it has
-   already seen; the first tag is the release after the one uploaded by hand.
+   already seen; the first tag is the release after the one uploaded by hand. So that version has no
+   GitHub release: its signed zip is the workflow run's artifact, and installing from disk starts
+   with the next one. 0.10.0 went up this way, on 21 October 2026, as
+   <https://plugins.jetbrains.com/plugin/35353-develop-for-pebble>.
 
 Then, on the listing page:
 
@@ -148,7 +151,7 @@ under `src/selfCheck`, which only `runSelfCheck` installs and which is never ver
 3. Tag it and push the tag.
 
 ```bash
-git tag v0.9.1 && git push origin v0.9.1
+git tag v0.10.1 && git push origin v0.10.1
 ```
 
 The workflow refuses to publish if the tag and `pluginVersion` disagree, which is the mistake that
@@ -156,7 +159,7 @@ otherwise ships one version under another's name.
 
 ### Betas
 
-A version with a suffix — `0.10.0-beta.1`, `0.10.0-eap.1` — publishes to a channel of that name
+A version with a suffix — `0.11.0-beta.1`, `0.11.0-eap.1` — publishes to a channel of that name
 instead of to everybody. Users opt in by adding `https://plugins.jetbrains.com/plugins/beta/list`
 under **Settings | Plugins | Manage Plugin Repositories**. The GitHub release is marked pre-release
 and carries the same zip, for anyone who would rather install from disk than add a repository.

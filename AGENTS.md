@@ -1,5 +1,8 @@
 # Notes for coding agents
 
+- Commits and pull requests carry no attribution: no `Co-Authored-By` or `Claude-Session`
+  trailers, no "Generated with" line and no session link. `.claude/settings.json` turns these
+  off for Claude Code; this note covers the sessions that add them by instruction instead.
 - Read [docs/architecture.md](docs/architecture.md) before adding a feature: the plugin drives
   pebble-tool and the IDE's own engines, and does not reimplement either.
 - Facts about pebble-tool and the SDK go in [docs/pebble-sdk-notes.md](docs/pebble-sdk-notes.md);
